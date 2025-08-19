@@ -78,6 +78,7 @@ public class CustomSecurityConfig {
                 .requestMatchers("/api/products/view/**").permitAll()
                 .requestMatchers("/api/restaurants/**").permitAll()
                 .requestMatchers("/api/community/**").permitAll()
+                .requestMatchers("/api/local-specialty/**").permitAll() // 지역특산물 정보 공개 접근 허용
 
                 .requestMatchers("/api/store/**").hasRole("BUSINESS_OWNER")
                 .requestMatchers("/api/funding/**").permitAll()
