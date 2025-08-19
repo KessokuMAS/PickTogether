@@ -37,15 +37,20 @@ dependencies {
 	implementation       'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly      'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly      'io.jsonwebtoken:jjwt-jackson:0.11.5'
-	implementation 'org.springframework.boot:spring-boot-starter-log4j2'
-
 	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
-   
+}
 
+// Spring Boot 기본 로깅 제외하고 log4j2 사용
+configurations {
+    all*.exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
 }
 
 tasks.named('test') {

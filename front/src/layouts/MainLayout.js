@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import LoadingSpinner from "../components/LoadingSpinner";
+import LoadingSpinner from "../components/member/LoadingSpinner";
 
 // Lazy import for MainMenu
 const MainMenu = lazy(() => import("../components/menus/Mainmenu"));

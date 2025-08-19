@@ -3,17 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { memberApi } from "../../api/memberApi";
 import { useAuth } from "../../context/AuthContext";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import LoadingSpinner from "../../components/member/LoadingSpinner";
 
 // Lazy imports for social login components
 const KakaoLoginComponent = lazy(() =>
-  import("../../components/KakaoLoginComponent")
+  import("../../components/member/KakaoLoginComponent")
 );
 const GoogleLoginComponent = lazy(() =>
-  import("../../components/GoogleLoginComponent")
+  import("../../components/member/GoogleLoginComponent")
 );
 const NaverLoginComponent = lazy(() =>
-  import("../../components/NaverLoginComponent")
+  import("../../components/member/NaverLoginComponent")
 );
 
 const LoginPage = () => {

@@ -22,6 +22,8 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JWTUtil jwtUtil; // 생성자 주입
+
 
     @Override
     public Map<String, Object> login(String email, String pw) {
@@ -49,7 +51,7 @@ public class MemberServiceImpl implements MemberService {
         claims.put("socialType", member.getSocialType());
         claims.put("roleNames", roleNames);
 
-        String accessToken = JWTUtil.generateToken(claims, 60); // 60분 유효
+        String accessToken = jwtUtil.generateToken(claims, 60); // 60분 유효
 
         // MemberDTO 생성
         MemberDTO memberDTO = MemberDTO.builder()
@@ -95,5 +97,16 @@ public class MemberServiceImpl implements MemberService {
         Map<String, Object> result = new HashMap<>();
         result.put("message", "회원가입이 완료되었습니다.");
         return result;
+    }
+
+    @Override
+    public MemberDTO getMemberByEmail(String email) {
+        return memberRepository.findByEmail(email)
+                .map(member -> MemberDTO.builder()
+                        .email(member.getEmail())
+                        .nickname(member.getNickname())
+                        .build()
+                )
+                .orElse(null);
     }
 } 

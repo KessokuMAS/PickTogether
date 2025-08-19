@@ -53,4 +53,8 @@ public class Member {
     public boolean isSocial() {
         return socialType != null && !socialType.isEmpty();
     }
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+@Builder.Default
+private List<MemberLocation> locations = new ArrayList<>();
 } 

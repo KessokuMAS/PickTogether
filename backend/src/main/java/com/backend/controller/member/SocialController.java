@@ -23,12 +23,14 @@ public class SocialController {
     private final SocialMemberService socialMemberService;
     private final GoogleMemberService googleMemberService;
     private final NaverMemberService naverMemberService;
+    private final JWTUtil jwtUtil; // 생성자 주입
 
     @GetMapping("/api/member/kakao")
     public Map<String, Object> getMemberFromKakao(@RequestParam String accessToken) {
         log.info("accessToken: {}", accessToken);
 
         MemberDTO memberDTO = socialMemberService.getKakaoMember(accessToken);
+        
 
         // 클레임 구성
         Map<String, Object> claims = Map.of(
@@ -41,8 +43,8 @@ public class SocialController {
         );
 
         // 토큰 발급 (정적 메서드 호출)
-        String jwtAccessToken = JWTUtil.generateToken(claims, 60 * 24); // 24시간
-        String jwtRefreshToken = JWTUtil.generateToken(claims, 60 * 24 * 7); // 7일
+        String jwtAccessToken = jwtUtil.generateToken(claims, 60 * 24); // 24시간
+        String jwtRefreshToken = jwtUtil.generateToken(claims, 60 * 24 * 7); // 7일
 
         // 응답 구성
         return Map.of(
@@ -69,8 +71,8 @@ public class SocialController {
         );
 
         // 토큰 발급 (정적 메서드 호출)
-        String jwtAccessToken = JWTUtil.generateToken(claims, 60 * 24); // 24시간
-        String jwtRefreshToken = JWTUtil.generateToken(claims, 60 * 24 * 7); // 7일
+        String jwtAccessToken = jwtUtil.generateToken(claims, 60 * 24); // 24시간
+        String jwtRefreshToken = jwtUtil.generateToken(claims, 60 * 24 * 7); // 7일
 
         // 응답 구성
         return Map.of(
@@ -106,8 +108,8 @@ public class SocialController {
         );
 
         // 토큰 발급 (정적 메서드 호출)
-        String jwtAccessToken = JWTUtil.generateToken(claims, 60 * 24); // 24시간
-        String jwtRefreshToken = JWTUtil.generateToken(claims, 60 * 24 * 7); // 7일
+        String jwtAccessToken = jwtUtil.generateToken(claims, 60 * 24); // 24시간
+        String jwtRefreshToken = jwtUtil.generateToken(claims, 60 * 24 * 7); // 7일
 
         // 응답 구성
         return Map.of(
