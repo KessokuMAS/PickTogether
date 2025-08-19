@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
 import { FiSearch } from "react-icons/fi";
 import NearbyKakaoRestaurants from "../../components/list/NearbyKakaoResturants";
+import MainBanner from "../../layouts/MainBanner"; // MainBanner 임포트
 
 const MainPage = () => {
   const [selectedAddress, setSelectedAddress] = useState("");
@@ -19,32 +20,9 @@ const MainPage = () => {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const handleOpenLocationPopup = () => {
-    window.open(
-      "/location", // 라우터 경로에 맞게 수정
-      "위치 설정",
-      "width=800,height=700"
-    );
-  };
-
   return (
     <MainLayout>
-      {/* 📍 위치 설정 버튼 */}
-      <div className="flex justify-center items-center px-4 mt-6">
-        <button
-          onClick={handleOpenLocationPopup}
-          className="px-4 py-2 bg-orange-400 text-white rounded hover:bg-orange-500 transition"
-        >
-          위치 설정
-        </button>
-        {selectedAddress && (
-          <span className="ml-4 text-sm text-gray-700">
-            선택된 위치: {selectedAddress}
-          </span>
-        )}
-      </div>
-
-      {/* 🔍 검색창 */}
+      {/* 🔍 검색창 - 메인배너 위로 이동 */}
       <div className="flex flex-col justify-center items-center mb-4">
         <div className="relative">
           <input
@@ -58,11 +36,9 @@ const MainPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-col justify-center items-center">
-        <img src="/products3.PNG" />
-        <img src="/products.PNG" />
-        <img src="/products2.PNG" />
-      </div>
+      {/* 배너 */}
+      <MainBanner />
+
       <NearbyKakaoRestaurants />
     </MainLayout>
   );

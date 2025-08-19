@@ -1,9 +1,13 @@
 package com.backend.controller.member;
 
+import com.backend.dto.member.MemberDTO;
 import com.backend.service.member.MemberService;
+import com.backend.util.JWTUtil;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -95,4 +99,18 @@ public class MemberController {
         response.put("message", "Member API is working!");
         return ResponseEntity.ok(response);
     }
+                    
+    @GetMapping("/mypage")
+    public ResponseEntity<MemberDTO> getCurrentMember(Authentication authentication) {
+        // 인증 객체에서 username(email) 꺼내기
+        String email = authentication.getName();
+        MemberDTO member = memberService.getMemberByEmail(email);
+
+        if (member == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(member);
+    }
+
 } 
