@@ -89,7 +89,7 @@ const menuItems = [
     color: "text-yellow-500",
   },
   {
-    to: "/trending",
+    to: "/ai-recommend",
     icon: GiArtificialIntelligence,
     label: "AI 추천",
     color: "text-blue-500",

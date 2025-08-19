@@ -61,6 +61,39 @@ export default function MyPageComponent() {
     return t;
   }, [member]);
 
+  // 관리자 역할 확인
+  const isAdmin = useMemo(() => {
+    console.log("=== DEBUG INFO ===");
+    console.log("Member data:", member);
+    console.log("Member roles:", member?.memberRoleList);
+    console.log("Role names:", member?.roleNames);
+    console.log("Role names length:", member?.roleNames?.length);
+    console.log("Role names type:", typeof member?.roleNames);
+    console.log("Role names is array:", Array.isArray(member?.roleNames));
+    if (member?.roleNames && member.roleNames.length > 0) {
+      console.log("First role:", member.roleNames[0]);
+      console.log("All roles:", member.roleNames);
+    }
+    console.log(
+      "Role types:",
+      member?.roleNames?.map((role) => typeof role)
+    );
+    // roleNames 필드에서 ADMIN 역할 확인
+    const adminCheck = member?.roleNames?.some((role) => role === "ADMIN");
+    console.log("Is Admin:", adminCheck);
+    console.log("==================");
+    return adminCheck;
+  }, [member]);
+
+  // 소상공인 역할 확인
+  const isBusinessOwner = useMemo(() => {
+    const businessOwnerCheck = member?.roleNames?.some(
+      (role) => role === "BUSINESS_OWNER"
+    );
+    console.log("Is Business Owner:", businessOwnerCheck);
+    return businessOwnerCheck;
+  }, [member]);
+
   const reload = () => {
     setErr("");
     setLoading(true);
@@ -169,6 +202,28 @@ export default function MyPageComponent() {
               </div>
             </div>
             <div className="flex gap-2">
+              {isAdmin && (
+                <a
+                  href="/mypage/admin/settings"
+                  className="rounded-xl border border-white/50 bg-yellow-500 px-4 py-2 text-sm font-bold text-white hover:bg-yellow-600"
+                >
+                  관리자 설정
+                </a>
+              )}
+              {isBusinessOwner && (
+                <a
+                  href="/mypage/business/requests"
+                  className="rounded-xl border border-white/50 bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600"
+                >
+                  가게 요청
+                </a>
+              )}
+              <a
+                href="/main"
+                className="rounded-xl border border-white/50 bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600"
+              >
+                메인으로 가기
+              </a>
               <a
                 href="/member/edit"
                 className="rounded-xl border border-white/50 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-white/90"
