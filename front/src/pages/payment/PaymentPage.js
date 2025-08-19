@@ -12,6 +12,7 @@ import {
   FiShoppingCart,
   FiCheck,
 } from "react-icons/fi";
+import { IoRestaurantOutline } from "react-icons/io5";
 
 const PaymentPage = () => {
   const [searchParams] = useSearchParams();
@@ -254,9 +255,9 @@ const PaymentPage = () => {
     if (!specialtyName || !specialtyPrice) {
       return (
         <MainLayout>
-          <div className="max-w-4xl mx-auto p-4">
-            <div className="text-center py-20">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <div className="p-4 flex justify-center bg-white min-h-screen">
+            <div className="w-full max-w-[1200px] text-center py-20">
+              <h1 className="text-2xl font-bold text-black mb-4">
                 잘못된 접근입니다
               </h1>
               <p className="text-gray-600 mb-6">
@@ -264,9 +265,9 @@ const PaymentPage = () => {
               </p>
               <button
                 onClick={handleBack}
-                className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition"
               >
-                뒤로가기
+                <FiArrowLeft /> 뒤로가기
               </button>
             </div>
           </div>
@@ -278,9 +279,9 @@ const PaymentPage = () => {
     if (!restaurantName || selectedMenus.length === 0) {
       return (
         <MainLayout>
-          <div className="max-w-4xl mx-auto p-4">
-            <div className="text-center py-20">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <div className="p-4 flex justify-center bg-white min-h-screen">
+            <div className="w-full max-w-[1200px] text-center py-20">
+              <h1 className="text-2xl font-bold text-black mb-4">
                 잘못된 접근입니다
               </h1>
               <p className="text-gray-600 mb-6">
@@ -288,9 +289,9 @@ const PaymentPage = () => {
               </p>
               <button
                 onClick={handleBack}
-                className="px-6 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition"
               >
-                뒤로가기
+                <FiArrowLeft /> 뒤로가기
               </button>
             </div>
           </div>
@@ -301,106 +302,96 @@ const PaymentPage = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto p-4">
-        {/* 헤더 */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={handleBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <FiArrowLeft className="text-xl" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {productType === "specialty" ? "지역특산품 구매" : "펀딩 참여"}
-          </h1>
-        </div>
+      <div className="p-4 flex justify-center bg-white min-h-screen">
+        <div className="w-full max-w-[1200px]">
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <IoRestaurantOutline className="text-xl" />
+            </button>
+            <h1 className="text-2xl font-bold text-black">
+              {productType === "specialty" ? "지역특산품 구매" : "펀딩 참여"}
+            </h1>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 왼쪽: 주문 요약 */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FiShoppingCart className="text-pink-600" />
-                주문 요약
-              </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Order Summary & Payment Info */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Order Summary */}
+              <div className="bg-white border border-gray-300 rounded-lg p-6">
+                <h2 className="text-lg font-bold text-black mb-4 flex items-center gap-2">
+                  <FiShoppingCart /> 주문 요약
+                </h2>
 
-              {/* 레스토랑 정보 */}
-              {(productType === "restaurant" || !productType) && (
-                <>
-                  <div className="border-b border-gray-200 pb-4 mb-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      {restaurantName}
-                    </h3>
-                    <p className="text-sm text-gray-600">펀딩 참여</p>
-                  </div>
+                {/* 레스토랑 정보 */}
+                {(productType === "restaurant" || !productType) && (
+                  <>
+                    <div className="border-b border-gray-200 pb-4 mb-4">
+                      <h3 className="font-semibold text-black">
+                        {restaurantName}
+                      </h3>
+                      <p className="text-sm text-gray-600">펀딩 참여</p>
+                    </div>
 
-                  {/* 선택된 메뉴들 */}
-                  <div className="space-y-4 mb-4">
-                    {selectedMenus.map((menu) => (
-                      <div
-                        key={menu.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100"
-                      >
-                        {/* 메뉴 정보 */}
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 text-lg mb-1">
-                            {menu.name}
-                          </div>
-                          {menu.description && (
-                            <div className="text-sm text-gray-600 mb-2">
-                              {menu.description}
+                    {/* 선택된 메뉴들 */}
+                    <div className="space-y-3 mb-4">
+                      {selectedMenus.map((menu) => (
+                        <div
+                          key={menu.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div>
+                            <div className="font-medium text-black">
+                              {menu.name}
                             </div>
-                          )}
-                          <div className="text-sm text-gray-600">
-                            {Number(menu.price).toLocaleString()}원 ×{" "}
-                            {menu.quantity}개
+                            <div className="text-sm text-gray-600">
+                              {Number(menu.price).toLocaleString()}원 ×{" "}
+                              {menu.quantity}개
+                            </div>
                           </div>
-                        </div>
-
-                        {/* 메뉴 합계 금액 */}
-                        <div className="text-right">
-                          <div className="font-bold text-pink-600 text-xl">
+                          <div className="font-bold text-green-600">
                             {(menu.price * menu.quantity).toLocaleString()}원
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+                      ))}
+                    </div>
+                  </>
+                )}
 
-              {/* 지역특산품 정보 */}
-              {productType === "specialty" && (
-                <>
-                  <div className="border-b border-gray-200 pb-4 mb-4">
-                    <h3 className="font-semibold text-gray-900 mb-2">
-                      {specialtyName}
-                    </h3>
-                    <p className="text-sm text-gray-600">지역특산품 구매</p>
-                  </div>
+                {/* 지역특산품 정보 */}
+                {productType === "specialty" && (
+                  <>
+                    <div className="border-b border-gray-200 pb-4 mb-4">
+                      <h3 className="font-semibold text-black">
+                        {specialtyName}
+                      </h3>
+                      <p className="text-sm text-gray-600">지역특산품 구매</p>
+                    </div>
 
-                  {/* 상품 정보 */}
-                  <div className="space-y-3 mb-4">
-                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 text-lg mb-1">
-                            {specialtyName}
+                    {/* 상품 정보 */}
+                    <div className="space-y-3 mb-4">
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-black text-lg mb-1">
+                              {specialtyName}
+                            </div>
+                            {/* 지역 정보 표시 */}
+                            <div className="text-sm text-blue-600 font-medium mb-2">
+                              지역:{" "}
+                              {specialtySidoNm && specialtySigunguNm
+                                ? `${specialtySidoNm} ${specialtySigunguNm}`
+                                : "지역 정보 없음"}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {Number(specialtyPrice).toLocaleString()}원 ×{" "}
+                              {specialtyQuantity}개
+                            </div>
                           </div>
-                          {/* 지역 정보 표시 */}
-                          <div className="text-sm text-blue-600 font-medium mb-2">
-                            지역:{" "}
-                            {specialtySidoNm && specialtySigunguNm
-                              ? `${specialtySidoNm} ${specialtySigunguNm}`
-                              : "지역 정보 없음"}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {Number(specialtyPrice).toLocaleString()}원 ×{" "}
-                            {specialtyQuantity}개
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-bold text-pink-600 text-xl">
+                          <div className="font-bold text-green-600 text-xl">
                             {(
                               Number(specialtyPrice) * Number(specialtyQuantity)
                             ).toLocaleString()}
@@ -409,332 +400,312 @@ const PaymentPage = () => {
                         </div>
                       </div>
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              {/* 총 금액 */}
-              <div className="border-t border-gray-200 pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">
-                    총 금액
-                  </span>
-                  <span className="text-2xl font-bold text-pink-600">
-                    {productType === "specialty"
-                      ? (
-                          Number(specialtyPrice) * Number(specialtyQuantity)
-                        ).toLocaleString()
-                      : Number(totalPrice).toLocaleString()}
-                    원
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* 결제 정보 입력 */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FiUser className="text-pink-600" />
-                참여자 정보
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    이름 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={paymentInfo.name}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="이름을 입력하세요"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    전화번호 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={paymentInfo.phone}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="010-0000-0000"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    이메일 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={paymentInfo.email}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="example@email.com"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-800">
-                      <span className="text-sm font-medium">
-                        {productType === "specialty"
-                          ? "🚚 배송 안내"
-                          : "📱 수령 방법"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-blue-700 mt-1">
+                {/* 총 금액 */}
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold text-black">
+                      총 금액
+                    </span>
+                    <span className="text-xl font-bold text-green-600">
                       {productType === "specialty"
-                        ? "주문 완료 후 2-3일 내 배송되며, 배송 상황은 주문 내역에서 확인할 수 있습니다."
-                        : "큐알코드는 사이트에서 언제든지 확인 가능하며\n수신동의 시 문자/이메일로도 발송됩니다."}
-                    </p>
+                        ? (
+                            Number(specialtyPrice) * Number(specialtyQuantity)
+                          ).toLocaleString()
+                        : Number(totalPrice).toLocaleString()}
+                      원
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* 이용약관 동의 */}
-              <div className="mb-6">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={paymentInfo.agreeTerms}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        agreeTerms: e.target.checked,
-                      }))
-                    }
-                    className="mt-1 text-pink-600"
-                  />
-                  <div className="text-sm text-gray-700">
-                    <span className="text-red-500">*</span>{" "}
-                    {productType === "specialty"
-                      ? "상품 구매 및 개인정보 처리에 대한"
-                      : "펀딩 참여 및 개인정보 처리에 대한"}{" "}
-                    <a href="#" className="text-pink-600 underline">
-                      이용약관
-                    </a>
-                    과{" "}
-                    <a href="#" className="text-pink-600 underline">
-                      개인정보처리방침
-                    </a>
-                    에 동의합니다.
+              {/* Payment Info */}
+              <div className="bg-white border border-gray-300 rounded-lg p-6">
+                <h2 className="text-lg font-bold text-black mb-4 flex items-center gap-2">
+                  <FiUser /> 참여자 정보
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      이름 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={paymentInfo.name}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="이름을 입력하세요"
+                    />
                   </div>
-                </label>
-              </div>
-
-              {/* 수신 동의 */}
-              <div className="mb-6 space-y-3">
-                <h4 className="text-sm font-medium text-gray-700">
-                  수신 동의 (선택사항)
-                </h4>
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={paymentInfo.agreeSMS}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        agreeSMS: e.target.checked,
-                      }))
-                    }
-                    className="text-pink-600"
-                  />
-                  <div className="text-sm text-gray-700">
-                    SMS를 통한{" "}
-                    {productType === "specialty"
-                      ? "주문 확인 및 배송 진행상황 알림 수신에"
-                      : "큐알코드 발송 및 펀딩 진행상황 알림 수신에"}{" "}
-                    동의합니다.
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      전화번호 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={paymentInfo.phone}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="010-0000-0000"
+                    />
                   </div>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={paymentInfo.agreeEmail}
-                    onChange={(e) =>
-                      setPaymentInfo((prev) => ({
-                        ...prev,
-                        agreeEmail: e.target.checked,
-                      }))
-                    }
-                    className="text-pink-600"
-                  />
-                  <div className="text-sm text-gray-700">
-                    이메일을 통한{" "}
-                    {productType === "specialty"
-                      ? "주문 확인 및 배송 진행상황 알림 수신에"
-                      : "큐알코드 발송 및 펀딩 진행상황 알림 수신에"}{" "}
-                    동의합니다.
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      이메일 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={paymentInfo.email}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="example@email.com"
+                    />
                   </div>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* 오른쪽: 결제 요약 */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-4">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
-                결제 요약
-              </h3>
-
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">상품 금액</span>
-                  <span>
-                    {productType === "specialty"
-                      ? (
-                          Number(specialtyPrice) * Number(specialtyQuantity)
-                        ).toLocaleString()
-                      : Number(totalPrice).toLocaleString()}
-                    원
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">수수료</span>
-                  <span>0원</span>
-                </div>
-                <hr className="border-gray-200" />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>총 결제금액</span>
-                  <span className="text-pink-600">
-                    {productType === "specialty"
-                      ? (
-                          Number(specialtyPrice) * Number(specialtyQuantity)
-                        ).toLocaleString()
-                      : Number(totalPrice).toLocaleString()}
-                    원
-                  </span>
-                </div>
-              </div>
-
-              <button
-                onClick={handlePayment}
-                disabled={isProcessingPayment}
-                className="w-full bg-pink-600 text-white font-bold py-4 px-6 rounded-lg hover:bg-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                <FiCheck className="text-lg" />
-                {isProcessingPayment
-                  ? "결제 진행 중..."
-                  : productType === "specialty"
-                  ? "구매하기"
-                  : "펀딩 참여하기"}
-              </button>
-
-              <div className="mt-4 text-xs text-gray-500 text-center">
-                {productType === "specialty"
-                  ? "결제 완료 후 주문 내역에서 배송 상황을 확인할 수 있습니다."
-                  : "결제 완료 후 큐알코드는 사이트에서 언제든지 확인 가능하며, 수신동의 시 문자/이메일로도 발송됩니다."}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 결제 수단 선택 모달 */}
-        {showPaymentModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4 text-center">
-                결제 수단 선택
-              </h3>
-
-              <div className="space-y-3 mb-6">
-                <button
-                  onClick={() => handlePaymentSelect("kakaopay")}
-                  className="w-full p-4 border border-yellow-300 rounded-lg hover:bg-yellow-50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">K</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        카카오페이
+                  <div className="md:col-span-2">
+                    <div className="p-3 bg-gray-100 border border-gray-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-black">
+                        <span className="text-sm font-medium">
+                          {productType === "specialty"
+                            ? "🚚 배송 안내"
+                            : "📱 수령 방법"}
+                        </span>
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 mt-1">
+                        {productType === "specialty"
+                          ? "주문 완료 후 2-3일 내 배송되며, 배송 상황은 주문 내역에서 확인할 수 있습니다."
+                          : "큐알코드는 사이트에서 언제든지 확인 가능하며\n수신동의 시 문자/이메일로도 발송됩니다."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 이용약관 동의 */}
+                <div className="mb-6">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paymentInfo.agreeTerms}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          agreeTerms: e.target.checked,
+                        }))
+                      }
+                      className="mt-1 text-black rounded"
+                    />
+                    <div className="text-sm text-gray-700">
+                      <span className="text-red-500">*</span>{" "}
+                      {productType === "specialty"
+                        ? "상품 구매 및 개인정보 처리에 대한"
+                        : "펀딩 참여 및 개인정보 처리에 대한"}{" "}
+                      <a href="#" className="text-blue-600 hover:underline">
+                        이용약관
+                      </a>
+                      과{" "}
+                      <a href="#" className="text-blue-600 hover:underline">
+                        개인정보처리방침
+                      </a>
+                      에 동의합니다.
+                    </div>
+                  </label>
+                </div>
+
+                {/* 수신 동의 */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">
+                    수신 동의 (선택사항)
+                  </h4>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paymentInfo.agreeSMS}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          agreeSMS: e.target.checked,
+                        }))
+                      }
+                      className="text-black rounded"
+                    />
+                    <div className="text-sm text-gray-700">
+                      SMS를 통한{" "}
+                      {productType === "specialty"
+                        ? "주문 확인 및 배송 진행상황 알림 수신에"
+                        : "큐알코드 발송 및 펀딩 진행상황 알림 수신에"}{" "}
+                      동의합니다.
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paymentInfo.agreeEmail}
+                      onChange={(e) =>
+                        setPaymentInfo((prev) => ({
+                          ...prev,
+                          agreeEmail: e.target.checked,
+                        }))
+                      }
+                      className="text-black rounded"
+                    />
+                    <div className="text-sm text-gray-700">
+                      이메일을 통한{" "}
+                      {productType === "specialty"
+                        ? "주문 확인 및 배송 진행상황 알림 수신에"
+                        : "큐알코드 발송 및 펀딩 진행상황 알림 수신에"}{" "}
+                      동의합니다.
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Payment Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white border border-gray-300 rounded-lg p-6 sticky top-4">
+                <h3 className="text-lg font-bold text-black mb-4">결제 요약</h3>
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">상품 금액</span>
+                    <span>
+                      {productType === "specialty"
+                        ? (
+                            Number(specialtyPrice) * Number(specialtyQuantity)
+                          ).toLocaleString()
+                        : Number(totalPrice).toLocaleString()}
+                      원
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">수수료</span>
+                    <span>0원</span>
+                  </div>
+                  <hr className="border-gray-200" />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>총 결제금액</span>
+                    <span className="text-green-600">
+                      {productType === "specialty"
+                        ? (
+                            Number(specialtyPrice) * Number(specialtyQuantity)
+                          ).toLocaleString()
+                        : Number(totalPrice).toLocaleString()}
+                      원
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handlePayment}
+                  disabled={isProcessingPayment}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  <FiCheck />
+                  {isProcessingPayment
+                    ? "결제 진행 중..."
+                    : productType === "specialty"
+                    ? "구매하기"
+                    : "펀딩 참여하기"}
+                </button>
+                <p className="mt-4 text-xs text-gray-500 text-center">
+                  {productType === "specialty"
+                    ? "결제 완료 후 주문 내역에서 배송 상황을 확인할 수 있습니다."
+                    : "결제 완료 후 큐알코드는 사이트에서 언제든지 확인 가능하며, 수신동의 시 문자/이메일로도 발송됩니다."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Method Modal */}
+          {showPaymentModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-bold text-black mb-4 text-center">
+                  결제 수단 선택
+                </h3>
+                <div className="space-y-3 mb-6">
+                  {/* 카카오페이 */}
+                  <button
+                    onClick={() => handlePaymentSelect("kakaopay")}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition transform hover:scale-105"
+                    style={{ backgroundColor: "#FEE500" }}
+                  >
+                    <img
+                      src="../../kakao1.png"
+                      alt="KakaoPay"
+                      className="w-8 h-8"
+                    />
+                    <div className="text-left">
+                      <div className="font-semibold text-black">카카오페이</div>
+                      <div className="text-sm text-gray-700">
                         간편하게 결제하세요
                       </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
 
-                <button
-                  onClick={() => handlePaymentSelect("tosspay")}
-                  className="w-full p-4 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">T</span>
+                  {/* 토스페이 */}
+                  <button
+                    onClick={() => handlePaymentSelect("tosspay")}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition transform hover:scale-105"
+                    style={{ backgroundColor: "#007AFF" }}
+                  >
+                    <img
+                      src="../../toss.png"
+                      alt="TossPay"
+                      className="w-8 h-8"
+                    />
+                    <div className="text-left">
+                      <div className="font-semibold text-white">토스페이</div>
+                      <div className="text-sm text-white">토스로 간편 결제</div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        토스페이
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        토스로 간편 결제
-                      </div>
-                    </div>
-                  </div>
-                </button>
+                  </button>
 
-                <button
-                  onClick={() => handlePaymentSelect("card")}
-                  className="w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center">
-                      <FiCreditCard className="text-white text-sm" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        일반결제
-                      </div>
+                  {/* 일반결제 */}
+                  <button
+                    onClick={() => handlePaymentSelect("card")}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                  >
+                    <FiCreditCard className="w-8 h-8 text-black" />
+                    <div className="text-left">
+                      <div className="font-semibold text-black">일반결제</div>
                       <div className="text-sm text-gray-600">
                         신용카드, 계좌이체 등
                       </div>
                     </div>
-                  </div>
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+                >
+                  취소
                 </button>
               </div>
-
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="w-full bg-gray-500 text-white font-medium py-2 px-4 rounded transition-colors"
-              >
-                취소
-              </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 결제 진행 중 UI */}
-        {isProcessingPayment && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 text-center">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">
+          {/* Payment Processing Modal */}
+          {isProcessingPayment && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 text-center">
+                <h3 className="text-lg font-bold text-black mb-2">
                   {selectedPayment === "kakaopay"
                     ? "카카오페이"
                     : selectedPayment === "tosspay"
@@ -745,24 +716,22 @@ const PaymentPage = () => {
                 <p className="text-gray-600 mb-4">
                   결제창이 열립니다. 결제를 완료해주세요.
                 </p>
+                <div className="animate-pulse mb-4">
+                  <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto"></div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsProcessingPayment(false);
+                    setSelectedPayment("");
+                  }}
+                  className="text-blue-600 hover:underline"
+                >
+                  결제 취소하기
+                </button>
               </div>
-
-              <div className="animate-pulse mb-4">
-                <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsProcessingPayment(false);
-                  setSelectedPayment("");
-                }}
-                className="text-pink-500 hover:text-pink-700 underline"
-              >
-                결제 취소하기
-              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </MainLayout>
   );
