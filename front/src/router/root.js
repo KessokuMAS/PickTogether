@@ -41,6 +41,18 @@ const LocalSpecialtyPage = lazy(() =>
 const LocalSpecialtyDetailPage = lazy(() =>
   import("../pages/localSpecialty/LocalSpecialtyDetailPage")
 );
+const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
+
+// 마이페이지 관련 페이지들
+const BusinessRequestsPage = lazy(() =>
+  import("../pages/business/BusinessRequestPage")
+);
+const AdminSettingsPage = lazy(() =>
+  import("../pages/admin/AdminSettingsPage")
+);
+const BusinessRequestManagementPage = lazy(() =>
+  import("../pages/admin/BusinessRequestManagementPage")
+);
 
 const root = createBrowserRouter([
   {
@@ -164,8 +176,40 @@ const root = createBrowserRouter([
     ),
   },
   {
+    path: "/ai-recommend",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AiRecommendPage />
+      </Suspense>
+    ),
+  },
+  {
     path: "/local-specialty/:id/purchase",
     lazy: () => import("../pages/localSpecialty/LocalSpecialtyPurchasePage"),
+  },
+  {
+    path: "/mypage/business/requests",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <BusinessRequestsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/mypage/admin/settings",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AdminSettingsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/mypage/admin/business-requests",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <BusinessRequestManagementPage />
+      </Suspense>
+    ),
   },
 ]);
 

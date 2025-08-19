@@ -102,11 +102,19 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public MemberDTO getMemberByEmail(String email) {
         return memberRepository.findByEmail(email)
-                .map(member -> MemberDTO.builder()
-                        .email(member.getEmail())
-                        .nickname(member.getNickname())
-                        .build()
-                )
+                .map(member -> {
+                    // 역할 목록을 문자열 리스트로 변환
+                    List<String> roleNames = member.getMemberRoleList().stream()
+                            .map(MemberRole::name)
+                            .collect(Collectors.toList());
+                    
+                    return MemberDTO.builder()
+                            .email(member.getEmail())
+                            .nickname(member.getNickname())
+                            .socialType(member.getSocialType())
+                            .roleNames(roleNames)
+                            .build();
+                })
                 .orElse(null);
     }
 } 
