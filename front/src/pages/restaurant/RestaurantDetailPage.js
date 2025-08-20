@@ -16,6 +16,7 @@ import {
   FiShare2,
   FiShoppingCart,
   FiPlus,
+  FiCheck,
   FiMinus,
 } from "react-icons/fi";
 import { IoRestaurantOutline } from "react-icons/io5";
@@ -27,64 +28,23 @@ const API_BASE =
   process.env.REACT_APP_API_BASE ||
   "http://localhost:8080";
 
-// 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
-const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return null;
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-  // 백엔드에서 반환된 상대 경로를 절대 URL로 변환
-  return `${API_BASE}/${imageUrl}`;
-};
-
-// Circular Progress Component
-const CircularProgress = ({ value = 0, size = 60, stroke = 4 }) => {
+// Bar Progress Component
+const BarProgress = ({ value = 0, maxValue = 100 }) => {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - pct / 100);
-
-  const strokeColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
+  const barColor = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#3b82f6";
 
   return (
-    <div
-      style={{ width: size, height: size }}
-      className="relative flex items-center justify-center"
-      title={`${pct}%`}
-    >
-      <svg width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          className="text-gray-200"
-          stroke="currentColor"
+    <div className="w-full flex flex-col gap-4">
+      <div className="w-full bg-gray-100 rounded-full h-6">
+        <div
+          className="h-6 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
         />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          stroke={strokeColor}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          className="transition-colors duration-500 ease-out"
-        />
-      </svg>
-      <span
-        className="absolute font-bold transition-colors duration-500 ease-out"
-        style={{
-          fontSize: `${size * 0.3}px`,
-          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
-        }}
-      >
-        {pct}%
-      </span>
+      </div>
+      <div className="flex justify-between items-center text-lg font-semibold text-gray-800">
+        <span>{pct}% 달성</span>
+        <span>목표 {maxValue.toLocaleString()}원</span>
+      </div>
     </div>
   );
 };
@@ -97,7 +57,8 @@ const RestaurantDetailPage = () => {
   const [copied, setCopied] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [selectedMenus, setSelectedMenus] = useState([]);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState({});
+  const [addedToCart, setAddedToCart] = useState({});
 
   // Fetch restaurant details
   useEffect(() => {
@@ -119,21 +80,12 @@ const RestaurantDetailPage = () => {
 
   // Image source with fallback
   const imgSrc = useMemo(() => {
-    const fallback = `/${fallbackIdx}.jpg`;
+    const fallback = `/${fallbackIdx}.png`;
     const url = data?.imageUrl;
-
     if (!url) return fallback;
-
-    // 승인된 가게 요청인지 확인 (uploads/ 포함 여부)
-    const hasCustomImage = url && url.includes("uploads/");
-
-    if (hasCustomImage) {
-      // 승인된 가게: 실제 이미지 사용
-      return getImageUrl(url);
-    } else {
-      // 기존 CSV 데이터: ID 기반 이미지 사용
-      return fallback;
-    }
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/")) return `${API_BASE}${url}`;
+    return url;
   }, [data, fallbackIdx]);
 
   // Funding period calculation
@@ -142,7 +94,10 @@ const RestaurantDetailPage = () => {
     const addDays = 7 + ((Number(id) || 0) % 8);
     const end = new Date(now);
     end.setDate(end.getDate() + addDays);
-    const daysLeft = Math.ceil((end.getTime() - now.getTime()) / 86400000);
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((end.getTime() - now.getTime()) / 86400000)
+    );
     return { start: now, end, daysLeft };
   }, [id]);
 
@@ -159,7 +114,7 @@ const RestaurantDetailPage = () => {
   // Fallback menu items
   const fallbackMenuItems = useMemo(() => {
     const base = Number(id) || 1;
-    const pick = (offset) => `/${((base + offset) % 45) + 1}.jpg`;
+    const pick = (offset) => `/${((base + offset) % 45) + 1}.png`;
     return [
       {
         id: base * 10 + 1,
@@ -213,13 +168,12 @@ const RestaurantDetailPage = () => {
   // Handle menu addition
   const addToCart = useCallback(
     (menu) => {
-      if (isAddingToCart) return; // 중복 실행 방지
-
-      setIsAddingToCart(true);
+      if (isAddingToCart[menu.id]) return;
+      setIsAddingToCart((prev) => ({ ...prev, [menu.id]: true }));
+      setAddedToCart((prev) => ({ ...prev, [menu.id]: true }));
       setSelectedMenus((prev) => {
         const existingIndex = prev.findIndex((item) => item.id === menu.id);
         if (existingIndex >= 0) {
-          // 기존 아이템이 있으면 수량을 1씩만 증가
           const updatedMenus = [...prev];
           updatedMenus[existingIndex] = {
             ...updatedMenus[existingIndex],
@@ -227,12 +181,12 @@ const RestaurantDetailPage = () => {
           };
           return updatedMenus;
         }
-        // 새 아이템이면 수량 1로 추가
         return [...prev, { ...menu, quantity: 1 }];
       });
-
-      // 짧은 지연 후 플래그 리셋
-      setTimeout(() => setIsAddingToCart(false), 100);
+      setTimeout(() => {
+        setIsAddingToCart((prev) => ({ ...prev, [menu.id]: false }));
+        setAddedToCart((prev) => ({ ...prev, [menu.id]: false }));
+      }, 1000);
     },
     [isAddingToCart]
   );
@@ -266,159 +220,239 @@ const RestaurantDetailPage = () => {
     }
   };
 
+  // Handle funding button click
+  const handleFundingClick = () => {
+    if (selectedMenus.length === 0) {
+      alert("메뉴를 선택해주세요");
+      return;
+    }
+    const params = new URLSearchParams({
+      restaurantId: String(id || ""),
+      restaurantName: data?.name || "",
+      menus: JSON.stringify(selectedMenus),
+      totalPrice: String(totalPrice),
+    }).toString();
+    window.location.href = `/payment?${params}`;
+  };
+
   return (
     <MainLayout>
-      <div className="p-4 flex justify-center bg-white min-h-screen">
-        <div className="w-full max-w-[1200px]">
+      <div className="bg-gray-50 min-h-screen p-4 sm:p-8 bg-[url('https://www.transparenttextures.com/patterns/light-wool.png')]">
+        <div className="w-full max-w-7xl mx-auto">
+          {/* Back Button */}
           <Link
             to="/main"
-            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mb-4"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-emerald-600 text-sm font-medium mb-8 transition-colors"
           >
-            <IoRestaurantOutline /> 뒤로
+            <IoRestaurantOutline className="text-lg" /> 뒤로
           </Link>
 
           {loading ? (
-            <div className="animate-pulse">
-              <div className="w-full h-64 bg-gray-200 rounded-lg" />
-              <div className="mt-4 space-y-2">
-                <div className="h-6 w-48 bg-gray-200 rounded" />
-                <div className="h-4 w-full bg-gray-200 rounded" />
-                <div className="h-4 w-1/2 bg-gray-200 rounded" />
+            <div className="animate-pulse space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="col-span-3 h-96 bg-gray-100 rounded-2xl" />
+                <div className="col-span-2 space-y-4">
+                  <div className="h-12 w-80 bg-gray-100 rounded-lg" />
+                  <div className="h-6 w-full bg-gray-100 rounded-lg" />
+                  <div className="h-6 w-1/2 bg-gray-100 rounded-lg" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-72 bg-gray-100 rounded-2xl" />
+                ))}
               </div>
             </div>
           ) : error ? (
-            <p className="text-red-500">{error}</p>
+            <p className="text-red-600 text-center text-lg font-medium">
+              {error}
+            </p>
           ) : data ? (
-            <div className="space-y-6">
-              {/* Hero Section */}
-              <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-100 group">
-                <img
-                  src={imgSrc}
-                  alt={data.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src = `/${fallbackIdx}.jpg`;
-                  }}
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+            <div className="space-y-10">
+              {/* Top Section: Image (Left) and Details (Right) */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                {/* Hero Image (Left, larger, fills div) */}
+                <div className="col-span-3 relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gray-100 group shadow-md">
+                  <img
+                    src={imgSrc}
+                    alt={data.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = `/${fallbackIdx}.png`;
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <button
                     onClick={handleShare}
-                    className="px-4 py-2 text-white font-bold rounded bg-black bg-opacity-80 hover:bg-opacity-100 transition"
+                    className="absolute top-4 right-4 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md animate-fade-in"
                   >
-                    {copied ? "링크 복사됨" : "공유하기"}
+                    {copied ? "복사됨" : "공유"}
+                    <FiShare2 />
                   </button>
                 </div>
-              </div>
 
-              {/* Restaurant Info */}
-              <div className="bg-white border border-gray-300 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <h1 className="text-2xl font-bold text-black">{data.name}</h1>
-                  <CircularProgress value={data.fundingPercent ?? 0} />
-                </div>
-                {data.categoryName && (
-                  <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 mt-2">
-                    {data.categoryName}
-                  </span>
-                )}
-                <div className="mt-4 text-sm text-gray-600 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <FiPhone />
-                    <span>{data.phone || "-"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FiMapPin />
-                    <span className="truncate">
-                      {data.roadAddressName || "-"}
+                {/* Details (Right) */}
+                <div className="col-span-2 bg-white rounded-2xl p-8 shadow-md border border-teal-100">
+                  <h1 className="text-5xl font-bold text-gray-800 mb-4 tracking-tight">
+                    {data.name}
+                  </h1>
+                  {data.categoryName && (
+                    <span className="inline-flex items-center px-4 py-1.5 text-sm font-semibold rounded-full bg-teal-50 text-teal-600 mb-6 animate-fade-in">
+                      {data.categoryName}
                     </span>
-                  </div>
-                  {data.y && data.x && (
-                    <a
-                      href={`https://map.kakao.com/link/to/${encodeURIComponent(
-                        data.name || ""
-                      )},${data.y},${data.x}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                    >
-                      <TbCurrentLocation /> 길찾기
-                    </a>
                   )}
-                </div>
-
-                {/* Funding Info */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>
-                      {Number(data.fundingAmount ?? 0).toLocaleString()}원 펀딩
-                    </span>
-                    <span>
-                      목표{" "}
-                      {Number(data.fundingGoalAmount ?? 0).toLocaleString()}원
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${
-                        fundingPeriod.daysLeft <= 5
-                          ? "text-red-600 bg-red-100"
-                          : "text-black bg-gray-100"
-                      }`}
-                    >
-                      {fundingPeriod.daysLeft}일 남음
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {formatDate(fundingPeriod.start)} ~{" "}
-                      {formatDate(fundingPeriod.end)}
-                    </span>
+                  <div className="flex flex-col gap-6">
+                    {/* Funding Info */}
+                    <div>
+                      <div className="text-3xl font-bold text-gray-800 mb-3">
+                        {Number(data.fundingAmount ?? 0).toLocaleString()}원
+                        펀딩
+                      </div>
+                      <BarProgress
+                        value={data.fundingPercent ?? 0}
+                        maxValue={data.fundingGoalAmount ?? 0}
+                      />
+                      <div className="mt-4 text-base text-gray-600 flex items-center gap-2">
+                        <span
+                          className={`${
+                            fundingPeriod.daysLeft <= 5
+                              ? "text-red-600 font-semibold"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          {fundingPeriod.daysLeft}일 남음
+                        </span>
+                        <span className="text-gray-400">•</span>
+                        <span>
+                          {formatDate(fundingPeriod.start)} ~{" "}
+                          {formatDate(fundingPeriod.end)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleFundingClick}
+                        className="mt-6 px-8 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-3 shadow-md animate-fade-in"
+                      >
+                        <FiShoppingCart className="text-xl" /> 펀딩 참여
+                      </button>
+                    </div>
+                    {/* Basic Info */}
+                    <div className="text-base text-gray-600 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <FiPhone className="text-teal-600 text-lg" />
+                        <span>{data.phone || "-"}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <FiMapPin className="text-teal-600 text-lg" />
+                        <span className="truncate">
+                          {data.roadAddressName || "-"}
+                        </span>
+                      </div>
+                      {data.y && data.x && (
+                        <a
+                          href={`https://map.kakao.com/link/to/${encodeURIComponent(
+                            data.name || ""
+                          )},${data.y},${data.x}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors"
+                        >
+                          <TbCurrentLocation className="text-lg" /> 길찾기
+                        </a>
+                      )}
+                    </div>
+                    {/* Price and Tags */}
+                    {(data.priceRange || data.tags) && (
+                      <div className="space-y-4">
+                        {data.priceRange && (
+                          <div className="flex items-center gap-3 text-base text-gray-600">
+                            <FiTag className="text-teal-600 text-lg" />
+                            <span>가격대: {data.priceRange}</span>
+                          </div>
+                        )}
+                        {data.tags && (
+                          <div className="flex flex-wrap items-center gap-3">
+                            <FiTag className="text-teal-600 text-lg" />
+                            <div className="flex flex-wrap gap-2">
+                              {String(data.tags)
+                                .split(",")
+                                .map((t) => t.trim())
+                                .filter(Boolean)
+                                .map((t, idx) => (
+                                  <span
+                                    key={`${t}-${idx}`}
+                                    className="px-3 py-1.5 text-sm font-semibold rounded-full bg-teal-50 text-teal-600 animate-fade-in"
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Menu Selection */}
               {menuItems.length > 0 && (
-                <div className="bg-white border border-gray-300 rounded-lg p-6">
-                  <div className="flex items-center gap-2 mb-4">
-                    <FiShoppingCart className="text-xl" />
-                    <h2 className="text-lg font-bold">메뉴 선택</h2>
+                <div className="bg-gradient-to-b from-teal-50 to-white rounded-2xl p-8 shadow-md">
+                  <div className="flex items-center gap-3 mb-6">
+                    <FiShoppingCart className="text-xl text-teal-600" />
+                    <h2 className="text-2xl font-bold text-gray-800">메뉴</h2>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((menu, index) => (
                       <div
                         key={menu.id}
-                        className="border border-gray-300 rounded-lg overflow-hidden bg-white group"
+                        className="relative rounded-2xl overflow-hidden bg-white group hover:shadow-xl hover:ring-2 hover:ring-teal-300 transition-all duration-500 border border-teal-100"
                       >
-                        <div className="w-full h-40 bg-gray-100 relative">
+                        <div className="relative w-full h-56 overflow-hidden">
                           <img
                             src={menu.imageUrl}
                             alt={menu.name}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             onError={(e) => {
-                              const idx = ((fallbackIdx + index) % 45) + 1;
-                              e.currentTarget.src = `/${idx}.jpg`;
+                              e.currentTarget.src = `/${
+                                ((fallbackIdx + index) % 45) + 1
+                              }.png`;
                             }}
                           />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <div className="absolute bottom-4 right-4">
+                            <button
+                              onClick={() => addToCart(menu)}
+                              disabled={isAddingToCart[menu.id]}
+                              className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 hover:bg-emerald-700 transition-all duration-300 disabled:opacity-50 shadow-md group-hover:scale-105 animate-fade-in"
+                            >
+                              {addedToCart[menu.id] ? (
+                                <>
+                                  <FiCheck className="text-lg" />
+                                  추가됨
+                                </>
+                              ) : (
+                                <>
+                                  <FiPlus className="text-lg" />
+                                  추가
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <div className="p-4">
+                        <div className="p-5">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-black truncate">
+                            <h3 className="font-bold text-gray-800 text-xl truncate">
                               {menu.name}
                             </h3>
-                            <span className="text-green-600 font-bold">
+                            <span className="text-red-600 font-semibold text-lg">
                               {Number(menu.price).toLocaleString()}원
                             </span>
                           </div>
                           {menu.description && (
-                            <p className="text-sm text-gray-600 truncate mt-1">
+                            <p className="text-sm text-gray-600 mt-3 line-clamp-2">
                               {menu.description}
                             </p>
                           )}
-                          <button
-                            onClick={() => addToCart(menu)}
-                            className="mt-3 w-full px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
-                          >
-                            장바구니에 추가
-                          </button>
                         </div>
                       </div>
                     ))}
@@ -428,132 +462,104 @@ const RestaurantDetailPage = () => {
 
               {/* Selected Menus */}
               {selectedMenus.length > 0 && (
-                <div className="bg-white border border-gray-300 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold">선택된 메뉴</h2>
-                    <span className="text-green-600 font-bold">
+                <div className="bg-white rounded-2xl p-8 shadow-md">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      장바구니
+                    </h2>
+                    <span className="text-red-600 font-semibold text-lg">
                       총 {totalPrice.toLocaleString()}원
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {selectedMenus.map((menu) => (
                       <div
                         key={menu.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-teal-50 rounded-lg transition-all duration-300 animate-fade-in"
                       >
                         <div>
-                          <div className="font-medium text-black">
+                          <div className="font-semibold text-gray-800 text-lg">
                             {menu.name}
                           </div>
                           <div className="text-sm text-gray-600">
                             {Number(menu.price).toLocaleString()}원 ×{" "}
-                            {menu.quantity}개
+                            {menu.quantity}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() =>
                               updateQuantity(menu.id, menu.quantity - 1)
                             }
-                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                            className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300"
                           >
-                            <FiMinus className="text-sm" />
+                            <FiMinus className="text-base text-teal-600" />
                           </button>
-                          <span className="w-8 text-center font-bold">
+                          <span className="w-8 text-center text-base font-medium text-gray-800">
                             {menu.quantity}
                           </span>
                           <button
                             onClick={() =>
                               updateQuantity(menu.id, menu.quantity + 1)
                             }
-                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                            className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300"
                           >
-                            <FiPlus className="text-sm" />
+                            <FiPlus className="text-base text-teal-600" />
                           </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 flex gap-3">
+                  <div className="mt-6 flex gap-4">
                     <button
-                      onClick={() => {
-                        const params = new URLSearchParams({
-                          restaurantId: String(id || ""),
-                          restaurantName: data?.name || "",
-                          menus: JSON.stringify(selectedMenus),
-                          totalPrice: String(totalPrice),
-                        }).toString();
-                        window.location.href = `/payment?${params}`;
-                      }}
-                      className="flex-1 px-4 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+                      onClick={handleFundingClick}
+                      className="flex-1 px-6 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-md animate-fade-in"
                     >
-                      펀딩 참여하기 ({selectedMenus.length}개)
+                      <FiShoppingCart className="text-xl" />
+                      결제 ({selectedMenus.length})
                     </button>
                     <button
                       onClick={() => setSelectedMenus([])}
-                      className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 transition"
+                      className="px-6 py-3 border border-teal-200 text-emerald-600 text-sm font-semibold rounded-full hover:bg-teal-50 transition-all duration-300 animate-fade-in"
                     >
-                      전체 삭제
+                      초기화
                     </button>
                   </div>
                 </div>
               )}
 
               {/* Additional Info */}
-              <div className="bg-white border border-gray-300 rounded-lg p-6 space-y-4">
+              <div className="bg-white rounded-2xl p-8 shadow-md space-y-6">
                 {data.description && (
                   <div>
-                    <h3 className="font-semibold text-black">소개</h3>
-                    <p className="text-gray-600">{data.description}</p>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                      소개
+                    </h3>
+                    <p className="text-base text-gray-600 leading-relaxed">
+                      {data.description}
+                    </p>
                   </div>
                 )}
                 {data.businessHours && (
                   <div>
-                    <div className="flex items-center gap-2 font-semibold">
-                      <FiClock /> 영업시간
+                    <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-3">
+                      <FiClock className="text-teal-600 text-lg" /> 영업시간
                     </div>
-                    <p className="text-gray-600">{data.businessHours}</p>
-                  </div>
-                )}
-                {(data.priceRange || data.tags) && (
-                  <div className="space-y-2">
-                    {data.priceRange && (
-                      <div className="flex items-center gap-2">
-                        <FiTag />
-                        <span>가격대: {data.priceRange}</span>
-                      </div>
-                    )}
-                    {data.tags && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <FiTag />
-                        <div className="flex flex-wrap gap-2">
-                          {String(data.tags)
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter(Boolean)
-                            .map((t, idx) => (
-                              <span
-                                key={`${t}-${idx}`}
-                                className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700 border border-gray-200"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                        </div>
-                      </div>
-                    )}
+                    <p className="text-base text-gray-600">
+                      {data.businessHours}
+                    </p>
                   </div>
                 )}
                 {(data.homepageUrl || data.instagramUrl) && (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-4">
                     {data.homepageUrl && (
                       <a
                         href={data.homepageUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                        className="flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors text-base font-semibold animate-fade-in"
                       >
-                        <FiGlobe /> 홈페이지
+                        <FiGlobe className="text-lg" /> 홈페이지
                       </a>
                     )}
                     {data.instagramUrl && (
@@ -561,25 +567,42 @@ const RestaurantDetailPage = () => {
                         href={data.instagramUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-2 text-pink-600 hover:text-pink-800"
+                        className="flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors text-base font-semibold animate-fade-in"
                       >
-                        <FiInstagram /> 인스타그램
+                        <FiInstagram className="text-lg" /> 인스타그램
                       </a>
                     )}
                   </div>
                 )}
                 {data.notice && (
                   <div>
-                    <div className="flex items-center gap-2 font-semibold">
-                      <FiAlertCircle /> 공지
+                    <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-3">
+                      <FiAlertCircle className="text-teal-600 text-lg" /> 공지
                     </div>
-                    <p className="text-gray-600">{data.notice}</p>
+                    <p className="text-base text-gray-600">{data.notice}</p>
                   </div>
                 )}
               </div>
             </div>
           ) : null}
         </div>
+
+        {/* Custom CSS for Animations */}
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+          }
+        `}</style>
       </div>
     </MainLayout>
   );
