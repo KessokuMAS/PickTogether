@@ -6,17 +6,15 @@ export default function AdminSettingsPage() {
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-4xl px-4 py-8">
         {/* 헤더 */}
-        <section className="rounded-2xl bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300 p-6 text-white shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/40 bg-white/20">
-              <FiShield className="h-8 w-8 text-white" />
+        <section className="mb-8">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
+              <FiShield className="h-8 w-8 text-emerald-600" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-extrabold leading-tight">
-                관리자 설정
-              </h1>
-              <p className="mt-2 text-lg opacity-90">시스템 관리 및 모니터링</p>
-            </div>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+              관리자 설정
+            </h1>
+            <p className="text-slate-600 text-lg">시스템 관리 및 모니터링</p>
           </div>
         </section>
 

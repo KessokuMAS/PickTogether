@@ -113,4 +113,19 @@ public class MemberController {
         return ResponseEntity.ok(member);
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout() {
+        try {
+            log.info("로그아웃 요청");
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "로그아웃되었습니다.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("로그아웃 예외 발생: " + e.getMessage(), e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "서버 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
 } 

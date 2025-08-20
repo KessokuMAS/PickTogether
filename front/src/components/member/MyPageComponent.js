@@ -3,372 +3,546 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getMyPageInfo } from "../../api/memberApi";
 import { getMemberFundings } from "../../api/fundingApi";
 import { fundingSpecialtyApi } from "../../api/fundingSpecialtyApi";
-import { getCookie } from "../../utils/cookieUtil";
-import { FiMaximize2, FiDownload, FiSquare } from "react-icons/fi";
+import { getCookie, removeCookie } from "../../utils/cookieUtil";
+import { useNavigate } from "react-router-dom";
+import {
+  FiMaximize2,
+  FiDownload,
+  FiSquare,
+  FiBell,
+  FiCheck,
+  FiTrash2,
+  FiX,
+  FiUser,
+  FiMail,
+  FiDollarSign,
+  FiCalendar,
+  FiMapPin,
+  FiShoppingCart,
+  FiHeart,
+  FiTrendingUp,
+  FiMessageSquare,
+  FiSettings,
+  FiLogOut,
+} from "react-icons/fi";
 import QRCode from "qrcode";
+import {
+  getNotificationsByMember,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+  deleteAllReadNotifications,
+} from "../../api/notificationApi";
+import { logout } from "../../api/memberApi";
+import { useAuth } from "../../context/AuthContext";
+import { GiArtificialIntelligence } from "react-icons/gi";
 
 export default function MyPageComponent() {
+  const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const [member, setMember] = useState(null);
   const [fundings, setFundings] = useState([]);
   const [specialtyOrders, setSpecialtyOrders] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState("funding"); // "funding" | "specialty"
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const run = async () => {
       try {
-        setLoading(true);
+        setIsLoading(true);
         const data = await getMyPageInfo();
         setMember(data);
-
-        // 결제 내역 로드
-        const memberCookie = getCookie("member");
-        if (memberCookie?.member?.email) {
-          try {
-            // 식당 펀딩 내역
-            const fundingData = await getMemberFundings(
-              memberCookie.member.email
-            );
-            setFundings(fundingData);
-
-            // 지역특산품 구매 내역
-            const specialtyData = await fundingSpecialtyApi.getMemberOrders(
-              memberCookie.member.email
-            );
-            setSpecialtyOrders(specialtyData);
-          } catch (fundingError) {
-            console.error("결제 내역 로드 실패:", fundingError);
-            // 펀딩 로드 실패는 전체 마이페이지에 영향을 주지 않도록 함
-          }
-        }
-      } catch (e) {
-        console.error("마이페이지 데이터 불러오기 실패:", e);
-        setErr("회원 정보를 불러오지 못했습니다.");
+      } catch (error) {
+        console.error("회원 정보 로딩 실패:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     run();
   }, []);
 
-  const initials = useMemo(() => {
-    const base = member?.nickname || member?.email?.split("@")[0] || "";
-    const tokens = base
-      .replace(/[^가-힣a-zA-Z0-9\s]/g, " ")
-      .trim()
-      .split(/\s+/);
-    const first = tokens[0]?.[0] ?? "";
-    const second = tokens[1]?.[0] ?? "";
-    return (first + second).toUpperCase() || "ME";
-  }, [member]);
-
-  const socialText = useMemo(() => {
-    const t = (member?.socialType || "").toUpperCase();
-    if (!t) return "일반회원";
-    if (t === "KAKAO") return "카카오 연동";
-    if (t === "NAVER") return "네이버 연동";
-    if (t === "GOOGLE") return "구글 연동";
-    return t;
-  }, [member]);
-
-  // 관리자 역할 확인
-  const isAdmin = useMemo(() => {
-    console.log("=== DEBUG INFO ===");
-    console.log("Member data:", member);
-    console.log("Member roles:", member?.memberRoleList);
-    console.log("Role names:", member?.roleNames);
-    console.log("Role names length:", member?.roleNames?.length);
-    console.log("Role names type:", typeof member?.roleNames);
-    console.log("Role names is array:", Array.isArray(member?.roleNames));
-    if (member?.roleNames && member.roleNames.length > 0) {
-      console.log("First role:", member.roleNames[0]);
-      console.log("All roles:", member.roleNames);
+  useEffect(() => {
+    if (member?.email) {
+      loadFundings();
+      loadSpecialtyOrders();
+      loadNotifications();
     }
-    console.log(
-      "Role types:",
-      member?.roleNames?.map((role) => typeof role)
-    );
-    // roleNames 필드에서 ADMIN 역할 확인
-    const adminCheck = member?.roleNames?.some((role) => role === "ADMIN");
-    console.log("Is Admin:", adminCheck);
-    console.log("==================");
-    return adminCheck;
-  }, [member]);
+  }, [member?.email]);
 
-  // 소상공인 역할 확인
-  const isBusinessOwner = useMemo(() => {
-    const businessOwnerCheck = member?.roleNames?.some(
-      (role) => role === "BUSINESS_OWNER"
-    );
-    console.log("Is Business Owner:", businessOwnerCheck);
-    return businessOwnerCheck;
-  }, [member]);
-
-  const reload = () => {
-    setErr("");
-    setLoading(true);
-    getMyPageInfo()
-      .then((d) => setMember(d))
-      .catch(() => setErr("다시 실패했습니다. 잠시 후 재시도해주세요."))
-      .finally(() => setLoading(false));
+  const loadFundings = async () => {
+    const memberCookie = getCookie("member");
+    if (memberCookie?.member?.email) {
+      try {
+        const fundingData = await getMemberFundings(memberCookie.member.email);
+        setFundings(fundingData);
+      } catch (fundingError) {
+        console.error("결제 내역 로드 실패:", fundingError);
+        // 펀딩 로드 실패는 전체 마이페이지에 영향을 주지 않도록 함
+      }
+    }
   };
 
-  // 로딩 스켈레톤
-  if (loading) {
+  const loadSpecialtyOrders = async () => {
+    const memberCookie = getCookie("member");
+    if (memberCookie?.member?.email) {
+      try {
+        const specialtyData = await fundingSpecialtyApi.getMemberOrders(
+          memberCookie.member.email
+        );
+        setSpecialtyOrders(specialtyData);
+      } catch (specialtyError) {
+        console.error("특산품 구매 내역 로드 실패:", specialtyError);
+      }
+    }
+  };
+
+  const loadNotifications = async () => {
+    const memberCookie = getCookie("member");
+    if (memberCookie?.member?.email) {
+      try {
+        const [notificationData, unreadCountData] = await Promise.all([
+          getNotificationsByMember(memberCookie.member.email),
+          getUnreadNotificationCount(memberCookie.member.email),
+        ]);
+        setNotifications(notificationData.content || []);
+        setUnreadCount(unreadCountData || 0);
+      } catch (notificationError) {
+        console.error("알림 데이터 로드 실패:", notificationError);
+        // 알림 로드 실패는 전체 마이페이지에 영향을 주지 않도록 함
+      }
+    }
+  };
+
+  // 알림 읽음 처리
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      // 로컬 상태 업데이트
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, isRead: true } : notif
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("알림 읽음 처리 실패:", error);
+    }
+  };
+
+  // 모든 알림 읽음 처리
+  const handleMarkAllAsRead = async () => {
+    try {
+      const memberCookie = getCookie("member");
+      if (memberCookie?.member?.email) {
+        await markAllNotificationsAsRead(memberCookie.member.email);
+        setNotifications((prev) =>
+          prev.map((notif) => ({ ...notif, isRead: true }))
+        );
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("모든 알림 읽음 처리 실패:", error);
+    }
+  };
+
+  // 읽은 알림 전체 삭제
+  const handleDeleteAllRead = async () => {
+    try {
+      const memberCookie = getCookie("member");
+      if (memberCookie?.member?.email) {
+        await deleteAllReadNotifications(memberCookie.member.email);
+        setNotifications((prev) => prev.filter((notif) => !notif.isRead));
+      }
+    } catch (error) {
+      console.error("읽은 알림 전체 삭제 실패:", error);
+    }
+  };
+
+  // 개별 알림 삭제
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await deleteNotification(notificationId);
+      setNotifications((prev) =>
+        prev.filter((notif) => notif.id !== notificationId)
+      );
+      // 읽지 않은 알림이었다면 카운트도 감소
+      const deletedNotification = notifications.find(
+        (n) => n.id === notificationId
+      );
+      if (deletedNotification && !deletedNotification.isRead) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("알림 삭제 실패:", error);
+    }
+  };
+
+  // 로그아웃 함수
+  const handleLogout = async () => {
+    try {
+      // 백엔드 로그아웃 API 호출
+      await logout();
+
+      // AuthContext를 통한 로그아웃 상태 업데이트
+      authLogout();
+
+      // 메인 페이지로 리다이렉트
+      navigate("/main");
+    } catch (error) {
+      console.error("로그아웃 실패:", error);
+      // 에러가 발생해도 로컬 로그아웃은 진행
+      authLogout();
+      navigate("/main");
+    }
+  };
+
+  // 회원 역할 표시 텍스트 변환
+  const getRoleDisplayText = useMemo(() => {
+    if (!member?.roleNames || member.roleNames.length === 0) {
+      return "일반 사용자";
+    }
+
+    const roleMap = {
+      USER: "일반 사용자",
+      BUSINESS_OWNER: "소상공인",
+      ADMIN: "관리자",
+    };
+
+    const displayRoles = member.roleNames.map((role) => roleMap[role] || role);
+    return displayRoles.join(", ");
+  }, [member?.roleNames]);
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-5xl px-4 py-8">
-          <div className="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-400 p-6 text-white shadow-xl">
-            <div className="flex items-center gap-5">
-              <div className="h-20 w-20 animate-pulse rounded-full bg-white/30" />
-              <div className="flex-1">
-                <div className="h-5 w-40 animate-pulse rounded-md bg-white/30" />
-                <div className="mt-3 h-4 w-64 animate-pulse rounded-md bg-white/25" />
-                <div className="mt-3 flex gap-2">
-                  <div className="h-6 w-24 animate-pulse rounded-full bg-white/25" />
-                  <div className="h-6 w-20 animate-pulse rounded-full bg-white/25" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl bg-white p-5 shadow-md">
-                <div className="h-5 w-24 animate-pulse rounded-md bg-slate-200" />
-                <div className="mt-3 h-8 w-20 animate-pulse rounded-md bg-slate-200" />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-2xl bg-white p-6 shadow-md">
-            <div className="h-5 w-32 animate-pulse rounded-md bg-slate-200" />
-            <div className="mt-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-12 animate-pulse rounded-xl bg-slate-100"
-                />
-              ))}
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">로딩 중...</p>
         </div>
       </div>
     );
   }
 
-  if (err) {
+  if (!member) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-xl px-4 py-24 text-center">
-          <h2 className="text-2xl font-extrabold text-slate-800">
-            앗, 문제가 발생했어요
-          </h2>
-          <p className="mt-2 text-slate-500">{err}</p>
-          <div className="mt-6 flex justify-center gap-3">
-            <button
-              onClick={reload}
-              className="rounded-xl bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700"
-            >
-              다시 시도
-            </button>
-            <a
-              href="/member/login"
-              className="rounded-xl border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-100"
-            >
-              로그인 페이지로
-            </a>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-slate-600 mb-4">회원 정보를 찾을 수 없습니다.</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            로그인하기
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!member) return null;
+  const isAdmin = member?.roleNames?.includes("ADMIN");
+  const isBusinessOwner = member?.roleNames?.includes("BUSINESS_OWNER");
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-8">
-        {/* 헤더 */}
-        <section className="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-500 to-indigo-400 p-6 text-white shadow-xl">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-white/40 bg-white/20 text-2xl font-black tracking-wide">
-              {initials}
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-extrabold leading-tight">
-                {member.nickname || "사용자"}
-              </h1>
-              <p className="mt-1 break-all text-sm/6 opacity-90">
-                {member.email}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-bold">
-                  {socialText}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/40 bg-white/10 px-3 py-1 text-xs font-bold">
-                  마이페이지
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {isAdmin && (
-                <a
-                  href="/mypage/admin/settings"
-                  className="rounded-xl border border-white/50 bg-yellow-500 px-4 py-2 text-sm font-bold text-white hover:bg-yellow-600"
-                >
-                  관리자 설정
-                </a>
-              )}
-              {isBusinessOwner && (
-                <a
-                  href="/mypage/business/requests"
-                  className="rounded-xl border border-white/50 bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600"
-                >
-                  가게 요청
-                </a>
-              )}
-              <a
-                href="/main"
-                className="rounded-xl border border-white/50 bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600"
-              >
-                메인으로 가기
-              </a>
-              <a
-                href="/member/edit"
-                className="rounded-xl border border-white/50 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-white/90"
-              >
-                정보 수정
-              </a>
-              <a
-                href="/member/logout"
-                className="rounded-xl border border-white/50 bg-transparent px-4 py-2 text-sm font-bold text-white hover:bg-white/10"
-              >
-                로그아웃
-              </a>
-            </div>
-          </div>
-        </section>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 페이지 헤더 */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">마이페이지</h1>
+          <p className="text-slate-600 text-lg">
+            내 정보와 활동을 한눈에 확인하세요
+          </p>
+        </div>
 
-        {/* 통계 카드 */}
-        <section className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-2xl bg-white p-5 shadow-md">
-            <div className="text-xs font-bold text-slate-500">포인트</div>
-            <div className="mt-2 text-2xl font-extrabold text-slate-900">
-              {member.points ?? 0}{" "}
-              <span className="text-sm font-semibold text-slate-400">P</span>
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              활동으로 적립된 포인트
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-md">
-            <div className="text-xs font-bold text-slate-500">등급</div>
-            <div className="mt-2 text-2xl font-extrabold text-slate-900">
-              {member.grade ?? "없음"}
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              다음 등급까지 열심히
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white p-5 shadow-md">
-            <div className="text-xs font-bold text-slate-500">연동 상태</div>
-            <div className="mt-2 text-2xl font-extrabold text-slate-900">
-              {socialText}
-            </div>
-            <div className="mt-2 text-xs text-slate-500">계정 보안은 생명</div>
-          </div>
-        </section>
-
-        {/* 계정 정보 카드 */}
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow-md">
-          <h2 className="text-base font-extrabold text-slate-900">계정 정보</h2>
-          <div className="mt-4 space-y-3">
-            <Row label="이메일" value={member.email} />
-            <Row label="닉네임" value={member.nickname || "—"} />
-            <Row label="소셜 타입" value={member.socialType || "일반회원"} />
-          </div>
-        </section>
-
-        {/* 결제 내역 카드 */}
-        <section className="mt-6 rounded-2xl bg-white p-6 shadow-md">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-base font-extrabold text-slate-900">
-              결제 내역
-            </h2>
-            <div className="flex bg-slate-100 rounded-lg p-1">
-              <button
-                onClick={() => setActiveTab("funding")}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  activeTab === "funding"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                식당 펀딩 ({fundings.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("specialty")}
-                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  activeTab === "specialty"
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                특산품 펀딩 ({specialtyOrders.length})
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            {activeTab === "funding" ? (
-              // 식당 펀딩 내역
-              fundings.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <p className="text-sm">아직 참여한 펀딩이 없습니다.</p>
-                  <p className="text-xs mt-1">식당에서 펀딩에 참여해보세요!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {fundings.map((funding) => (
-                    <FundingRow key={funding.id} funding={funding} />
-                  ))}
-                </div>
-              )
-            ) : // 지역특산품 구매 내역
-            specialtyOrders.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <p className="text-sm">아직 구매한 특산품이 없습니다.</p>
-                <p className="text-xs mt-1">지역특산품을 펀딩해보세요!</p>
-              </div>
-            ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* 왼쪽 컬럼 - 계정 정보 및 통계 */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* 계정 정보 카드 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <FiUser className="text-emerald-600" size={20} />
+                계정 정보
+              </h3>
               <div className="space-y-3">
-                {specialtyOrders.map((order) => (
-                  <SpecialtyOrderRow key={order.id} order={order} />
-                ))}
+                <Row label="이메일" value={member.email} />
+                <Row label="닉네임" value={member.nickname || "미설정"} />
+                <Row label="회원 역할" value={getRoleDisplayText} />
+              </div>
+
+              {/* 기능 버튼들 */}
+              <div className="mt-6 space-y-2 flex flex-col items-center">
+                <a
+                  href="/main"
+                  className="w-1/2 px-1.5 py-2 bg-white text-blue-600 rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                >
+                  <FiMapPin size={16} />
+                  메인으로 가기
+                </a>
+
+                <a
+                  href="/member/edit"
+                  className="w-1/2 px-1.5 py-2 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                >
+                  <FiSettings size={16} />
+                  정보 수정
+                </a>
+
+                {isAdmin && (
+                  <a
+                    href="/mypage/admin/settings"
+                    className="w-1/2 px-1.5 py-2 bg-white text-yellow-600 rounded-lg border-2 border-yellow-500 hover:bg-yellow-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                  >
+                    <FiSettings size={16} />
+                    관리자 설정
+                  </a>
+                )}
+
+                {isBusinessOwner && (
+                  <a
+                    href="/mypage/business/requests"
+                    className="w-1/2 px-1.5 py-2 bg-white text-green-600 rounded-lg border-2 border-green-500 hover:bg-green-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                  >
+                    <FiShoppingCart size={16} />
+                    가게 요청
+                  </a>
+                )}
+
+                {/* 로그아웃 버튼 */}
+                <button
+                  onClick={handleLogout}
+                  className="w-1/2 px-1.5 py-2 bg-white text-red-600 rounded-lg border-2 border-red-500 hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <FiLogOut size={16} />
+                  로그아웃
+                </button>
+              </div>
+            </div>
+
+            {/* 통계 카드 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <FiTrendingUp className="text-emerald-600" size={20} />
+                활동 통계
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 flex items-center gap-2">
+                    <FiDollarSign className="text-blue-500" size={16} />
+                    포인트
+                  </span>
+                  <span className="text-2xl font-bold text-blue-600">
+                    {member.points ?? 0}P
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 flex items-center gap-2">
+                    <FiUser className="text-purple-500" size={16} />
+                    등급
+                  </span>
+                  <span className="text-xl font-bold text-purple-600">
+                    {member.grade ?? "없음"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 flex items-center gap-2">
+                    <FiShoppingCart className="text-green-500" size={16} />
+                    참여한 펀딩
+                  </span>
+                  <span className="text-2xl font-bold text-green-600">
+                    {fundings.length}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-600 flex items-center gap-2">
+                    <FiHeart className="text-pink-500" size={16} />
+                    특산품 구매
+                  </span>
+                  <span className="text-2xl font-bold text-pink-600">
+                    {specialtyOrders.length}
+                  </span>
+                </div>
+                {/* 알림 통계는 소상공인만 표시 */}
+                {member?.roleNames?.includes("BUSINESS_OWNER") && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 flex items-center gap-2">
+                        <FiBell className="text-orange-500" size={16} />
+                        받은 알림
+                      </span>
+                      <span className="text-2xl font-bold text-orange-600">
+                        {notifications.length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 flex items-center gap-2">
+                        <FiMail className="text-red-500" size={16} />
+                        읽지 않은 알림
+                      </span>
+                      <span className="text-2xl font-bold text-red-600">
+                        {unreadCount}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 오른쪽 컬럼 - 수신함 및 펀딩 내역 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 수신함 카드 - 소상공인만 */}
+            {member?.roleNames?.includes("BUSINESS_OWNER") && (
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <FiMail className="text-emerald-600" size={20} />
+                    수신함
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleMarkAllAsRead}
+                      className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm rounded-lg hover:bg-emerald-200 transition-colors flex items-center gap-1"
+                    >
+                      <FiCheck size={14} />
+                      모두 읽음
+                    </button>
+                    <button
+                      onClick={handleDeleteAllRead}
+                      className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
+                    >
+                      <FiTrash2 size={14} />
+                      읽은 알림 삭제
+                    </button>
+                  </div>
+                </div>
+
+                {notifications.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FiMail className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 mb-2">
+                      수신된 알림이 없습니다
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      가게 요청 관련 알림을 받아보세요
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notifications.map((notification) => (
+                      <NotificationRow
+                        key={notification.id}
+                        notification={notification}
+                        onMarkAsRead={handleMarkAsRead}
+                        onDelete={handleDeleteNotification}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
+
+            {/* 펀딩 내역 카드 */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                  <FiShoppingCart className="text-emerald-600" size={20} />
+                  펀딩 내역
+                </h3>
+                <div className="flex bg-slate-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab("funding")}
+                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                      activeTab === "funding"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    식당 펀딩 ({fundings.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("specialty")}
+                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                      activeTab === "specialty"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    특산품 펀딩 ({specialtyOrders.length})
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {activeTab === "funding" ? (
+                  // 식당 펀딩 내역
+                  fundings.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiShoppingCart className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <p className="text-slate-500 mb-2">
+                        아직 참여한 펀딩이 없습니다
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        첫 번째 펀딩에 참여해보세요!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {fundings.map((funding) => (
+                        <FundingRow key={funding.id} funding={funding} />
+                      ))}
+                    </div>
+                  )
+                ) : // 지역특산품 구매 내역
+                specialtyOrders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FiHeart className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <p className="text-slate-500 mb-2">
+                      아직 구매한 특산품이 없습니다
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      지역특산품을 펀딩해보세요!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {specialtyOrders.map((order) => (
+                      <SpecialtyOrderRow key={order.id} order={order} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
 }
 
-function Row({ label, value }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3">
-      <span className="text-sm font-bold text-slate-600">{label}</span>
-      <span className="truncate text-sm font-semibold text-slate-900">
-        {value}
-      </span>
-    </div>
-  );
-}
+// Row 컴포넌트
+const Row = ({ label, value }) => (
+  <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-b-0">
+    <span className="text-slate-600 flex items-center gap-2">
+      {label === "이메일" && <FiMail className="text-blue-500" size={16} />}
+      {label === "닉네임" && <FiUser className="text-green-500" size={16} />}
+      {label === "회원 역할" && (
+        <FiSettings className="text-orange-500" size={16} />
+      )}
+      {label}
+    </span>
+    <span className="font-medium text-slate-800">{value}</span>
+  </div>
+);
 
+// FundingRow 컴포넌트
 function FundingRow({ funding }) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
@@ -384,7 +558,7 @@ function FundingRow({ funding }) {
   const generateQRCode = async () => {
     try {
       setQrLoading(true);
-      // QR 코드에 포함할 데이터 (펀딩 ID, 식당명, 결제번호 등)
+      // QR 코드에 포함할 데이터 (펀딩 ID, 레스토랑명, 결제번호 등)
       const qrData = JSON.stringify({
         fundingId: funding.id,
         restaurantName: funding.restaurantName,
@@ -458,7 +632,7 @@ function FundingRow({ funding }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
       <div className="space-y-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between">
@@ -561,7 +735,19 @@ function FundingRow({ funding }) {
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
             <div className="flex items-center justify-between mb-3">
               <div className="font-semibold text-blue-800 flex items-center gap-2">
-                <FiSquare className="text-blue-600" />
+                <svg
+                  className="w-5 h-5 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
+                  />
+                </svg>
                 사용 QR 코드
               </div>
               {qrCodeUrl && (
@@ -569,7 +755,19 @@ function FundingRow({ funding }) {
                   onClick={downloadQRCode}
                   className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <FiDownload className="text-sm" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
                   다운로드
                 </button>
               )}
@@ -604,11 +802,11 @@ function FundingRow({ funding }) {
 
               <div className="flex-1 text-sm text-blue-700">
                 <p className="font-medium mb-1">
-                  식당에서 이 QR 코드를 스캔하세요
+                  레스토랑에서 이 QR 코드를 스캔하세요
                 </p>
                 <p className="text-xs opacity-80">
                   • 펀딩 ID: {funding.id}
-                  <br />• 식당: {funding.restaurantName}
+                  <br />• 레스토랑: {funding.restaurantName}
                   <br />• 결제 금액: {funding.totalAmount?.toLocaleString()}원
                 </p>
               </div>
@@ -676,7 +874,19 @@ function FundingRow({ funding }) {
                   onClick={downloadQRCode}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <FiDownload className="text-sm" />
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
                   다운로드
                 </button>
                 <button
@@ -694,6 +904,7 @@ function FundingRow({ funding }) {
   );
 }
 
+// 특산품 주문 행 컴포넌트
 function SpecialtyOrderRow({ order }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -750,7 +961,7 @@ function SpecialtyOrderRow({ order }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
       <div className="space-y-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between">
@@ -895,6 +1106,67 @@ function SpecialtyOrderRow({ order }) {
               </span>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 알림 행 컴포넌트
+function NotificationRow({ notification, onMarkAsRead, onDelete }) {
+  return (
+    <div
+      className={`rounded-xl border p-4 transition-all hover:shadow-md ${
+        notification.isRead
+          ? "bg-slate-50 border-slate-200"
+          : "bg-white border-blue-300 shadow-sm"
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <div
+              className={`w-2 h-2 rounded-full ${
+                notification.isRead ? "bg-slate-300" : "bg-blue-500"
+              }`}
+            ></div>
+            <h4
+              className={`font-medium ${
+                notification.isRead ? "text-slate-600" : "text-slate-800"
+              }`}
+            >
+              {notification.title}
+            </h4>
+          </div>
+          <p
+            className={`text-sm ${
+              notification.isRead ? "text-slate-500" : "text-slate-600"
+            }`}
+          >
+            {notification.content}
+          </p>
+          <p className="text-xs text-slate-400 mt-2">
+            {new Date(notification.createdAt).toLocaleString("ko-KR")}
+          </p>
+        </div>
+
+        <div className="flex gap-2 ml-4">
+          {!notification.isRead && (
+            <button
+              onClick={() => onMarkAsRead(notification.id)}
+              className="flex-shrink-0 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+              title="읽음 처리"
+            >
+              <FiCheck className="text-sm" />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(notification.id)}
+            className="flex-shrink-0 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+            title="삭제"
+          >
+            <FiTrash2 className="text-sm" />
+          </button>
         </div>
       </div>
     </div>

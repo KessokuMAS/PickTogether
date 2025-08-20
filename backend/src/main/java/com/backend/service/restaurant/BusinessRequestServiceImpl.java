@@ -12,6 +12,7 @@ import com.backend.repository.restaurant.RestaurantRepository;
 import com.backend.repository.restaurant.RestaurantImageRepository;
 import com.backend.domain.restaurant.Restaurant;
 import com.backend.domain.restaurant.RestaurantImage;
+import com.backend.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -42,6 +43,7 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
     private final MemberRepository memberRepository;
     private final RestaurantRepository restaurantRepository;
     private final RestaurantImageRepository restaurantImageRepository;
+    private final NotificationService notificationService;
     
     // 이미지 저장 경로
     private static final String UPLOAD_DIR = "uploads/business-requests/";
@@ -56,7 +58,7 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
         if (image != null && !image.isEmpty()) {
             imageUrl = saveImage(image);
         }
-        
+
         // 비즈니스 요청 엔티티 생성
         BusinessRequest businessRequest = BusinessRequest.builder()
                 .name(createDTO.getName())
@@ -75,8 +77,9 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
                 .requesterNickname(member != null ? member.getNickname() : null)
                 .member(member)
                 .build();
-        
+
         BusinessRequest savedRequest = businessRequestRepository.save(businessRequest);
+
         return convertToDTO(savedRequest);
     }
 
@@ -125,6 +128,31 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
         // 승인된 경우 restaurant과 restaurant_image 테이블에 데이터 저장
         if (reviewDTO.getStatus() == BusinessRequestStatus.APPROVED) {
             createRestaurantFromBusinessRequest(updatedRequest);
+            
+            // 승인 알림 생성
+            try {
+                notificationService.createBusinessRequestApprovedNotification(
+                    updatedRequest.getRequesterEmail(), 
+                    updatedRequest.getName()
+                );
+                log.info("가게요청 승인 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
+            } catch (Exception e) {
+                log.error("가게요청 승인 알림 생성 실패: {}", e.getMessage(), e);
+                // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+            }
+        } else if (reviewDTO.getStatus() == BusinessRequestStatus.REJECTED) {
+            // 거부 알림 생성
+            try {
+                notificationService.createBusinessRequestRejectedNotification(
+                    updatedRequest.getRequesterEmail(), 
+                    updatedRequest.getName(),
+                    reviewDTO.getReviewComment() != null ? reviewDTO.getReviewComment() : "사유 없음"
+                );
+                log.info("가게요청 거부 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
+            } catch (Exception e) {
+                log.error("가게요청 거부 알림 생성 실패: {}", e.getMessage(), e);
+                // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+            }
         }
         
         return convertToDTO(updatedRequest);
