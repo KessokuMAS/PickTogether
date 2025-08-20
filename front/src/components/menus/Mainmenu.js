@@ -45,7 +45,7 @@ const AnimatedLogo = () => {
 
   return (
     <Link to="/" className="flex items-center">
-      <img src="/logo.png" alt="PickTogether" className="h-[95px] w-auto" />
+      <img src="/logo1.png" alt="PickTogether" className="h-[95px] w-auto" />
       <motion.span
         className="text-2xl font-bold tracking-wide font-poppins flex"
         variants={container}

@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { getMyPageInfo } from "../../api/memberApi";
 import { getMemberFundings } from "../../api/fundingApi";
 import { getCookie } from "../../utils/cookieUtil";
-import { FiMaximize2 } from "react-icons/fi";
+import { FiMaximize2, FiDownload, FiSquare } from "react-icons/fi";
+import QRCode from "qrcode";
 
 export default function MyPageComponent() {
   const [member, setMember] = useState(null);
@@ -319,6 +320,58 @@ function Row({ label, value }) {
 }
 
 function FundingRow({ funding }) {
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [qrLoading, setQrLoading] = useState(false);
+  const [showLargeQR, setShowLargeQR] = useState(false);
+
+  // QR 코드 생성
+  useEffect(() => {
+    if (funding.status === "COMPLETED") {
+      generateQRCode();
+    }
+  }, [funding]);
+
+  const generateQRCode = async () => {
+    try {
+      setQrLoading(true);
+      // QR 코드에 포함할 데이터 (펀딩 ID, 레스토랑명, 결제번호 등)
+      const qrData = JSON.stringify({
+        fundingId: funding.id,
+        restaurantName: funding.restaurantName,
+        impUid: funding.impUid,
+        totalAmount: funding.totalAmount,
+        createdAt: funding.createdAt,
+      });
+
+      const qrUrl = await QRCode.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: "#1f2937",
+          light: "#ffffff",
+        },
+      });
+      setQrCodeUrl(qrUrl);
+    } catch (error) {
+      console.error("QR 코드 생성 실패:", error);
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const downloadQRCode = async () => {
+    try {
+      if (qrCodeUrl) {
+        const link = document.createElement("a");
+        link.download = `QR_${funding.restaurantName}_${funding.id}.png`;
+        link.href = qrCodeUrl;
+        link.click();
+      }
+    } catch (error) {
+      console.error("QR 코드 다운로드 실패:", error);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ko-KR", {
@@ -453,6 +506,66 @@ function FundingRow({ funding }) {
           </div>
         )}
 
+        {/* QR 코드 영역 - 결제 완료된 경우에만 표시 */}
+        {funding.status === "COMPLETED" && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-semibold text-blue-800 flex items-center gap-2">
+                <FiSquare className="text-blue-600" />
+                사용 QR 코드
+              </div>
+              {qrCodeUrl && (
+                <button
+                  onClick={downloadQRCode}
+                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FiDownload className="text-sm" />
+                  다운로드
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                {qrLoading ? (
+                  <div className="w-32 h-32 bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : qrCodeUrl ? (
+                  <div
+                    onClick={() => setShowLargeQR(true)}
+                    className="cursor-pointer hover:scale-105 transition-transform"
+                  >
+                    <img
+                      src={qrCodeUrl}
+                      alt="QR Code"
+                      className="w-32 h-32 rounded-lg border-2 border-blue-200 hover:border-blue-400"
+                    />
+                    <div className="text-center mt-2 text-xs text-blue-600">
+                      클릭하여 확대보기
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <span className="text-xs text-gray-500">QR 생성 중</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 text-sm text-blue-700">
+                <p className="font-medium mb-1">
+                  레스토랑에서 이 QR 코드를 스캔하세요
+                </p>
+                <p className="text-xs opacity-80">
+                  • 펀딩 ID: {funding.id}
+                  <br />• 레스토랑: {funding.restaurantName}
+                  <br />• 결제 금액: {funding.totalAmount?.toLocaleString()}원
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 결제 정보 요약 */}
         <div className="border-t border-slate-200 pt-3">
           <div className="flex justify-between items-center text-sm">
@@ -479,6 +592,54 @@ function FundingRow({ funding }) {
           )}
         </div>
       </div>
+
+      {/* QR 코드 확대 보기 모달 */}
+      {showLargeQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                QR 코드 확대보기
+              </h3>
+              <button
+                onClick={() => setShowLargeQR(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="text-center">
+              <img
+                src={qrCodeUrl}
+                alt="QR Code Large"
+                className="w-80 h-80 mx-auto rounded-lg border-2 border-blue-200"
+              />
+              <div className="mt-4 text-sm text-gray-600">
+                <p className="font-medium mb-2">{funding.restaurantName}</p>
+                <p>펀딩 ID: {funding.id}</p>
+                <p>결제 금액: {funding.totalAmount?.toLocaleString()}원</p>
+              </div>
+
+              <div className="mt-6 flex gap-3 justify-center">
+                <button
+                  onClick={downloadQRCode}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <FiDownload className="text-sm" />
+                  다운로드
+                </button>
+                <button
+                  onClick={() => setShowLargeQR(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

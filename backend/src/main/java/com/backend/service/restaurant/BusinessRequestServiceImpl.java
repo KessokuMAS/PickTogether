@@ -8,6 +8,10 @@ import com.backend.dto.restaurant.BusinessRequestDTO;
 import com.backend.dto.restaurant.BusinessRequestReviewDTO;
 import com.backend.repository.member.MemberRepository;
 import com.backend.repository.restaurant.BusinessRequestRepository;
+import com.backend.repository.restaurant.RestaurantRepository;
+import com.backend.repository.restaurant.RestaurantImageRepository;
+import com.backend.domain.restaurant.Restaurant;
+import com.backend.domain.restaurant.RestaurantImage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -22,6 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +40,8 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
 
     private final BusinessRequestRepository businessRequestRepository;
     private final MemberRepository memberRepository;
+    private final RestaurantRepository restaurantRepository;
+    private final RestaurantImageRepository restaurantImageRepository;
     
     // 이미지 저장 경로
     private static final String UPLOAD_DIR = "uploads/business-requests/";
@@ -113,6 +121,12 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
         request.setReviewedAt(LocalDateTime.now());
         
         BusinessRequest updatedRequest = businessRequestRepository.save(request);
+        
+        // 승인된 경우 restaurant과 restaurant_image 테이블에 데이터 저장
+        if (reviewDTO.getStatus() == BusinessRequestStatus.APPROVED) {
+            createRestaurantFromBusinessRequest(updatedRequest);
+        }
+        
         return convertToDTO(updatedRequest);
     }
 
@@ -144,6 +158,98 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
         } catch (IOException e) {
             log.error("이미지 저장 중 오류 발생", e);
             throw new RuntimeException("이미지 저장에 실패했습니다.", e);
+        }
+    }
+
+    // 가게 요청 이미지를 가게용 폴더로 복사하는 메서드
+    private String copyImageToRestaurantFolder(String businessRequestImageUrl) {
+        try {
+            // 가게용 이미지 디렉토리
+            String restaurantImageDir = "uploads/restaurants/";
+            Path restaurantPath = Paths.get(restaurantImageDir);
+            if (!Files.exists(restaurantPath)) {
+                Files.createDirectories(restaurantPath);
+            }
+            
+            // 원본 파일 경로
+            Path sourcePath = Paths.get(businessRequestImageUrl);
+            if (!Files.exists(sourcePath)) {
+                log.warn("원본 이미지 파일을 찾을 수 없습니다: {}", businessRequestImageUrl);
+                return businessRequestImageUrl; // 원본 경로 반환
+            }
+            
+            // 새 파일명 생성 (UUID 사용)
+            String extension = businessRequestImageUrl.substring(businessRequestImageUrl.lastIndexOf("."));
+            String filename = UUID.randomUUID().toString() + extension;
+            
+            // 가게용 폴더로 복사
+            Path targetPath = restaurantPath.resolve(filename);
+            Files.copy(sourcePath, targetPath);
+            
+            log.info("이미지 복사 완료: {} -> {}", businessRequestImageUrl, restaurantImageDir + filename);
+            return restaurantImageDir + filename;
+            
+        } catch (IOException e) {
+            log.error("이미지 복사 중 오류 발생: {}", businessRequestImageUrl, e);
+            return businessRequestImageUrl; // 오류 시 원본 경로 반환
+        }
+    }
+
+    // String을 LocalDate로 변환하는 헬퍼 메서드
+    private LocalDate parseDate(String dateString) {
+        if (dateString == null || dateString.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (Exception e) {
+            log.warn("날짜 파싱 실패: {}", dateString, e);
+            return null;
+        }
+    }
+
+    // BusinessRequest를 Restaurant과 RestaurantImage로 변환하여 저장
+    private void createRestaurantFromBusinessRequest(BusinessRequest businessRequest) {
+        try {
+            // Restaurant 엔티티 생성
+            Restaurant restaurant = Restaurant.builder()
+                    // .id(businessRequest.getId()) // ID는 자동 증가로 설정됨
+                    .name(businessRequest.getName())
+                    .categoryName(businessRequest.getCategoryName())
+                    .phone(businessRequest.getPhone())
+                    .roadAddressName(businessRequest.getRoadAddressName())
+                    .x(businessRequest.getX())
+                    .y(businessRequest.getY())
+                    .placeUrl(businessRequest.getPlaceUrl())
+                    .fundingAmount(0L) // 초기 펀딩 금액은 0
+                    .fundingGoalAmount(businessRequest.getFundingGoalAmount())
+                    .fundingStartDate(parseDate(businessRequest.getFundingStartDate()))
+                    .fundingEndDate(parseDate(businessRequest.getFundingEndDate()))
+                    .build();
+            
+            // Restaurant 저장
+            Restaurant savedRestaurant = restaurantRepository.save(restaurant);
+            
+            // 이미지가 있는 경우 가게용 경로로 복사하고 RestaurantImage 엔티티 생성
+            if (businessRequest.getImageUrl() != null && !businessRequest.getImageUrl().isEmpty()) {
+                String restaurantImageUrl = copyImageToRestaurantFolder(businessRequest.getImageUrl());
+                
+                RestaurantImage restaurantImage = RestaurantImage.builder()
+                        .restaurant(savedRestaurant)
+                        .imageUrl(restaurantImageUrl)
+                        .isMain(true) // 메인 이미지로 설정
+                        .sortOrder(0) // 첫 번째 이미지
+                        .build();
+                
+                restaurantImageRepository.save(restaurantImage);
+            }
+            
+            log.info("BusinessRequest ID: {} 승인 완료. Restaurant ID: {} 생성됨", 
+                    businessRequest.getId(), savedRestaurant.getId());
+                    
+        } catch (Exception e) {
+            log.error("Restaurant 생성 중 오류 발생: BusinessRequest ID: {}", businessRequest.getId(), e);
+            throw new RuntimeException("Restaurant 생성에 실패했습니다.", e);
         }
     }
 

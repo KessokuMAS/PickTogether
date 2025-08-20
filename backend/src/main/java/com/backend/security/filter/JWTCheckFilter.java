@@ -44,6 +44,7 @@ protected boolean shouldNotFilter(HttpServletRequest request) {
         "/api/products/view/",
         "/api/restaurants",
         "/api/community",
+        "/api/local-specialty",
         "/uploads" // 이미지 파일 접근 허용
     };
 
