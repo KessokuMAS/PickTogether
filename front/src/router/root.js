@@ -42,6 +42,9 @@ const LocalSpecialtyDetailPage = lazy(() =>
   import("../pages/localSpecialty/LocalSpecialtyDetailPage")
 );
 const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
+const BusinessLocationPage = lazy(() =>
+  import("../pages/business/BusinessLocationPage")
+);
 
 // 마이페이지 관련 페이지들
 const BusinessRequestsPage = lazy(() =>
@@ -208,6 +211,14 @@ const root = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <BusinessRequestManagementPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/business-location",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <BusinessLocationPage />
       </Suspense>
     ),
   },

@@ -75,6 +75,16 @@ const NearbyKakaoRestaurants = () => {
 
   const [coords, setCoords] = useState(null);
 
+  // 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
+  const getImageUrl = (imageUrl) => {
+    if (!imageUrl) return null;
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      return imageUrl;
+    }
+    // 백엔드에서 반환된 상대 경로를 절대 URL로 변환
+    return `http://localhost:8080/${imageUrl}`;
+  };
+
   // 위치 가져오기
   useEffect(() => {
     const saved = localStorage.getItem("selectedLocation");
@@ -179,7 +189,16 @@ const NearbyKakaoRestaurants = () => {
                   : 0;
 
                 const imgSrc =
-                  imageUrl || `/${Math.floor(Math.random() * 45 + 1)}.png`;
+                  getImageUrl(imageUrl) ||
+                  `/${Math.floor(Math.random() * 45 + 1)}.jpg`;
+
+                // 이미지 표시 여부 결정
+                const hasCustomImage =
+                  imageUrl && imageUrl.includes("uploads/");
+                const displayImage = hasCustomImage
+                  ? getImageUrl(imageUrl)
+                  : `/${restaurantId}.jpg`; // ID 기반으로 일관된 이미지 표시
+
                 const distLabel = Number.isFinite(Number(distance))
                   ? `${Math.round(Number(distance)).toLocaleString()}m 거리`
                   : "거리 정보 없음";
@@ -201,7 +220,7 @@ const NearbyKakaoRestaurants = () => {
                     {/* 이미지 영역 */}
                     <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden relative group">
                       <img
-                        src={imgSrc}
+                        src={displayImage}
                         alt={`${name} 이미지`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />

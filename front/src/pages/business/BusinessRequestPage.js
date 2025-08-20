@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FiMapPin, FiShoppingBag, FiArrowLeft } from "react-icons/fi";
 import { createBusinessRequest } from "../../api/businessRequestApi";
 import { getCookie } from "../../utils/cookieUtil";
+import ImageModal from "../../components/common/ImageModal";
 
 export default function BusinessRequestPage() {
+  const navigate = useNavigate();
+
   // getImageUrl 함수 추가
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
@@ -33,6 +37,7 @@ export default function BusinessRequestPage() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [customCategory, setCustomCategory] = useState("");
   const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -98,24 +103,8 @@ export default function BusinessRequestPage() {
         "가게 요청이 성공적으로 제출되었습니다. 관리자 검토 후 승인됩니다."
       );
 
-      // 폼 초기화
-      setFormData({
-        name: "",
-        categoryName: "",
-        phone: "",
-        roadAddressName: "",
-        x: null,
-        y: null,
-        placeUrl: "",
-        fundingGoalAmount: "",
-        fundingStartDate: "",
-        fundingEndDate: "",
-      });
-      setSelectedImage(null);
-      setImagePreview(null);
-      setSelectedLocation(null);
-      setCustomCategory("");
-      setShowCustomCategory(false);
+      // 메인 페이지로 리다이렉트
+      navigate("/main");
     } catch (error) {
       console.error("가게 요청 제출 오류:", error);
       alert("가게 요청 제출 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -123,21 +112,21 @@ export default function BusinessRequestPage() {
   };
 
   const openLocationSelector = () => {
-    // 메인레이아웃의 위치 설정 방식 사용
+    // 가게요청 전용 위치 설정 팝업 사용
     const width = 500;
     const height = 600;
     const left = (window.screen.width - width) / 2;
     const top = (window.screen.height - height) / 2;
 
     const popup = window.open(
-      "/location",
-      "locationSelector",
+      "/business-location",
+      "businessLocationSelector",
       `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
     );
 
-    // 팝업에서 주소 선택 시 메시지 수신
+    // 팝업에서 주소 선택 시 메시지 수신 (가게요청 전용 메시지 타입 사용)
     const handleMessage = (e) => {
-      if (e.data && e.data.type === "ADDRESS_SELECTED") {
+      if (e.data && e.data.type === "BUSINESS_ADDRESS_SELECTED") {
         const locationData = {
           place_name: formData.name || "선택된 위치",
           road_address_name: e.data.address || "",
@@ -336,10 +325,14 @@ export default function BusinessRequestPage() {
                     <img
                       src={imagePreview}
                       alt="가게 이미지 미리보기"
-                      className="w-full h-48 object-cover rounded-xl border border-slate-200"
+                      className="w-full h-48 object-cover rounded-xl border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setShowImageModal(true)}
                     />
                     <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
                       {selectedImage?.name}
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                      클릭하여 원본 보기
                     </div>
                   </div>
                 )}
@@ -458,6 +451,13 @@ export default function BusinessRequestPage() {
           </a>
         </section>
       </div>
+
+      {/* 이미지 모달 */}
+      <ImageModal
+        isOpen={showImageModal}
+        imageUrl={imagePreview}
+        onClose={() => setShowImageModal(false)}
+      />
     </div>
   );
 }

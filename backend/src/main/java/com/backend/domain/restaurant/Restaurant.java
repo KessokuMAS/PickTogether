@@ -14,8 +14,9 @@ import java.time.LocalDate;
 public class Restaurant {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id; // 카카오 장소 ID (고유값)
+    private Long id; // 자동 증가 ID
 
     @Column(name = "name", nullable = false, length = 200)
     private String name; // 음식점 이름

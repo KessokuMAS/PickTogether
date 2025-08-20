@@ -27,6 +27,16 @@ const API_BASE =
   process.env.REACT_APP_API_BASE ||
   "http://localhost:8080";
 
+// 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  // 백엔드에서 반환된 상대 경로를 절대 URL로 변환
+  return `${API_BASE}/${imageUrl}`;
+};
+
 // Circular Progress Component
 const CircularProgress = ({ value = 0, size = 60, stroke = 4 }) => {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
@@ -109,12 +119,21 @@ const RestaurantDetailPage = () => {
 
   // Image source with fallback
   const imgSrc = useMemo(() => {
-    const fallback = `/${fallbackIdx}.png`;
+    const fallback = `/${fallbackIdx}.jpg`;
     const url = data?.imageUrl;
+
     if (!url) return fallback;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    if (url.startsWith("/")) return `${API_BASE}${url}`;
-    return url;
+
+    // 승인된 가게 요청인지 확인 (uploads/ 포함 여부)
+    const hasCustomImage = url && url.includes("uploads/");
+
+    if (hasCustomImage) {
+      // 승인된 가게: 실제 이미지 사용
+      return getImageUrl(url);
+    } else {
+      // 기존 CSV 데이터: ID 기반 이미지 사용
+      return fallback;
+    }
   }, [data, fallbackIdx]);
 
   // Funding period calculation
@@ -140,7 +159,7 @@ const RestaurantDetailPage = () => {
   // Fallback menu items
   const fallbackMenuItems = useMemo(() => {
     const base = Number(id) || 1;
-    const pick = (offset) => `/${((base + offset) % 45) + 1}.png`;
+    const pick = (offset) => `/${((base + offset) % 45) + 1}.jpg`;
     return [
       {
         id: base * 10 + 1,
@@ -278,7 +297,7 @@ const RestaurantDetailPage = () => {
                   alt={data.name}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
-                    e.currentTarget.src = `/${fallbackIdx}.png`;
+                    e.currentTarget.src = `/${fallbackIdx}.jpg`;
                   }}
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
@@ -376,7 +395,7 @@ const RestaurantDetailPage = () => {
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                             onError={(e) => {
                               const idx = ((fallbackIdx + index) % 45) + 1;
-                              e.currentTarget.src = `/${idx}.png`;
+                              e.currentTarget.src = `/${idx}.jpg`;
                             }}
                           />
                         </div>
