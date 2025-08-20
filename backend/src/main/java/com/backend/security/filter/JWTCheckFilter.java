@@ -45,6 +45,8 @@ protected boolean shouldNotFilter(HttpServletRequest request) {
         "/api/restaurants",
         "/api/community",
         "/api/local-specialty",
+        "/api/local-specialties", // 새로운 지역특산물 API 추가
+        "/api/funding-specialty", // 지역특산품 구매 API 추가
         "/uploads" // 이미지 파일 접근 허용
     };
 

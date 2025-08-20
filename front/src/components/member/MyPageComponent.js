@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { getMyPageInfo } from "../../api/memberApi";
 import { getMemberFundings } from "../../api/fundingApi";
+import { fundingSpecialtyApi } from "../../api/fundingSpecialtyApi";
 import { getCookie } from "../../utils/cookieUtil";
 import { FiMaximize2, FiDownload, FiSquare } from "react-icons/fi";
 import QRCode from "qrcode";
@@ -9,6 +10,8 @@ import QRCode from "qrcode";
 export default function MyPageComponent() {
   const [member, setMember] = useState(null);
   const [fundings, setFundings] = useState([]);
+  const [specialtyOrders, setSpecialtyOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState("funding"); // "funding" | "specialty"
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -23,10 +26,17 @@ export default function MyPageComponent() {
         const memberCookie = getCookie("member");
         if (memberCookie?.member?.email) {
           try {
+            // 식당 펀딩 내역
             const fundingData = await getMemberFundings(
               memberCookie.member.email
             );
             setFundings(fundingData);
+
+            // 지역특산품 구매 내역
+            const specialtyData = await fundingSpecialtyApi.getMemberOrders(
+              memberCookie.member.email
+            );
+            setSpecialtyOrders(specialtyData);
           } catch (fundingError) {
             console.error("결제 내역 로드 실패:", fundingError);
             // 펀딩 로드 실패는 전체 마이페이지에 영향을 주지 않도록 함
@@ -285,19 +295,59 @@ export default function MyPageComponent() {
 
         {/* 결제 내역 카드 */}
         <section className="mt-6 rounded-2xl bg-white p-6 shadow-md">
-          <h2 className="text-base font-extrabold text-slate-900">결제 내역</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-base font-extrabold text-slate-900">
+              결제 내역
+            </h2>
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab("funding")}
+                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                  activeTab === "funding"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                식당 펀딩 ({fundings.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("specialty")}
+                className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                  activeTab === "specialty"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                특산품 펀딩 ({specialtyOrders.length})
+              </button>
+            </div>
+          </div>
+
           <div className="mt-4">
-            {fundings.length === 0 ? (
+            {activeTab === "funding" ? (
+              // 식당 펀딩 내역
+              fundings.length === 0 ? (
+                <div className="text-center py-8 text-slate-500">
+                  <p className="text-sm">아직 참여한 펀딩이 없습니다.</p>
+                  <p className="text-xs mt-1">식당에서 펀딩에 참여해보세요!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {fundings.map((funding) => (
+                    <FundingRow key={funding.id} funding={funding} />
+                  ))}
+                </div>
+              )
+            ) : // 지역특산품 구매 내역
+            specialtyOrders.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
-                <p className="text-sm">아직 참여한 펀딩이 없습니다.</p>
-                <p className="text-xs mt-1">
-                  레스토랑에서 펀딩에 참여해보세요!
-                </p>
+                <p className="text-sm">아직 구매한 특산품이 없습니다.</p>
+                <p className="text-xs mt-1">지역특산품을 펀딩해보세요!</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {fundings.map((funding) => (
-                  <FundingRow key={funding.id} funding={funding} />
+                {specialtyOrders.map((order) => (
+                  <SpecialtyOrderRow key={order.id} order={order} />
                 ))}
               </div>
             )}
@@ -334,7 +384,7 @@ function FundingRow({ funding }) {
   const generateQRCode = async () => {
     try {
       setQrLoading(true);
-      // QR 코드에 포함할 데이터 (펀딩 ID, 레스토랑명, 결제번호 등)
+      // QR 코드에 포함할 데이터 (펀딩 ID, 식당명, 결제번호 등)
       const qrData = JSON.stringify({
         fundingId: funding.id,
         restaurantName: funding.restaurantName,
@@ -554,11 +604,11 @@ function FundingRow({ funding }) {
 
               <div className="flex-1 text-sm text-blue-700">
                 <p className="font-medium mb-1">
-                  레스토랑에서 이 QR 코드를 스캔하세요
+                  식당에서 이 QR 코드를 스캔하세요
                 </p>
                 <p className="text-xs opacity-80">
                   • 펀딩 ID: {funding.id}
-                  <br />• 레스토랑: {funding.restaurantName}
+                  <br />• 식당: {funding.restaurantName}
                   <br />• 결제 금액: {funding.totalAmount?.toLocaleString()}원
                 </p>
               </div>
@@ -640,6 +690,213 @@ function FundingRow({ funding }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SpecialtyOrderRow({ order }) {
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  };
+
+  const getPaymentMethodText = (method) => {
+    switch (method) {
+      case "kakaopay":
+        return "카카오페이";
+      case "tosspay":
+        return "토스페이";
+      case "card":
+        return "일반결제";
+      default:
+        return method;
+    }
+  };
+
+  const getOrderStatusText = (status) => {
+    switch (status) {
+      case "PENDING":
+        return "결제 대기";
+      case "PAID":
+        return "결제 완료";
+      case "SHIPPED":
+        return "배송 중";
+      case "DELIVERED":
+        return "배송 완료";
+      case "CANCELLED":
+        return "주문 취소";
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "PAID":
+        return "bg-blue-100 text-blue-800";
+      case "SHIPPED":
+        return "bg-yellow-100 text-yellow-800";
+      case "DELIVERED":
+        return "bg-green-100 text-green-800";
+      case "CANCELLED":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
+      <div className="space-y-4">
+        {/* 헤더 */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="text-lg font-bold text-slate-900">
+                {order.specialtyName}
+              </h3>
+              <span
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                  order.orderStatus
+                )}`}
+              >
+                {getOrderStatusText(order.orderStatus)}
+              </span>
+            </div>
+
+            <div className="text-sm text-slate-600">
+              <div className="flex items-center gap-6 mb-2">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                  결제수단: {getPaymentMethodText(order.paymentMethod)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                  주문일: {formatDate(order.createdAt)}
+                </span>
+              </div>
+              <div className="flex items-center gap-6">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                  수량: {order.quantity}개
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-orange-400 rounded-full"></span>
+                  단가: {order.unitPrice?.toLocaleString()}원
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <div className="text-2xl font-bold text-pink-600">
+              {order.totalAmount?.toLocaleString()}원
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              {order.agreeSms && "SMS "}
+              {order.agreeEmail && "이메일 "}
+              {(order.agreeSms || order.agreeEmail) && "수신동의"}
+            </div>
+          </div>
+        </div>
+
+        {/* 배송 정보 */}
+        {order.orderStatus !== "CANCELLED" && order.address && (
+          <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
+            <div className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+              <span className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              </span>
+              배송 정보
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">받는 분:</span>
+                <span className="text-slate-900 font-medium">
+                  {order.buyerName}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">연락처:</span>
+                <span className="text-slate-900 font-medium">
+                  {order.buyerPhone}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">우편번호:</span>
+                <span className="text-slate-900 font-mono">
+                  {order.zipCode}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">주소:</span>
+                <span className="text-slate-900">{order.address}</span>
+              </div>
+              {order.detailAddress && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">상세주소:</span>
+                  <span className="text-slate-900">{order.detailAddress}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 지역 정보 */}
+        {(order.sidoNm || order.sigunguNm) && (
+          <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+            <div className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+              <span className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              </span>
+              원산지 정보
+            </div>
+            <div className="text-sm text-green-700">
+              {order.sidoNm} {order.sigunguNm}
+            </div>
+          </div>
+        )}
+
+        {/* 주문 정보 요약 */}
+        <div className="border-t border-slate-200 pt-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-slate-600">주문 상태</span>
+            <span
+              className={`font-medium ${
+                order.orderStatus === "DELIVERED"
+                  ? "text-green-600"
+                  : order.orderStatus === "CANCELLED"
+                  ? "text-red-600"
+                  : order.orderStatus === "SHIPPED"
+                  ? "text-yellow-600"
+                  : "text-blue-600"
+              }`}
+            >
+              {getOrderStatusText(order.orderStatus)}
+            </span>
+          </div>
+          {order.merchantUid && (
+            <div className="flex justify-between items-center text-sm mt-1">
+              <span className="text-slate-600">주문 번호</span>
+              <span className="text-slate-500 font-mono text-xs">
+                {order.merchantUid}
+              </span>
+            </div>
+          )}
+          {order.impUid && (
+            <div className="flex justify-between items-center text-sm mt-1">
+              <span className="text-slate-600">결제 번호</span>
+              <span className="text-slate-500 font-mono text-xs">
+                {order.impUid}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
