@@ -95,7 +95,7 @@ jspm_packages/
 !backend/
 !front/
 !csv/
-!season_menu/
+!python/
 
 # backend 폴더 내에서 제외할 것들
 backend/.gradle/
