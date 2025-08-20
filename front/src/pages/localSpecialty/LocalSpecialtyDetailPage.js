@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { localSpecialtyApi } from "../../api/localSpecialtyApi";
 import { IoRestaurantOutline, IoArrowBack } from "react-icons/io5";
 import { TbCurrentLocation, TbCalendar, TbExternalLink } from "react-icons/tb";
-import MainMenu from "../../components/menus/Mainmenu";
+import MainLayout from "../../layouts/MainLayout";
 import {
   FiShoppingCart,
   FiMinus,
@@ -14,56 +14,27 @@ import {
   FiShield,
   FiArrowLeft,
   FiShare2,
+  FiMapPin,
+  FiClock,
 } from "react-icons/fi";
 
-// Circular Progress Component (RestaurantDetailPage에서 가져옴)
-const CircularProgress = ({ value = 0, size = 60, stroke = 4 }) => {
+// Bar Progress Component (RestaurantDetailPage에서 가져옴)
+const BarProgress = ({ value = 0, maxValue = 100 }) => {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference * (1 - pct / 100);
-
-  const strokeColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
+  const barColor = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#3b82f6";
 
   return (
-    <div
-      style={{ width: size, height: size }}
-      className="relative flex items-center justify-center"
-      title={`${pct}%`}
-    >
-      <svg width={size} height={size}>
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          className="text-gray-200"
-          stroke="currentColor"
+    <div className="w-full flex flex-col gap-4">
+      <div className="w-full bg-gray-100 rounded-full h-6">
+        <div
+          className="h-6 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
         />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          strokeWidth={stroke}
-          stroke={strokeColor}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          className="transition-colors duration-500 ease-out"
-        />
-      </svg>
-      <span
-        className="absolute font-bold transition-colors duration-500 ease-out"
-        style={{
-          fontSize: `${size * 0.3}px`,
-          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
-        }}
-      >
-        {pct}%
-      </span>
+      </div>
+      <div className="flex justify-between items-center text-lg font-semibold text-gray-800">
+        <span>{pct}% 달성</span>
+        <span>목표 {maxValue.toLocaleString()}원</span>
+      </div>
     </div>
   );
 };
@@ -188,14 +159,21 @@ const LocalSpecialtyDetailPage = () => {
   const handleImageError = (e) => {
     // cntntsNo 기반으로 fallback 이미지 설정
     const fallbackIndex = (parseInt(id) % 45) + 1;
-    e.target.src = `/${fallbackIndex}.jpg`;
+    e.target.src = `/${fallbackIndex}.png`;
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("ko-KR");
+      return date
+        .toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        })
+        .replace(/\.\s/g, ".")
+        .replace(/\.$/, "");
     } catch {
       return dateString;
     }
@@ -224,39 +202,57 @@ const LocalSpecialtyDetailPage = () => {
     }
   };
 
+  // Handle purchase button click
+  const handlePurchaseClick = () => {
+    if (quantity <= 0) {
+      alert("수량을 선택해주세요");
+      return;
+    }
+    const dynamicPrice = getProductPrice(specialty.cntntsSj);
+    navigate(
+      `/payment?type=specialty&specialtyId=${
+        specialty.cntntsNo
+      }&specialtyName=${
+        specialty.cntntsSj
+      }&specialtyPrice=${dynamicPrice}&specialtyQuantity=${quantity}&sidoNm=${encodeURIComponent(
+        specialty.sidoNm || ""
+      )}&sigunguNm=${encodeURIComponent(specialty.sigunguNm || "")}`
+    );
+  };
+
   if (loading) {
     return (
-      <>
-        <MainMenu />
-        <div className="p-4 flex justify-center bg-white min-h-screen pt-[200px]">
-          <div className="w-full max-w-[1200px]">
-            <div className="animate-pulse">
-              <div className="w-full h-64 bg-gray-200 rounded-lg" />
-              <div className="mt-4 space-y-2">
-                <div className="h-6 w-48 bg-gray-200 rounded" />
-                <div className="h-4 w-full bg-gray-200 rounded" />
-                <div className="h-4 w-1/2 bg-gray-200 rounded" />
+      <MainLayout>
+        <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
+          <div className="w-full max-w-7xl mx-auto">
+            <div className="animate-pulse space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="col-span-3 h-96 bg-gray-100 rounded-2xl" />
+                <div className="col-span-2 space-y-4">
+                  <div className="h-12 w-80 bg-gray-100 rounded-lg" />
+                  <div className="h-6 w-full bg-gray-100 rounded-lg" />
+                  <div className="h-6 w-1/2 bg-gray-100 rounded-lg" />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </>
+      </MainLayout>
     );
   }
 
   if (error || !specialty) {
     return (
-      <>
-        <MainMenu />
-        <div className="p-4 flex justify-center bg-white min-h-screen pt-[200px]">
-          <div className="w-full max-w-[1200px]">
-            <p className="text-red-500 text-center py-20">
+      <MainLayout>
+        <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
+          <div className="w-full max-w-7xl mx-auto">
+            <p className="text-red-600 text-center text-lg font-medium py-20">
               {error || "지역특산물을 찾을 수 없습니다."}
             </p>
-            <div className="text-center">
+            <div className="text-center space-x-4">
               <button
                 onClick={goBack}
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors mr-4"
+                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 목록으로 돌아가기
               </button>
@@ -269,7 +265,7 @@ const LocalSpecialtyDetailPage = () => {
             </div>
           </div>
         </div>
-      </>
+      </MainLayout>
     );
   }
 
@@ -294,260 +290,309 @@ const LocalSpecialtyDetailPage = () => {
 
   // 이미지 소스 설정 (cntntsNo 기반 fallback)
   const fallbackIndex = (parseInt(cntntsNo) % 45) + 1;
-  const imgSrc = imgUrl || `/${fallbackIndex}.jpg`;
+  const imgSrc = imgUrl || `/${fallbackIndex}.png`;
   const additionalImages = [imgUrl2, imgUrl3].filter(Boolean);
 
+  // 동적 가격 계산
+  const dynamicPrice = getProductPrice(cntntsSj);
+  const totalPrice = dynamicPrice * quantity;
+
   return (
-    <>
-      <MainMenu />
-      <div className="p-4 flex justify-center bg-white min-h-screen pt-[200px]">
-        <div className="w-full max-w-[1200px]">
-          {/* 뒤로가기 버튼 */}
+    <MainLayout>
+      <div className="bg-gray-50 min-h-screen p-4 sm:p-8 bg-[url('https://www.transparenttextures.com/patterns/light-wool.png')]">
+        <div className="w-full max-w-7xl mx-auto">
+          {/* Back Button */}
           <button
             onClick={goBack}
-            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm mb-4"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-emerald-600 text-sm font-medium mb-8 transition-colors"
           >
-            <IoRestaurantOutline /> 뒤로
+            <IoRestaurantOutline className="text-lg" /> 뒤로
           </button>
 
-          <div className="space-y-6">
-            {/* Hero Section - 메인 이미지 */}
-            <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-100 group">
-              <img
-                src={imgSrc}
-                alt={cntntsSj}
-                onError={handleImageError}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+          <div className="space-y-10">
+            {/* Top Section: Image (Left) and Details (Right) */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+              {/* Hero Image (Left, larger, fills div) */}
+              <div className="col-span-3 relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gray-100 group shadow-md">
+                <img
+                  src={imgSrc}
+                  alt={cntntsSj}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <button
                   onClick={handleShare}
-                  className="px-4 py-2 text-white font-bold rounded bg-black bg-opacity-80 hover:bg-opacity-100 transition"
+                  className="absolute top-4 right-4 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md animate-fade-in"
                 >
-                  {copied ? "링크 복사됨" : "공유하기"}
+                  {copied ? "복사됨" : "공유"}
+                  <FiShare2 />
                 </button>
               </div>
+
+              {/* Details (Right) */}
+              <div className="col-span-2 bg-white rounded-2xl p-8 shadow-md border border-teal-100 flex flex-col justify-between h-full">
+                <div className="flex-1">
+                  <h1 className="text-5xl font-bold text-gray-800 mb-4 tracking-tight">
+                    {cntntsSj}
+                  </h1>
+                  <span className="inline-flex items-center px-4 py-1.5 text-sm font-semibold rounded-full bg-teal-50 text-teal-600 mb-6 animate-fade-in">
+                    지역특산품
+                  </span>
+
+                  {/* Price Info */}
+                  <div className="mb-6">
+                    <div className="text-3xl font-bold text-gray-800 mb-3">
+                      {dynamicPrice.toLocaleString()}원
+                    </div>
+                    {(fundingAmount !== undefined ||
+                      fundingGoalAmount !== undefined) && (
+                      <>
+                        <BarProgress
+                          value={fundingPercent || 0}
+                          maxValue={fundingGoalAmount || 100000}
+                        />
+                        <div className="mt-4 text-base text-gray-600">
+                          <span>
+                            {Math.round((fundingAmount || 0) / 10000)}만원 펀딩
+                          </span>
+                          <span className="text-gray-400 mx-2">•</span>
+                          <span>
+                            목표 {Math.round((fundingGoalAmount || 0) / 10000)}
+                            만원
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Basic Info */}
+                  <div className="text-base text-gray-600 space-y-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <FiMapPin className="text-teal-600 text-lg" />
+                      <span>
+                        {sidoNm}
+                        {sigunguNm && ` > ${sigunguNm}`}
+                      </span>
+                    </div>
+                    {svcDt && (
+                      <div className="flex items-center gap-3">
+                        <FiClock className="text-teal-600 text-lg" />
+                        <span>{formatDate(svcDt)}</span>
+                      </div>
+                    )}
+                    {rdcnt && (
+                      <div className="flex items-center gap-3">
+                        <FiEye className="text-teal-600 text-lg" />
+                        <span>조회수 {rdcnt.toLocaleString()}회</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price Tag */}
+                  <div className="flex items-center gap-3 text-base text-gray-600 mb-6">
+                    <FiTag className="text-teal-600 text-lg" />
+                    <span className="text-emerald-600 font-bold text-xl">
+                      {dynamicPrice.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+
+                {/* Purchase Button - 하단 고정 */}
+                <div className="mt-auto">
+                  <button
+                    onClick={handlePurchaseClick}
+                    className="w-full px-8 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center justify-center gap-3 shadow-md animate-fade-in"
+                  >
+                    <FiShoppingCart className="text-xl" /> 구매하기
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Specialty Info - 특산물 정보 */}
-            <div className="bg-white border border-gray-300 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-black">{cntntsSj}</h1>
-                {fundingPercent !== undefined && (
-                  <CircularProgress value={fundingPercent} />
-                )}
+            {/* Quantity Selection */}
+            <div className="bg-gradient-to-b from-teal-50 to-white rounded-2xl p-8 shadow-md">
+              <div className="flex items-center gap-3 mb-6">
+                <FiShoppingCart className="text-xl text-teal-600" />
+                <h2 className="text-2xl font-bold text-gray-800">수량 선택</h2>
               </div>
 
-              <div className="mt-4 text-sm text-gray-600 space-y-2">
-                <div className="flex items-center gap-2">
-                  <TbCurrentLocation />
-                  <span>
-                    {sidoNm}
-                    {sigunguNm && ` > ${sigunguNm}`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FiTag />
-                  <span className="text-green-600 font-bold text-lg">
-                    {getProductPrice(cntntsSj).toLocaleString()}원
-                  </span>
-                </div>
-                {svcDt && (
-                  <div className="flex items-center gap-2">
-                    <TbCalendar />
-                    <span>{formatDate(svcDt)}</span>
+              <div className="bg-white rounded-2xl p-6 border border-teal-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <span className="text-lg font-semibold text-gray-800">
+                      수량:
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={decreaseQuantity}
+                        disabled={quantity <= 1}
+                        className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FiMinus className="text-base text-teal-600" />
+                      </button>
+                      <input
+                        type="number"
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                        min="1"
+                        max="99"
+                        className="w-16 text-center text-xl font-bold border-2 border-teal-200 rounded-lg py-2 focus:border-teal-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        onClick={increaseQuantity}
+                        disabled={quantity >= 99}
+                        className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <FiPlus className="text-base text-teal-600" />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-emerald-600">
+                      총 {totalPrice.toLocaleString()}원
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {dynamicPrice.toLocaleString()}원 × {quantity}개
+                    </div>
+                  </div>
+                </div>
 
-              {/* Funding Info - 펀딩 정보 */}
-              {(fundingAmount !== undefined ||
-                fundingGoalAmount !== undefined) && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span>
-                      {Math.round((fundingAmount || 0) / 10000)}만원 펀딩
-                    </span>
-                    <span>
-                      목표 {Math.round((fundingGoalAmount || 0) / 10000)}만원
-                    </span>
+                <div className="bg-teal-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-gray-800 text-lg">
+                        {cntntsSj}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {dynamicPrice.toLocaleString()}원 × {quantity}개
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-emerald-600">
+                        {totalPrice.toLocaleString()}원
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={handlePurchaseClick}
+                    className="flex-1 px-6 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-md animate-fade-in"
+                  >
+                    <FiShoppingCart className="text-xl" />
+                    구매하기 ({quantity}개)
+                  </button>
+                  <button
+                    onClick={() => setQuantity(1)}
+                    className="px-6 py-3 border border-teal-200 text-emerald-600 text-sm font-semibold rounded-full hover:bg-teal-50 transition-all duration-300 animate-fade-in"
+                  >
+                    초기화
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* 상세 설명 */}
+            {/* Description */}
             {cntntsCn && (
-              <div className="bg-white border border-gray-300 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                  <FiInfo />
+              <div className="bg-white rounded-2xl p-8 shadow-md">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-3">
+                  <FiInfo className="text-teal-600 text-xl" />
                   상세 설명
                 </h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <p className="text-base text-gray-700 leading-relaxed whitespace-pre-line">
                     {cntntsCn}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* 추가 이미지들 */}
+            {/* Additional Images */}
             {additionalImages.length > 0 && (
-              <div className="bg-white border border-gray-300 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-3">추가 이미지</h3>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-8 shadow-md">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">
+                  추가 이미지
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {additionalImages.map((img, index) => (
                     <div
                       key={index}
-                      className="h-48 bg-gray-100 rounded-lg overflow-hidden"
+                      className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 group"
                     >
                       <img
                         src={img}
                         alt={`${cntntsSj} 추가 이미지 ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={handleImageError}
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* 수량 선택 및 구매 */}
-            <div className="bg-white border border-gray-300 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FiShoppingCart className="text-xl" />
-                <h2 className="text-lg font-bold">구매하기</h2>
-              </div>
+            {/* Additional Info */}
+            <div className="bg-white rounded-2xl p-8 shadow-md space-y-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                추가 정보
+              </h3>
 
-              {/* 수량 선택 */}
-              <div className="mb-4">
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="font-medium">수량:</span>
-                  <div className="flex items-center gap-2 border border-gray-300 rounded-lg p-2 bg-white">
-                    <button
-                      onClick={decreaseQuantity}
-                      disabled={quantity <= 1}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
-                        quantity <= 1
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      <FiMinus className="text-sm" />
-                    </button>
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={handleQuantityChange}
-                      min="1"
-                      max="99"
-                      className="w-16 text-center border-none outline-none text-lg font-medium bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={increaseQuantity}
-                      disabled={quantity >= 99}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold transition-colors ${
-                        quantity >= 99
-                          ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}
-                    >
-                      <FiPlus className="text-sm" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 주문 요약 */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="font-bold text-gray-900">주문 요약</h4>
-                    <span className="text-green-600 font-bold text-lg">
-                      {(getProductPrice(cntntsSj) * quantity).toLocaleString()}
-                      원
-                    </span>
-                  </div>
-
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">
-                          {cntntsSj}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {getProductPrice(cntntsSj).toLocaleString()}원 ×{" "}
-                          {quantity}개
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const dynamicPrice = getProductPrice(cntntsSj);
-                      navigate(
-                        `/payment?type=specialty&specialtyId=${cntntsNo}&specialtyName=${cntntsSj}&specialtyPrice=${dynamicPrice}&specialtyQuantity=${quantity}&sidoNm=${encodeURIComponent(
-                          sidoNm || ""
-                        )}&sigunguNm=${encodeURIComponent(sigunguNm || "")}`
-                      );
-                    }}
-                    className="w-full bg-black text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors"
-                  >
-                    구매하기 ({quantity}개)
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Info - 추가 정보 */}
-            <div className="bg-white border border-gray-300 rounded-lg p-6 space-y-4">
-              {/* 콘텐츠 번호 */}
+              {/* Content Number */}
               <div>
-                <span className="text-sm text-gray-500 font-medium">
-                  콘텐츠 번호
-                </span>
-                <p className="text-gray-700 font-mono text-lg mt-1">
-                  {cntntsNo}
-                </p>
+                <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-2">
+                  <FiTag className="text-teal-600 text-lg" /> 콘텐츠 번호
+                </div>
+                <p className="text-base text-gray-600 font-mono">{cntntsNo}</p>
               </div>
 
-              {/* 조회수 */}
-              {rdcnt && (
-                <div>
-                  <div className="flex items-center gap-2 font-semibold">
-                    <FiEye /> 조회수
-                  </div>
-                  <p className="text-gray-600">{rdcnt.toLocaleString()}회</p>
-                </div>
-              )}
-
-              {/* 수집일 */}
+              {/* Collection Date */}
               {collectYmd && (
                 <div>
-                  <span className="text-sm text-gray-500 font-medium">
-                    수집일
-                  </span>
-                  <p className="text-gray-700">{collectYmd}</p>
+                  <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-2">
+                    <FiClock className="text-teal-600 text-lg" /> 수집일
+                  </div>
+                  <p className="text-base text-gray-600">{collectYmd}</p>
                 </div>
               )}
 
-              {/* 외부 링크 */}
+              {/* External Link */}
               {linkUrl && (
                 <div>
                   <a
                     href={linkUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                    className="flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors text-base font-semibold animate-fade-in"
                   >
-                    <TbExternalLink /> 자세히 보기
+                    <TbExternalLink className="text-lg" /> 자세히 보기
                   </a>
                 </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Custom CSS for Animations */}
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+          }
+        `}</style>
       </div>
-    </>
+    </MainLayout>
   );
 };
 
