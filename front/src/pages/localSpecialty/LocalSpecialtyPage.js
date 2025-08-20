@@ -9,8 +9,65 @@ import { localSpecialtyApi } from "../../api/localSpecialtyApi";
 import { IoRestaurantOutline } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
 import { FiSearch } from "react-icons/fi";
+import { FaFire } from "react-icons/fa"; // 🔥 펀딩 아이콘 추가
 import { useNavigate } from "react-router-dom";
 import MainMenu from "../../components/menus/Mainmenu";
+
+// ✅ 원형 게이지 (달성률 색상 변화) - NearbyKakaoRestaurants와 동일
+function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - pct / 100);
+
+  let strokeColor;
+  if (pct >= 80) strokeColor = "#ef4444";
+  else if (pct >= 50) strokeColor = "#facc15";
+  else strokeColor = "#3b82f6";
+
+  return (
+    <div
+      style={{ width: size, height: size }}
+      className="relative flex items-center justify-center"
+      title={`${pct}%`}
+    >
+      <svg width={size} height={size}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          className="text-gray-200"
+          stroke="currentColor"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          stroke={strokeColor}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={dashOffset}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          className="transition-colors duration-500 ease-out"
+        />
+      </svg>
+      {/* 🔹 퍼센트 텍스트만 크게 */}
+      <span
+        className="absolute font-bold transition-colors duration-500 ease-out"
+        style={{
+          fontSize: `${size * 0.3}px`,
+          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
+        }}
+      >
+        {pct}%
+      </span>
+    </div>
+  );
+}
 
 const LocalSpecialtyPage = () => {
   const [localSpecialties, setLocalSpecialties] = useState([]);
@@ -24,7 +81,7 @@ const LocalSpecialtyPage = () => {
   // 무한스크롤 관련 상태
   const [page, setPage] = useState(0);
   const [size] = useState(24);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false); // 초기값을 false로 설정
 
   // Intersection Observer를 위한 ref
   const observerRef = useRef();
@@ -44,7 +101,7 @@ const LocalSpecialtyPage = () => {
     }
   }, [localSpecialties, searchText, selectedSido, selectedSigungu]);
 
-  // 무한스크롤로 추가 데이터 로드
+  // 무한스크롤로 추가 데이터 표시 (이미 로드된 데이터에서 더 보여주기)
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) {
       console.log("loadMore blocked:", { hasMore, loading });
@@ -53,7 +110,7 @@ const LocalSpecialtyPage = () => {
 
     console.log("loadMore called - page:", page, "size:", size);
 
-    // 다음 페이지로 이동
+    // 다음 페이지로 이동 (기존 데이터에서 더 많이 표시)
     const nextPage = page + 1;
     setPage(nextPage);
     console.log("Page updated to:", nextPage);
@@ -61,8 +118,8 @@ const LocalSpecialtyPage = () => {
 
   // Intersection Observer 설정
   useEffect(() => {
-    if (!hasMore || loading) {
-      console.log("Observer setup skipped:", { hasMore, loading });
+    if (!hasMore) {
+      console.log("Observer setup skipped - no more data:", { hasMore });
       return;
     }
 
@@ -97,16 +154,19 @@ const LocalSpecialtyPage = () => {
   // 페이지 변경 시 hasMore 상태 업데이트
   useEffect(() => {
     const totalItems = filteredSpecialties.length;
-    const maxPage = Math.ceil(totalItems / size) - 1;
-    const shouldHaveMore = page < maxPage;
+    const currentlyShown = (page + 1) * size;
+    const shouldHaveMore = currentlyShown < totalItems;
 
-    console.log("Page effect:", { page, maxPage, shouldHaveMore, totalItems });
+    console.log("Page effect:", {
+      page,
+      totalItems,
+      currentlyShown,
+      shouldHaveMore,
+      size,
+    });
 
-    if (hasMore !== shouldHaveMore) {
-      setHasMore(shouldHaveMore);
-      console.log("hasMore updated to:", shouldHaveMore);
-    }
-  }, [page, filteredSpecialties.length, size, hasMore]);
+    setHasMore(shouldHaveMore);
+  }, [page, filteredSpecialties.length, size]);
 
   // 현재까지 로드된 아이템들 - 수정된 로직
   const currentItems = useMemo(() => {
@@ -124,6 +184,8 @@ const LocalSpecialtyPage = () => {
     try {
       setLoading(true);
       const data = await localSpecialtyApi.getAllLocalSpecialties();
+      console.log("백엔드에서 받은 지역특산물 데이터:", data);
+      console.log("첫 번째 데이터 샘플:", data[0]);
       setLocalSpecialties(data);
       setError(null);
     } catch (err) {
@@ -167,7 +229,7 @@ const LocalSpecialtyPage = () => {
     setFilteredSpecialties(filtered);
     // 필터 변경 시 페이지 초기화
     setPage(0);
-    setHasMore(true);
+    // hasMore는 자동으로 계산되므로 강제 설정하지 않음
   };
 
   // 시도 목록 추출 (중복 제거)
@@ -272,10 +334,72 @@ const LocalSpecialtyPage = () => {
       svcDt,
       linkUrl,
       cntntsNo,
+      fundingGoalAmount, // 백엔드에서 받은 펀딩 목표 금액
+      fundingAmount, // 백엔드에서 받은 현재 펀딩 금액
+      fundingPercent, // 백엔드에서 받은 펀딩 달성률
+      totalFundingAmount, // 펀딩 테이블 결제내역 합산 금액
     } = specialty;
 
+    // 실제 펀딩된 금액 (기본 fundingAmount + 펀딩 테이블 합산 금액)
+    const actualFundingAmount =
+      (fundingAmount || 0) + (totalFundingAmount || 0);
+
+    // 실제 합산된 금액으로 퍼센트 재계산
+    const actualPercent =
+      fundingGoalAmount > 0 && actualFundingAmount >= 0
+        ? Math.round((actualFundingAmount * 100) / fundingGoalAmount)
+        : 0;
+
+    // 디버깅을 위한 로그 출력
+    console.log(`LocalSpecialty ${cntntsSj}:`, {
+      fundingAmount,
+      totalFundingAmount,
+      actualFundingAmount,
+      백엔드퍼센트: fundingPercent,
+      실제퍼센트: actualPercent,
+      cntntsNo,
+    });
+
+    // 펀딩 종료일 (3분기 끝 - 9월 30일 고정)
+    const getCurrentQuarterEnd = () => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+
+      // 현재 분기 계산
+      const currentMonth = now.getMonth() + 1; // 1~12
+      let quarterEndMonth, quarterEndYear;
+
+      if (currentMonth <= 3) {
+        // 1분기: 3월 31일
+        quarterEndMonth = 3;
+        quarterEndYear = currentYear;
+      } else if (currentMonth <= 6) {
+        // 2분기: 6월 30일
+        quarterEndMonth = 6;
+        quarterEndYear = currentYear;
+      } else if (currentMonth <= 9) {
+        // 3분기: 9월 30일
+        quarterEndMonth = 9;
+        quarterEndYear = currentYear;
+      } else {
+        // 4분기: 12월 31일 (다음 해 1분기로 넘어감)
+        quarterEndMonth = 3;
+        quarterEndYear = currentYear + 1;
+      }
+
+      return new Date(quarterEndYear, quarterEndMonth, 0); // 해당 월의 마지막 날
+    };
+
+    const fundingEndDate = getCurrentQuarterEnd();
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((fundingEndDate.getTime() - new Date().getTime()) / 86400000)
+    );
+
     const handleImageError = (e) => {
-      e.target.src = `/${Math.floor(Math.random() * 45 + 1)}.png`;
+      // 이미지 에러 시에도 cntntsNo 기반 고정 이미지 사용
+      const fallbackIndex = (cntntsNo % 45) + 1;
+      e.target.src = `/${fallbackIndex}.jpg`;
     };
 
     const formatDate = (dateString) => {
@@ -288,27 +412,49 @@ const LocalSpecialtyPage = () => {
       }
     };
 
-    const imgSrc = imgUrl || `/${Math.floor(Math.random() * 45 + 1)}.png`;
+    // 이미지 소스도 cntntsNo 기반으로 고정
+    const fallbackIndex = (cntntsNo % 45) + 1;
+    const imgSrc = imgUrl || `/${fallbackIndex}.jpg`;
 
     return (
       <div
         onClick={() => navigate(`/local-specialty/${cntntsNo}`)}
         className="bg-white overflow-hidden border border-gray-300 transition w-[270px] h-[380px] flex flex-col group rounded-lg hover:shadow-lg cursor-pointer"
       >
-        <div className="w-full min-h-52 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden">
+        {/* 이미지 영역 */}
+        <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden relative group">
           <img
             src={imgSrc}
             alt={`${cntntsSj} 이미지`}
             onError={handleImageError}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
+
+          {/* 호버 시 오버레이 */}
+          <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                navigate(`/local-specialty/${cntntsNo}`);
+              }}
+              className="px-4 py-2 text-white font-bold rounded hover:bg-opacity-80 transition"
+            >
+              자세히 보기
+            </button>
+          </div>
         </div>
 
         <div className="p-1 flex-1 flex flex-col justify-between">
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold text-black truncate mb-2">
-              {cntntsSj}
-            </h3>
+            {/* 이름 + 게이지 */}
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-semibold text-[20px] text-black truncate flex-1">
+                {cntntsSj}
+              </h3>
+              <div className="shrink-0 mt-4">
+                <CircularProgress value={actualPercent} size={50} stroke={3} />
+              </div>
+            </div>
 
             <div className="flex items-center gap-1 mb-2">
               <TbCurrentLocation className="text-base text-blue-500" />
@@ -323,17 +469,25 @@ const LocalSpecialtyPage = () => {
               </p>
             )}
 
-            {svcDt && (
-              <p className="text-xs text-gray-500 mb-2">
-                등록일: {formatDate(svcDt)}
-              </p>
-            )}
-          </div>
+            <div className="mt-2 pt-6">
+              {/* 구분선 */}
+              <div className="border-t border-gray-300 mb-2"></div>
 
-          <div className="">
-            <hr className="border-gray-300" />
-            <div className="flex justify-between text-sm text-gray-700 pt-2">
-              <span className="text-blue-600 font-medium">상세보기 →</span>
+              {/* 남은 일수 + 펀딩금액 */}
+              <div className="flex items-center justify-between text-[13px]">
+                <span
+                  className={`inline-flex items-center text-[16px] ${
+                    daysLeft <= 5
+                      ? "text-red-600 font-bold"
+                      : "text-black font-normal"
+                  }`}
+                >
+                  {daysLeft}일 남음
+                </span>
+                <span className="inline-flex items-center text-[16px] text-green-600">
+                  {actualFundingAmount.toLocaleString()}원 펀딩
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -375,7 +529,7 @@ const LocalSpecialtyPage = () => {
         </div>
 
         {/* 자동 로딩을 위한 감지 요소 */}
-        {hasMore && (
+        {hasMore && !loading && (
           <div ref={loadingRef} className="flex justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
@@ -441,7 +595,7 @@ const LocalSpecialtyPage = () => {
 
           <h2 className="flex items-center gap-2 text-xl mb-3 leading-none">
             <IoRestaurantOutline className="text-[32px] relative top-[1px] shrink-0" />
-            <span className="text-[22px]">지역특산물</span>
+            <span className="text-[22px]">지역특산물 펀딩</span>
           </h2>
 
           <FilterComponent />
@@ -452,7 +606,7 @@ const LocalSpecialtyPage = () => {
               <span className="font-semi-bold text-blue-600">
                 {filteredSpecialties.length}
               </span>
-              개의 지역특산물이 있습니다.
+              개의 지역특산물 펀딩이 진행 중입니다.
               {searchText && ` (검색어: "${searchText}")`}
               {selectedSido &&
                 ` (지역: ${selectedSido}${

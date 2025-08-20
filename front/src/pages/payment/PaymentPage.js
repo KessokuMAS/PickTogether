@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { getCookie } from "../../utils/cookieUtil";
 import { createFunding } from "../../api/fundingApi";
+import AddressSearchModal from "../../components/address/AddressSearchModal";
 import {
   FiArrowLeft,
   FiCreditCard,
@@ -58,6 +59,10 @@ const PaymentPage = () => {
     agreeTerms: false,
     agreeSMS: false, // SMS 수신 동의
     agreeEmail: false, // 이메일 수신 동의
+    // 지역특산품 구매 시 배송 주소 정보 추가
+    address: "",
+    detailAddress: "",
+    zipCode: "",
   });
 
   // 결제 진행 상태
@@ -91,6 +96,18 @@ const PaymentPage = () => {
     if (!paymentInfo.name || !paymentInfo.phone || !paymentInfo.email) {
       alert("모든 필수 정보를 입력해주세요.");
       return;
+    }
+
+    // 지역특산품 구매 시 배송 주소도 필수
+    if (productType === "specialty") {
+      if (
+        !paymentInfo.address ||
+        !paymentInfo.detailAddress ||
+        !paymentInfo.zipCode
+      ) {
+        alert("배송 주소를 모두 입력해주세요.");
+        return;
+      }
     }
 
     if (!paymentInfo.agreeTerms) {
@@ -140,6 +157,86 @@ const PaymentPage = () => {
       return true;
     } catch (error) {
       console.error("펀딩 정보 저장 실패:", error);
+      return false;
+    }
+  };
+
+  // 지역특산품 구매 정보 저장
+  const saveSpecialtyOrderToDB = async (paymentResponse, paymentMethod) => {
+    try {
+      const memberCookie = getCookie("member");
+      console.log("쿠키에서 가져온 member 정보:", memberCookie);
+
+      if (!memberCookie?.member?.email) {
+        console.error("로그인 정보를 찾을 수 없습니다.");
+        return false;
+      }
+
+      const orderData = {
+        memberId: memberCookie.member.email,
+        specialtyId: specialtyId,
+        specialtyName: specialtyName,
+        quantity: Number(specialtyQuantity),
+        unitPrice: Number(specialtyPrice),
+        totalAmount: Number(specialtyPrice) * Number(specialtyQuantity),
+        buyerName: paymentInfo.name,
+        buyerPhone: paymentInfo.phone,
+        buyerEmail: paymentInfo.email,
+        zipCode: paymentInfo.zipCode,
+        address: paymentInfo.address,
+        detailAddress: paymentInfo.detailAddress,
+        paymentMethod: paymentMethod,
+        merchantUid: paymentResponse.merchant_uid,
+        agreeSms: paymentInfo.agreeSMS,
+        agreeEmail: paymentInfo.agreeEmail,
+        sidoNm: specialtySidoNm,
+        sigunguNm: specialtySigunguNm,
+      };
+
+      // 지역특산품 주문 생성 API 호출
+      const response = await fetch(
+        "http://localhost:8080/api/funding-specialty",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(orderData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("주문 생성 실패");
+      }
+
+      const createdOrder = await response.json();
+      console.log("특산품 주문 생성 성공:", createdOrder);
+
+      // 결제 완료 처리
+      const paymentCompleteResponse = await fetch(
+        "http://localhost:8080/api/funding-specialty/payment/complete",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            impUid: paymentResponse.imp_uid,
+            merchantUid: paymentResponse.merchant_uid,
+          }),
+        }
+      );
+
+      if (!paymentCompleteResponse.ok) {
+        throw new Error("결제 완료 처리 실패");
+      }
+
+      const completedOrder = await paymentCompleteResponse.json();
+      console.log("결제 완료 처리 성공:", completedOrder);
+
+      return true;
+    } catch (error) {
+      console.error("특산품 주문 저장 실패:", error);
       return false;
     }
   };
@@ -210,8 +307,27 @@ const PaymentPage = () => {
         // 결제 성공 시 정보 저장
         if (productType === "specialty") {
           // 지역특산품 구매 성공
-          alert("지역특산품 구매가 완료되었습니다! 🎉");
-          navigate("/local-specialty");
+          const saveSuccess = await saveSpecialtyOrderToDB(
+            response,
+            paymentMethod
+          );
+
+          if (saveSuccess) {
+            alert("지역특산품 구매가 완료되었습니다! 🎉");
+
+            if (paymentInfo.agreeSMS || paymentInfo.agreeEmail) {
+              alert(
+                "수신동의하신 방법으로 펀딩 종료시 주문 확인 및 배송 안내가 발송됩니다."
+              );
+            }
+
+            navigate("/local-specialty");
+          } else {
+            alert(
+              "결제는 완료되었지만 주문 정보 저장에 실패했습니다. 관리자에게 문의해주세요."
+            );
+            setIsProcessingPayment(false);
+          }
         } else {
           // 레스토랑 펀딩 성공
           const saveSuccess = await saveFundingToDB(response, paymentMethod);
@@ -249,6 +365,19 @@ const PaymentPage = () => {
 
   // 결제 수단 선택 모달 상태
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // 주소 검색 모달 상태
+  const [showAddressModal, setShowAddressModal] = useState(false);
+
+  // 주소 선택 핸들러
+  const handleAddressSelect = (addressData) => {
+    setPaymentInfo((prev) => ({
+      ...prev,
+      zipCode: addressData.zipCode,
+      address: addressData.address,
+      detailAddress: addressData.detailAddress,
+    }));
+  };
 
   if (productType === "specialty") {
     // 지역특산품 구매인 경우
@@ -478,6 +607,72 @@ const PaymentPage = () => {
                       placeholder="example@email.com"
                     />
                   </div>
+
+                  {/* 지역특산품 구매 시에만 배송 주소 입력 필드 표시 */}
+                  {productType === "specialty" && (
+                    <>
+                      <div className="md:col-span-2">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                          <FiMapPin /> 배송 주소{" "}
+                          <span className="text-red-500">*</span>
+                        </h4>
+                      </div>
+
+                      {/* 주소 검색 및 표시 */}
+                      <div className="md:col-span-2">
+                        {!paymentInfo.address ? (
+                          // 주소가 선택되지 않은 경우 - 주소 검색 버튼
+                          <button
+                            type="button"
+                            onClick={() => setShowAddressModal(true)}
+                            className="w-full px-4 py-3 bg-blue-50 border-2 border-blue-200 border-dashed rounded-lg hover:bg-blue-100 transition text-blue-600 font-medium flex items-center justify-center gap-2"
+                          >
+                            <FiMapPin />
+                            카카오맵으로 주소 검색하기
+                          </button>
+                        ) : (
+                          // 주소가 선택된 경우 - 주소 정보 표시 및 변경 버튼
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="text-sm text-gray-600 mb-1">
+                                  우편번호
+                                </div>
+                                <div className="font-mono text-gray-900 mb-3">
+                                  {paymentInfo.zipCode}
+                                </div>
+
+                                <div className="text-sm text-gray-600 mb-1">
+                                  기본 주소
+                                </div>
+                                <div className="text-gray-900 mb-3">
+                                  {paymentInfo.address}
+                                </div>
+
+                                <div className="text-sm text-gray-600 mb-1">
+                                  상세 주소
+                                </div>
+                                <div className="text-gray-900">
+                                  {paymentInfo.detailAddress}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowAddressModal(true)}
+                                className="px-3 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition text-gray-700"
+                              >
+                                변경
+                              </button>
+                            </div>
+                            <div className="text-xs text-gray-500 border-t border-gray-200 pt-3">
+                              💡 주소를 변경하려면 '변경' 버튼을 눌러주세요.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
                   <div className="md:col-span-2">
                     <div className="p-3 bg-gray-100 border border-gray-200 rounded-lg">
                       <div className="flex items-center gap-2 text-black">
@@ -731,6 +926,13 @@ const PaymentPage = () => {
               </div>
             </div>
           )}
+
+          {/* Address Search Modal */}
+          <AddressSearchModal
+            isOpen={showAddressModal}
+            onClose={() => setShowAddressModal(false)}
+            onAddressSelect={handleAddressSelect}
+          />
         </div>
       </div>
     </MainLayout>

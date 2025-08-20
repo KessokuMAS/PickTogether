@@ -36,10 +36,11 @@ public class LocalSpecialtyTests {
         if (existingCount > 0) {
             System.out.println("[INFO] 기존 데이터를 삭제합니다...");
             localSpecialtyRepository.deleteAll();
+            localSpecialtyRepository.flush(); // 강제로 flush 실행
             System.out.println("[INFO] 기존 데이터 삭제 완료");
         }
         
-        String csvFilePath = "src/test/java/com/backend/repository/local_specialty_20250818.csv";
+        String csvFilePath = "src/test/java/com/backend/repository/local_specialty_filtered.csv";
         int successCount = 0;
         int skipCount = 0;
         int errorCount = 0;
@@ -118,6 +119,8 @@ public class LocalSpecialtyTests {
                         .sidoNm(sidoNm)
                         .sigunguNm(sigunguNm)
                         .createdAt(createdAt != null ? createdAt : LocalDate.now())
+                        .fundingGoalAmount(500000L) // 펀딩 목표 금액 50만원 고정
+                        .fundingAmount((long) ((10 + (int)(Math.random() * 36)) * 10000)) // 10만원 ~ 45만원 (만원 단위)
                         .build();
                     
                     // 배치 리스트에 추가
@@ -127,6 +130,7 @@ public class LocalSpecialtyTests {
                     if (batchList.size() >= BATCH_SIZE) {
                         try {
                             localSpecialtyRepository.saveAll(batchList);
+                            localSpecialtyRepository.flush(); // 배치 저장 후 flush
                             successCount += batchList.size();
                             System.out.println("[INFO] 배치 저장 완료: " + successCount + "개 (총 " + totalLines + "개 중)");
                             batchList.clear();
@@ -162,6 +166,7 @@ public class LocalSpecialtyTests {
             if (!batchList.isEmpty()) {
                 try {
                     localSpecialtyRepository.saveAll(batchList);
+                    localSpecialtyRepository.flush(); // 마지막 배치 저장 후 flush
                     successCount += batchList.size();
                     System.out.println("[INFO] 마지막 배치 저장 완료: " + batchList.size() + "개");
                 } catch (Exception e) {
@@ -185,7 +190,10 @@ public class LocalSpecialtyTests {
             System.out.println("[INFO] 성공: " + successCount + "개");
             System.out.println("[INFO] 건너뜀: " + skipCount + "개");
             System.out.println("[INFO] 오류: " + errorCount + "개");
-            System.out.println("[INFO] DB 총 데이터 수: " + localSpecialtyRepository.count());
+            // 최종 flush 후 count 조회
+            localSpecialtyRepository.flush();
+            long finalCount = localSpecialtyRepository.count();
+            System.out.println("[INFO] DB 총 데이터 수: " + finalCount);
             System.out.println("=".repeat(60));
             
         } catch (IOException e) {

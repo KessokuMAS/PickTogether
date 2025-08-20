@@ -46,4 +46,10 @@ public class LocalSpecialty {
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDate createdAt; // DB 저장일
+    
+    @Column(name = "funding_goal_amount", nullable = false)
+    private Long fundingGoalAmount = 500000L; // 펀딩 목표 금액 (50만원)
+    
+    @Column(name = "funding_amount", nullable = false)
+    private Long fundingAmount = 0L; // 현재 펀딩 금액
 } 

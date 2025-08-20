@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { IoRestaurantOutline } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
 import { FaFire } from "react-icons/fa"; // 🔥 추가
@@ -75,6 +75,10 @@ const NearbyKakaoRestaurants = () => {
 
   const [coords, setCoords] = useState(null);
 
+  // Intersection Observer를 위한 ref
+  const observerRef = useRef();
+  const loadingRef = useRef();
+
   // 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
@@ -150,6 +154,49 @@ const NearbyKakaoRestaurants = () => {
 
   const canLoadMore = page + 1 < totalPages;
 
+  // 무한스크롤 loadMore 함수
+  const loadMore = useCallback(() => {
+    if (!canLoadMore || loading) return;
+    fetchNearby(page + 1);
+  }, [canLoadMore, loading, page, fetchNearby]);
+
+  // Intersection Observer 설정
+  useEffect(() => {
+    if (!canLoadMore) {
+      console.log("Observer setup skipped - no more data:", { canLoadMore });
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && canLoadMore && !loading) {
+          console.log(
+            "Intersection Observer triggered - loading more restaurants"
+          );
+          loadMore();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "100px", // 100px 전에 미리 로드 시작
+      }
+    );
+
+    if (loadingRef.current) {
+      observer.observe(loadingRef.current);
+      console.log("Observer attached to loading element");
+    }
+
+    observerRef.current = observer;
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        console.log("Observer disconnected");
+      }
+    };
+  }, [canLoadMore, loading, loadMore]);
+
   return (
     <div className="p-2 flex justify-center bg-white min-h-screen">
       <div className="w-full max-w-[1200px]">
@@ -178,13 +225,27 @@ const NearbyKakaoRestaurants = () => {
                   fundingPercent,
                   imageUrl,
                   fundingEndDate,
+                  totalFundingAmount, // 펀딩 테이블 결제내역 합산 금액
                 } = store;
+
+                // 디버깅을 위한 로그 출력
+                console.log(`Restaurant ${name}:`, {
+                  fundingAmount,
+                  totalFundingAmount,
+                  합산결과: (fundingAmount || 0) + (totalFundingAmount || 0),
+                  restaurantId,
+                });
+
+                // 실제 펀딩된 금액 (기본 fundingAmount + 펀딩 테이블 합산 금액)
+                const actualFundingAmount =
+                  (fundingAmount || 0) + (totalFundingAmount || 0);
 
                 const percent = Number.isFinite(fundingPercent)
                   ? Number(fundingPercent)
-                  : fundingGoalAmount > 0 && fundingAmount >= 0
+                  : fundingGoalAmount > 0 && actualFundingAmount >= 0
                   ? Math.round(
-                      (Number(fundingAmount) * 100) / Number(fundingGoalAmount)
+                      (Number(actualFundingAmount) * 100) /
+                        Number(fundingGoalAmount)
                     )
                   : 0;
 
@@ -281,7 +342,10 @@ const NearbyKakaoRestaurants = () => {
                               {daysLeft}일 남음
                             </span>
                             <span className="inline-flex items-center text-[16px] text-green-600 ">
-                              {fundingAmount?.toLocaleString() || 0}원 펀딩
+                              {(
+                                (fundingAmount || 0) + (totalFundingAmount || 0)
+                              ).toLocaleString()}
+                              원 펀딩
                             </span>
                           </div>
                         </div>
@@ -292,18 +356,17 @@ const NearbyKakaoRestaurants = () => {
               })}
             </div>
 
-            {/* 더 보기 버튼 */}
-            <div className="flex justify-center mt-4">
-              {canLoadMore && (
-                <button
-                  onClick={() => fetchNearby(page + 1)}
-                  disabled={loading}
-                  className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-                >
-                  {loading ? "불러오는 중…" : "더 보기"}
-                </button>
-              )}
-            </div>
+            {/* 무한스크롤을 위한 감지 요소 */}
+            {canLoadMore && !loading && (
+              <div ref={loadingRef} className="flex justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500">
+                    더 많은 음식점을 불러오는 중...
+                  </p>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,14 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { FiTrendingUp } from "react-icons/fi";
+import { IoRestaurantOutline } from "react-icons/io5";
+import { TbCurrentLocation } from "react-icons/tb";
 
-// ✅ 심플 원형 게이지 (SVG) - NearbyKakaoResturants와 동일한 스타일
-function CircularProgress({ value = 0, size = 36, stroke = 4 }) {
+// ✅ 원형 게이지 (달성률 색상 변화) - NearbyKakaoRestaurants와 동일
+function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);
+
+  let strokeColor;
+  if (pct >= 80) strokeColor = "#ef4444";
+  else if (pct >= 50) strokeColor = "#facc15";
+  else strokeColor = "#3b82f6";
 
   return (
     <div
@@ -32,58 +39,72 @@ function CircularProgress({ value = 0, size = 36, stroke = 4 }) {
           r={radius}
           fill="none"
           strokeWidth={stroke}
-          className="text-blue-400"
-          stroke="currentColor"
+          stroke={strokeColor}
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          className="transition-colors duration-500 ease-out"
         />
       </svg>
-      <span className="absolute text-[10px] font-semibold text-gray-800">
+      {/* 🔹 퍼센트 텍스트만 크게 */}
+      <span
+        className="absolute font-bold transition-colors duration-500 ease-out"
+        style={{
+          fontSize: `${size * 0.3}px`, // 원 크기보다 크게
+          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
+        }}
+      >
         {pct}%
       </span>
     </div>
   );
 }
 
-// 펀딩 카드 컴포넌트 - NearbyKakaoResturants와 동일한 스타일
+// 펀딩 카드 컴포넌트 - NearbyKakaoRestaurants와 동일한 스타일
 const FundingCard = ({ funding }) => {
   const {
     restaurantId,
     name,
     roadAddressName,
+    distance,
     fundingAmount,
     fundingGoalAmount,
     fundingPercent,
     totalFundingAmount,
     imageUrl,
-    fundingStartDate,
     fundingEndDate,
   } = funding;
 
-  // 총 펀딩 금액 = 원래 펀딩 금액 + 실제 결제된 총 금액
-  const totalAmount = (fundingAmount || 0) + (totalFundingAmount || 0);
-
-  // 디버깅용 콘솔 출력
+  // 디버깅을 위한 로그 출력
   console.log(`Restaurant ${name}:`, {
     fundingAmount,
     totalFundingAmount,
+    합산결과: (fundingAmount || 0) + (totalFundingAmount || 0),
     restaurantId,
-    calculatedTotal: totalAmount,
   });
 
-  // 진행률 계산 (서버에서 내려온 값 우선, 없으면 계산)
+  // 실제 펀딩된 금액 (기본 fundingAmount + 펀딩 테이블 합산 금액)
+  const actualFundingAmount = (fundingAmount || 0) + (totalFundingAmount || 0);
+
   const percent = Number.isFinite(fundingPercent)
     ? Number(fundingPercent)
-    : fundingGoalAmount > 0 && totalAmount >= 0
-    ? Math.round((Number(totalAmount) * 100) / Number(fundingGoalAmount))
+    : fundingGoalAmount > 0 && actualFundingAmount >= 0
+    ? Math.round(
+        (Number(actualFundingAmount) * 100) / Number(fundingGoalAmount)
+      )
     : 0;
 
-  // 이미지 URL 처리
-  const imgSrc = imageUrl || `/${Math.floor(Math.random() * 45 + 1)}.png`;
+  // 이미지 표시 여부 결정
+  const hasCustomImage = imageUrl && imageUrl.includes("uploads/");
+  const displayImage = hasCustomImage
+    ? `http://localhost:8080/${imageUrl}`
+    : `/${restaurantId}.jpg`; // ID 기반으로 일관된 이미지 표시
 
-  // D-day 계산 (서버에서 내려온 날짜 우선, 없으면 14일 고정)
+  const distLabel = Number.isFinite(Number(distance))
+    ? `${Math.round(Number(distance)).toLocaleString()}m 거리`
+    : "거리 정보 없음";
+
   const end = fundingEndDate
     ? new Date(fundingEndDate)
     : new Date(Date.now() + 14 * 86400000);
@@ -94,23 +115,37 @@ const FundingCard = ({ funding }) => {
       href={`/restaurant/${restaurantId}`}
       className="bg-white overflow-hidden border border-gray-300 transition w-[270px] h-[380px] flex flex-col group rounded-lg"
     >
-      <div className="w-full h-52 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden">
+      {/* 이미지 영역 */}
+      <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden relative group">
         <img
-          src={imgSrc}
+          src={displayImage}
           alt={`${name} 이미지`}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
+
+        {/* 호버 시 오버레이 */}
+        <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.href = `/restaurant/${restaurantId}`;
+            }}
+            className="px-4 py-2 text-white font-bold rounded hover:bg-opacity-80 transition"
+          >
+            자세히 보기
+          </button>
+        </div>
       </div>
 
-      <div className="p-1 flex-1 flex flex-col justify-between">
+      <div className="p-1  flex-1 flex flex-col justify-between">
         <div className="min-w-0">
-          {/* 이름 + 게이지 우측 배치 */}
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold text-black truncate flex-1">
+          {/* 이름 + 게이지 */}
+          <div className="flex items-center justify-between gap-2 ">
+            <h3 className="text-lg font-semibold text-[20px] text-black truncate flex-1">
               {name}
             </h3>
             <div className="shrink-0 mt-4">
-              <CircularProgress value={percent} size={40} stroke={4} />
+              <CircularProgress value={percent} size={50} stroke={3} />
             </div>
           </div>
 
@@ -118,32 +153,29 @@ const FundingCard = ({ funding }) => {
             {roadAddressName || "-"}
           </p>
 
-          {/* 펀딩 기간 / D-day */}
-          <div className="mt-2 flex items-center justify-between text-[13px]">
-            <div className="text-gray-800 truncate font-semibold">
-              {fundingStartDate && fundingEndDate
-                ? `${new Date(fundingStartDate).toLocaleDateString(
-                    "ko-KR"
-                  )} ~ ${new Date(fundingEndDate).toLocaleDateString("ko-KR")}`
-                : "기간 정보 없음"}
-            </div>
-            <span
-              className={`inline-flex items-center px-3 py-1 rounded-md font-bold border-blue-200 ${
-                daysLeft <= 3
-                  ? "bg-white-50 text-blue-600 border-red-200"
-                  : "bg-white-100 text-blue-700 border-pink-200"
-              }`}
-            >
-              D-{daysLeft}
-            </span>
-          </div>
-        </div>
+          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+            <TbCurrentLocation className="text-base" />
+            {distLabel}
+          </p>
 
-        <div className="">
-          <hr className="border-gray-300" />
-          <div className="flex justify-between text-sm text-gray-700 pt-2">
-            <div className="font-semibold">
-              {Number(totalAmount).toLocaleString("ko-KR")}원 모임
+          <div className="mt-2 pt-6">
+            {/* 구분선 */}
+            <div className="border-t border-gray-300 mb-2"></div>
+
+            {/* 남은 일수 + 펀딩금액 */}
+            <div className="flex items-center justify-between text-[13px]">
+              <span
+                className={`inline-flex items-center text-[16px] ${
+                  daysLeft <= 5
+                    ? "text-red-600 font-bold"
+                    : "text-black font-normal"
+                }`}
+              >
+                {daysLeft}일 남음
+              </span>
+              <span className="inline-flex items-center text-[16px] text-green-600 ">
+                {actualFundingAmount.toLocaleString()}원 펀딩
+              </span>
             </div>
           </div>
         </div>
@@ -158,11 +190,21 @@ const TrendingFundingPage = () => {
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // 추가 로딩 상태
+
+  // Intersection Observer를 위한 ref
+  const observerRef = useRef();
+  const loadingRef = useRef();
 
   // 기존 API 사용하여 데이터 가져오기
   const fetchTrendingFundings = async (nextPage = 0) => {
     try {
-      setLoading(true);
+      // 첫 번째 페이지가 아닐 때는 추가 로딩 상태로 설정
+      if (nextPage === 0) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       setError("");
 
       // 서울 강남역 좌표 (기본값)
@@ -233,6 +275,7 @@ const TrendingFundingPage = () => {
       setError(`인기펀딩을 불러오는데 실패했습니다: ${err.message}`);
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -240,11 +283,52 @@ const TrendingFundingPage = () => {
     fetchTrendingFundings(0);
   }, []);
 
-  const loadMore = () => {
-    if (!hasMore || loading) return;
+  const loadMore = useCallback(() => {
+    if (!hasMore || loading || isLoadingMore) return;
     fetchTrendingFundings(page + 1);
-  };
+  }, [hasMore, loading, isLoadingMore, page]);
 
+  // Intersection Observer 설정
+  useEffect(() => {
+    if (!hasMore) {
+      console.log("Observer setup skipped - no more data:", { hasMore });
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          !isLoadingMore
+        ) {
+          console.log("Intersection Observer triggered - loading more data");
+          loadMore();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: "100px", // 100px 전에 미리 로드 시작
+      }
+    );
+
+    if (loadingRef.current) {
+      observer.observe(loadingRef.current);
+      console.log("Observer attached to loading element");
+    }
+
+    observerRef.current = observer;
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        console.log("Observer disconnected");
+      }
+    };
+  }, [hasMore, loading, isLoadingMore, loadMore]);
+
+  // 첫 번째 로딩만 전체 화면 로딩으로 표시
   if (loading && page === 0) {
     return (
       <MainLayout>
@@ -259,11 +343,10 @@ const TrendingFundingPage = () => {
     <MainLayout>
       <div className="p-2 flex justify-center bg-white min-h-screen">
         <div className="w-full max-w-[1200px]">
-          {/* 헤더 섹션 - NearbyKakaoResturants와 동일한 스타일 */}
-          <div className="flex items-center gap-2 text-xl mb-3 leading-none">
-            <FiTrendingUp className="text-[32px] relative top-[1px] shrink-0" />
-            <span className="text-[22px]">인기 펀딩</span>
-          </div>
+          <h2 className="flex items-center gap-2 text-xl mb-3 leading-none">
+            <IoRestaurantOutline className="text-[32px] relative top-[1px] shrink-0" />
+            <span className="text-[22px]">인기 펀딩 음식점</span>
+          </h2>
 
           {/* 펀딩 목록 */}
           {error ? (
@@ -291,16 +374,17 @@ const TrendingFundingPage = () => {
                 ))}
               </div>
 
-              {/* 더보기 버튼 - NearbyKakaoResturants와 동일한 스타일 */}
+              {/* 무한스크롤을 위한 감지 요소 - 추가 로딩 상태로 변경 */}
               {hasMore && (
-                <div className="flex justify-center mt-4">
-                  <button
-                    onClick={loadMore}
-                    disabled={loading}
-                    className="px-4 py-2 rounded bg-black text-white disabled:opacity-50"
-                  >
-                    {loading ? "불러오는 중…" : "더 보기"}
-                  </button>
+                <div ref={loadingRef} className="flex justify-center py-8">
+                  {isLoadingMore && (
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-500">
+                        더 많은 인기 펀딩을 불러오는 중...
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </>
