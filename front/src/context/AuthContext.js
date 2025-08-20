@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     removeCookie("member");
+    localStorage.removeItem("kakaoAccessToken"); // 카카오 토큰도 제거
     setIsLoggedIn(false);
     setUserInfo(null);
   };

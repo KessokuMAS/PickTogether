@@ -71,6 +71,17 @@ export const getMyPageInfo = async () => {
   return res.data;
 };
 
+export const logout = async () => {
+  try {
+    const res = await apiClient.post("/member/logout");
+    return res.data;
+  } catch (error) {
+    console.error("로그아웃 API 호출 실패:", error);
+    // API 호출 실패해도 로컬 로그아웃은 진행
+    return { message: "로그아웃되었습니다." };
+  }
+};
+
 // -----------------------------
 // Member Locations (로컬 DB)
 // -----------------------------
