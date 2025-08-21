@@ -89,13 +89,17 @@ export default function MyPageComponent() {
     const memberCookie = getCookie("member");
     if (memberCookie?.member?.email) {
       try {
+        console.log("특산품 주문 내역 요청 시작:", memberCookie.member.email);
         const specialtyData = await fundingSpecialtyApi.getMemberOrders(
           memberCookie.member.email
         );
+        console.log("특산품 주문 내역 응답:", specialtyData);
         setSpecialtyOrders(specialtyData);
       } catch (specialtyError) {
         console.error("특산품 구매 내역 로드 실패:", specialtyError);
       }
+    } else {
+      console.log("memberCookie 정보 없음:", memberCookie);
     }
   };
 
@@ -282,11 +286,11 @@ export default function MyPageComponent() {
                 </a>
 
                 <a
-                  href="/member/edit"
+                  href="/mypage/edit"
                   className="w-1/2 px-1.5 py-2 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
                 >
                   <FiSettings size={16} />
-                  정보 수정
+                  회원 정보 수정
                 </a>
 
                 {isAdmin && (
@@ -464,7 +468,13 @@ export default function MyPageComponent() {
                     식당 펀딩 ({fundings.length})
                   </button>
                   <button
-                    onClick={() => setActiveTab("specialty")}
+                    onClick={() => {
+                      console.log(
+                        "특산품 탭 클릭됨, 현재 데이터:",
+                        specialtyOrders
+                      );
+                      setActiveTab("specialty");
+                    }}
                     className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
                       activeTab === "specialty"
                         ? "bg-white text-slate-900 shadow-sm"

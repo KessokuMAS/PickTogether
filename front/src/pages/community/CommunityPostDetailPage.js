@@ -48,6 +48,10 @@ const CommunityPostDetailPage = () => {
     top: 0,
     left: 0,
   });
+
+  // 사용자가 좋아요를 누른 게시글 ID들을 저장 (로컬 상태)
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
   const shareMenuRef = useRef(null);
   const shareButtonRef = useRef(null);
 
@@ -260,10 +264,56 @@ const CommunityPostDetailPage = () => {
         return;
       }
 
-      const updatedPost = await communityApi.toggleLike(postId, userEmail);
-      setPost(updatedPost);
+      console.log("좋아요 버튼 클릭:", postId);
+      console.log("현재 likedPosts:", Array.from(likedPosts));
+      console.log(
+        "이 게시글에 좋아요를 눌렀나요?",
+        likedPosts.has(parseInt(postId))
+      );
+
+      // 로컬 상태 즉시 업데이트 (즉시 반응)
+      if (likedPosts.has(parseInt(postId))) {
+        // 좋아요 취소
+        console.log("좋아요 취소 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(parseInt(postId));
+          console.log("새로운 likedPosts (취소 후):", Array.from(newSet));
+          return newSet;
+        });
+
+        // 게시글의 좋아요 수 감소
+        setPost((prev) => ({
+          ...prev,
+          likes: Math.max(0, (prev.likes || 1) - 1),
+        }));
+      } else {
+        // 좋아요 추가
+        console.log("좋아요 추가 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set([...prev, parseInt(postId)]);
+          console.log("새로운 likedPosts (추가 후):", Array.from(newSet));
+          return newSet;
+        });
+
+        // 게시글의 좋아요 수 증가
+        setPost((prev) => ({
+          ...prev,
+          likes: (prev.likes || 0) + 1,
+        }));
+      }
+
+      // 백엔드 API 호출 (백그라운드에서 처리)
+      try {
+        await communityApi.toggleLike(postId, userEmail);
+        console.log("좋아요 백엔드 처리 성공");
+      } catch (error) {
+        console.error("백엔드 좋아요 처리 실패:", error);
+        // 백엔드 실패 시에도 프론트엔드는 유지 (사용자 경험 향상)
+      }
     } catch (error) {
       console.error("좋아요 처리 실패:", error);
+      alert("좋아요 처리에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -642,7 +692,7 @@ const CommunityPostDetailPage = () => {
                   <button
                     onClick={handleLike}
                     className={`flex items-center gap-1 transition-all duration-200 ${
-                      post.isLiked
+                      likedPosts.has(parseInt(postId))
                         ? "text-red-500 hover:text-red-600 scale-105"
                         : "text-gray-400 hover:text-red-500 hover:scale-105"
                     }`}
@@ -650,14 +700,16 @@ const CommunityPostDetailPage = () => {
                     <FiHeart
                       size={16}
                       className={`transition-all duration-200 ${
-                        post.isLiked
+                        likedPosts.has(parseInt(postId))
                           ? "fill-current text-red-500"
                           : "hover:scale-110"
                       }`}
                     />
                     <span
                       className={`font-medium ${
-                        post.isLiked ? "text-red-500" : "text-gray-500"
+                        likedPosts.has(parseInt(postId))
+                          ? "text-red-500"
+                          : "text-gray-500"
                       }`}
                     >
                       {post.likes || 0}

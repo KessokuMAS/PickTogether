@@ -11,18 +11,24 @@ export const communityApi = {
     page = 0,
     size = 10,
     sortBy = "createdAt",
-    sortDir = "desc"
+    sortDir = "desc",
+    userEmail = null
   ) => {
     try {
+      const params = {
+        page,
+        size,
+        sort: `${sortBy},${sortDir}`, // 스프링 Pageable 형식으로 변경
+      };
+
+      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
+      if (userEmail) {
+        params.userEmail = userEmail;
+      }
+
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts`,
-        {
-          params: {
-            page,
-            size,
-            sort: `${sortBy},${sortDir}`, // 스프링 Pageable 형식으로 변경
-          },
-        }
+        { params }
       );
       return response.data;
     } catch (error) {
@@ -32,20 +38,30 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts`,
-        params: { page, size, sort: `${sortBy},${sortDir}` },
+        params: { page, size, sort: `${sortBy},${sortDir}`, userEmail },
       });
       throw error;
     }
   },
 
   // 카테고리별 게시글 조회 (인증 불필요)
-  getPostsByCategory: async (category, page = 0, size = 10) => {
+  getPostsByCategory: async (
+    category,
+    page = 0,
+    size = 10,
+    userEmail = null
+  ) => {
     try {
+      const params = { page, size };
+
+      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
+      if (userEmail) {
+        params.userEmail = userEmail;
+      }
+
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts/category/${category}`,
-        {
-          params: { page, size },
-        }
+        { params }
       );
       return response.data;
     } catch (error) {
@@ -55,20 +71,25 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts/category/${category}`,
-        params: { page, size },
+        params: { page, size, userEmail },
       });
       throw error;
     }
   },
 
   // 키워드로 게시글 검색 (인증 불필요)
-  searchPosts: async (keyword, page = 0, size = 10) => {
+  searchPosts: async (keyword, page = 0, size = 10, userEmail = null) => {
     try {
+      const params = { keyword, page, size };
+
+      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
+      if (userEmail) {
+        params.userEmail = userEmail;
+      }
+
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts/search`,
-        {
-          params: { keyword, page, size },
-        }
+        { params }
       );
       return response.data;
     } catch (error) {
@@ -78,7 +99,7 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts/search`,
-        params: { keyword, page, size },
+        params: { keyword, page, size, userEmail },
       });
       throw error;
     }

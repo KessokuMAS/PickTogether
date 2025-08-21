@@ -110,11 +110,38 @@ public class MemberServiceImpl implements MemberService {
                     
                     return MemberDTO.builder()
                             .email(member.getEmail())
+                            .pw(member.getPw())
                             .nickname(member.getNickname())
                             .socialType(member.getSocialType())
                             .roleNames(roleNames)
                             .build();
                 })
                 .orElse(null);
+    }
+
+    // 회원 정보 수정 메서드들 구현
+    @Override
+    public void updateNickname(String email, String nickname) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+        
+        member.changeNickname(nickname);
+        memberRepository.save(member);
+    }
+
+    @Override
+    public void updatePassword(String email, String currentPassword, String newPassword) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+        
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(currentPassword, member.getPw())) {
+            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 새 비밀번호 암호화 및 저장
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        member.changePw(encodedNewPassword);
+        memberRepository.save(member);
     }
 } 

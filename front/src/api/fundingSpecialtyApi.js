@@ -6,7 +6,9 @@ export const fundingSpecialtyApi = {
   // 회원별 구매 내역 조회
   getMemberOrders: async (memberId) => {
     try {
+      console.log("API 호출 URL:", `${BASE_URL}/member/${memberId}`);
       const response = await axios.get(`${BASE_URL}/member/${memberId}`);
+      console.log("API 응답:", response);
       return response.data;
     } catch (error) {
       console.error("회원별 구매 내역 조회 실패:", error);
