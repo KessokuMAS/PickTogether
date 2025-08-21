@@ -12,4 +12,8 @@ public interface MemberService {
 
     MemberDTO getMemberByEmail(String email);
 
+    // 회원 정보 수정 메서드들
+    void updateNickname(String email, String nickname);
+    
+    void updatePassword(String email, String currentPassword, String newPassword);
 } 

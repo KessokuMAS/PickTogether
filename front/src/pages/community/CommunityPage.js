@@ -55,6 +55,9 @@ const CommunityPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentCategory, setCurrentCategory] = useState("전체");
 
+  // 사용자가 좋아요를 누른 게시글 ID들을 저장 (로컬 상태)
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
   // 페이지네이션 상태 추가
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -379,25 +382,59 @@ const CommunityPage = () => {
         return;
       }
 
-      const updatedPost = await communityApi.toggleLike(postId, userEmail);
+      console.log("좋아요 버튼 클릭:", postId);
+      console.log("현재 likedPosts:", Array.from(likedPosts));
+      console.log("이 게시글에 좋아요를 눌렀나요?", likedPosts.has(postId));
 
-      // 게시글 목록 업데이트 (백엔드에서 받은 isLiked 상태 사용)
-      setPosts(posts.map((post) => (post.id === postId ? updatedPost : post)));
+      // 로컬 상태 즉시 업데이트 (즉시 반응)
+      if (likedPosts.has(postId)) {
+        // 좋아요 취소
+        console.log("좋아요 취소 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(postId);
+          console.log("새로운 likedPosts (취소 후):", Array.from(newSet));
+          return newSet;
+        });
 
-      // 선택된 게시글도 업데이트
-      if (selectedPost && selectedPost.id === postId) {
-        setSelectedPost(updatedPost);
-      }
-
-      console.log("좋아요 성공:", updatedPost);
-    } catch (error) {
-      const status = error?.response?.status;
-      if (status === 401 || status === 403) {
-        alert("로그인이 필요합니다. 로그인 후 이용해 주세요.");
-        navigate("/member/login");
+        // 게시글의 좋아요 수 감소
+        setPosts(
+          posts.map((post) =>
+            post.id === postId
+              ? { ...post, likes: Math.max(0, (post.likes || 1) - 1) }
+              : post
+          )
+        );
       } else {
-        console.error("좋아요 실패:", error);
+        // 좋아요 추가
+        console.log("좋아요 추가 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set([...prev, postId]);
+          console.log("새로운 likedPosts (추가 후):", Array.from(newSet));
+          return newSet;
+        });
+
+        // 게시글의 좋아요 수 증가
+        setPosts(
+          posts.map((post) =>
+            post.id === postId
+              ? { ...post, likes: (post.likes || 0) + 1 }
+              : post
+          )
+        );
       }
+
+      // 백엔드 API 호출 (백그라운드에서 처리)
+      try {
+        await communityApi.toggleLike(postId, userEmail);
+        console.log("좋아요 백엔드 처리 성공");
+      } catch (error) {
+        console.error("백엔드 좋아요 처리 실패:", error);
+        // 백엔드 실패 시에도 프론트엔드는 유지 (사용자 경험 향상)
+      }
+    } catch (error) {
+      console.error("좋아요 처리 실패:", error);
+      alert("좋아요 처리에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -480,7 +517,8 @@ const CommunityPage = () => {
       const response = await communityApi.searchPosts(
         searchTerm,
         page,
-        pageSize
+        pageSize,
+        userInfo?.email
       );
 
       if (response && response.content) {
@@ -519,7 +557,8 @@ const CommunityPage = () => {
       const response = await communityApi.getPostsByCategory(
         category,
         page,
-        pageSize
+        pageSize,
+        userInfo?.email
       );
 
       if (response && response.content) {
@@ -986,18 +1025,32 @@ const CommunityPage = () => {
                             e.stopPropagation();
                             handleLikePost(post.id);
                           }}
-                          className={`flex items-center gap-1 transition-colors ${
-                            post.isLiked
+                          className={`flex items-center gap-1 transition-all duration-200 ${
+                            likedPosts.has(post.id)
                               ? "text-red-500 hover:text-red-600"
                               : "text-gray-400 hover:text-red-500"
                           }`}
-                          title={post.isLiked ? "좋아요 취소" : "좋아요"}
+                          title={
+                            likedPosts.has(post.id) ? "좋아요 취소" : "좋아요"
+                          }
                         >
                           <FiHeart
                             size={12}
-                            className={post.isLiked ? "fill-current" : ""}
+                            className={`transition-all duration-200 ${
+                              likedPosts.has(post.id)
+                                ? "fill-current text-red-500"
+                                : "text-gray-400"
+                            }`}
                           />
-                          <span className="font-medium">{post.likes || 0}</span>
+                          <span
+                            className={`font-medium ${
+                              likedPosts.has(post.id)
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {post.likes || 0}
+                          </span>
                         </button>
 
                         {/* 댓글 수 */}

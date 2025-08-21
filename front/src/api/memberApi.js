@@ -71,6 +71,17 @@ export const getMyPageInfo = async () => {
   return res.data;
 };
 
+// 회원 정보 수정 함수들 추가
+export const updateMemberProfile = async (updateData) => {
+  const res = await apiClient.put("/member/profile", updateData);
+  return res.data;
+};
+
+export const updateMemberPassword = async (passwordData) => {
+  const res = await apiClient.put("/member/password", passwordData);
+  return res.data;
+};
+
 export const logout = async () => {
   try {
     const res = await apiClient.post("/member/logout");
@@ -112,6 +123,8 @@ export const memberApi = {
   login,
   register,
   getMyPageInfo,
+  updateMemberProfile,
+  updateMemberPassword,
   createMemberLocation,
   listMemberLocations,
   updateMemberLocation,
