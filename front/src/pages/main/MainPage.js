@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import MainLayout from "../../layouts/MainLayout";
-import { FiSearch } from "react-icons/fi";
 import NearbyKakaoRestaurants from "../../components/list/NearbyKakaoResturants";
 import MainBanner from "../../layouts/MainBanner"; // MainBanner 임포트
 import ChatBot from "../../components/chatbot/ChatBot";

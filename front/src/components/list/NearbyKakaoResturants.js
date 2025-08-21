@@ -79,6 +79,14 @@ const NearbyKakaoRestaurants = () => {
   const observerRef = useRef();
   const loadingRef = useRef();
 
+  const categories = [
+    { label: "한식", img: "/korean.png" },
+    { label: "중식", img: "/china.png" },
+    { label: "일식", img: "/japan.png" },
+    { label: "뷔페", img: "/b.png" },
+    { label: "패스트푸드", img: "/fastfood.png" },
+    { label: "카페", img: "/coffee.png" },
+  ];
   // 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
@@ -200,10 +208,62 @@ const NearbyKakaoRestaurants = () => {
   return (
     <div className="p-2 flex justify-center bg-white min-h-screen">
       <div className="w-full max-w-[1200px]">
-        <h2 className="flex items-center gap-2 text-xl mb-3 leading-none">
-          <IoRestaurantOutline className="text-[32px] relative top-[1px] shrink-0" />
-          <span className="text-[22px]">주변 펀딩 진행 중 음식점</span>
-        </h2>
+        {/* 카테고리 버튼 */}
+        <div className="flex flex-wrap gap-8 mb-5 justify-center ">
+          {categories.map((cat) => (
+            <button
+              key={cat.label}
+              className="flex flex-col items-center justify-center w-20 h-20 bg-gray-100 text-gray-700 
+            text-sm font-medium hover:bg-blue-100 hover:text-blue-600 transition"
+            >
+              <img
+                src={cat.img}
+                alt={cat.label}
+                className="w-12 h-12 object-contain mb-1"
+              />
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* 🔽 설명(왼쪽) + 필터(오른쪽) */}
+        <div className="flex items-center justify-between mb-6 px-5">
+          {/* 왼쪽: 설명 */}
+          <div>
+            <h2 className="flex items-center gap-2 text-[22px] font-bold leading-none mt-3">
+              펀딩 진행 중 음식점
+            </h2>
+            <p className="text-[15px] text-gray-500 font-semibold mt-1">
+              내 주변에서 진행하고 있는 펀딩 음식점을 확인해보세요 !
+            </p>
+          </div>
+
+          {/* 오른쪽: 필터 메뉴 */}
+          <div className="flex gap-4">
+            {/* 상태 필터 */}
+            <select
+              className="px-4 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-md"
+              defaultValue="전체"
+              onChange={(e) => console.log("상태 필터:", e.target.value)}
+            >
+              <option value="전체">전체</option>
+              <option value="진행중">진행중</option>
+              <option value="종료">종료</option>
+            </select>
+
+            {/* 정렬 필터 */}
+            <select
+              className="px-4 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-md"
+              defaultValue="거리순"
+              onChange={(e) => console.log("정렬 필터:", e.target.value)}
+            >
+              <option value="거리순">가까운 거리순</option>
+              <option value="참여금액순">참여 금액순</option>
+              <option value="참여율순">참여율 순</option>
+              <option value="종료임박순">종료 임박 순</option>
+            </select>
+          </div>
+        </div>
 
         {loading && restaurants.length === 0 ? (
           <p className="text-gray-400">음식점을 불러오는 중입니다...</p>

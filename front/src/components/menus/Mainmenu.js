@@ -16,10 +16,12 @@ import {
 import { GiArtificialIntelligence } from "react-icons/gi";
 import { useAuth } from "../../context/AuthContext";
 import { listMemberLocations } from "../../api/memberApi";
+import SearchBar from "../common/SearchBar";
 
 // ==========================
 // 로고 + 글자 애니메이션
 // ==========================
+
 const AnimatedLogo = () => {
   const text = "PickTogether";
 
@@ -45,7 +47,7 @@ const AnimatedLogo = () => {
 
   return (
     <Link to="/" className="flex items-center">
-      <img src="/logo1.png" alt="PickTogether" className="h-[95px] w-auto" />
+      <img src="/logo2.png" alt="PickTogether" className="h-[95px] w-auto" />
       <motion.span
         className="text-2xl font-bold tracking-wide font-poppins flex"
         variants={container}
@@ -117,7 +119,7 @@ const MainMenu = () => {
 
   const { isLoggedIn, userInfo, logout } = useAuth();
   const navigate = useNavigate();
-
+  const [search, setSearch] = useState("");
   const handleLogout = () => {
     logout();
     navigate("/main");
@@ -220,7 +222,32 @@ const MainMenu = () => {
   const openLocationPopup = () => {
     window.open("/location", "위치 설정", "width=800,height=700");
   };
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && search.trim()) {
+      navigate(`/search?query=${encodeURIComponent(search)}`);
+    }
+  };
 
+  //이미지 검색 API
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:8000/search/image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      console.log("이미지 검색 결과:", data);
+      // 👉 여기서 setResults(data.results) 같은 걸로 UI 업데이트 가능
+    } catch (err) {
+      console.error("이미지 업로드 실패:", err);
+    }
+  };
   return (
     <>
       <nav
@@ -313,11 +340,15 @@ const MainMenu = () => {
                     {regionName || "지역 미선택"}
                   </span>
                 </button>
+                <SearchBar />
 
-                <div className="relative w-1/2 max-w-md">
+                {/* <div className="relative w-1/2 max-w-md">
                   <input
                     type="text"
                     placeholder="원하는 상품을 검색하세요"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="w-full rounded-full border border-gray-300 pl-4 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                   <svg
@@ -335,6 +366,12 @@ const MainMenu = () => {
                     />
                   </svg>
                 </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="text-sm"
+                /> */}
               </div>
             </div>
           )}

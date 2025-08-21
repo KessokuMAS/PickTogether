@@ -85,6 +85,7 @@ public class CustomSecurityConfig {
                 .requestMatchers("/api/store/**").hasRole("BUSINESS_OWNER")
                 .requestMatchers("/api/funding/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/business-requests/admin/**").hasRole("ADMIN")
                 
 
                 .anyRequest().authenticated()
