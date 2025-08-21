@@ -12,7 +12,7 @@ const MainLayout = ({ children }) => {
       </Suspense>
 
       {/* 상단바 높이만큼 패딩 주기 */}
-      <div className="pt-[200px]">{children}</div>
+      <div className="pt-[200px] ">{children}</div>
     </>
   );
 };

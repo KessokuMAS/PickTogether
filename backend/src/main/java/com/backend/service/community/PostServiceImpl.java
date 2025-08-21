@@ -1,8 +1,10 @@
 package com.backend.service.community;
 
 import com.backend.domain.community.Post;
+import com.backend.domain.community.PostLike;
 import com.backend.dto.community.*;
 import com.backend.repository.community.PostRepository;
+import com.backend.repository.community.PostLikeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -17,7 +19,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ import java.util.UUID;
 public class PostServiceImpl implements PostService {
     
     private final PostRepository postRepository;
+    private final PostLikeRepository postLikeRepository;
     
     @Override
     @Transactional
@@ -49,6 +54,8 @@ public class PostServiceImpl implements PostService {
                 .category(postCreateDTO.getCategory())
                 .author(postCreateDTO.getAuthor() != null ? postCreateDTO.getAuthor() : "익명사용자")
                 .imageUrl(imageUrl)
+                .address(postCreateDTO.getAddress())
+                .restaurantName(postCreateDTO.getRestaurantName())
                 .views(0)
                 .likes(0)
                 .createdAt(LocalDateTime.now())
@@ -65,9 +72,9 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다. ID: " + id));
         
-        // 조회수 증가
-        post.incrementViews();
-        postRepository.save(post);
+        // 조회수 증가는 별도 엔드포인트로 처리
+        // post.incrementViews();
+        // postRepository.save(post);
         
         return PostDTO.fromEntity(post);
     }
@@ -114,6 +121,8 @@ public class PostServiceImpl implements PostService {
         post.setTitle(postUpdateDTO.getTitle());
         post.setContent(postUpdateDTO.getContent());
         post.setCategory(postUpdateDTO.getCategory());
+        post.setAddress(postUpdateDTO.getAddress());
+        post.setRestaurantName(postUpdateDTO.getRestaurantName());
         
         Post updatedPost = postRepository.save(post);
         return PostDTO.fromEntity(updatedPost);
@@ -130,13 +139,31 @@ public class PostServiceImpl implements PostService {
     
     @Override
     @Transactional
-    public PostDTO likePost(Long id) {
+    public PostDTO toggleLike(Long id, String userEmail) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다. ID: " + id));
         
-        post.incrementLikes();
-        Post likedPost = postRepository.save(post);
-        return PostDTO.fromEntity(likedPost);
+        // 사용자가 이미 좋아요를 눌렀는지 확인
+        Optional<PostLike> existingLike = postLikeRepository.findByPostIdAndUserEmail(id, userEmail);
+        
+        if (existingLike.isPresent()) {
+            // 이미 좋아요를 눌렀다면 취소
+            log.info("사용자 {}가 게시글 {}의 좋아요를 취소했습니다.", userEmail, id);
+            postLikeRepository.delete(existingLike.get());
+            post.decrementLikes();
+        } else {
+            // 좋아요를 누르지 않았다면 추가
+            log.info("사용자 {}가 게시글 {}에 좋아요를 눌렀습니다.", userEmail, id);
+            PostLike newLike = PostLike.builder()
+                    .post(post)
+                    .userEmail(userEmail)
+                    .build();
+            postLikeRepository.save(newLike);
+            post.incrementLikes();
+        }
+        
+        Post updatedPost = postRepository.save(post);
+        return PostDTO.fromEntity(updatedPost);
     }
     
     @Override
@@ -145,9 +172,76 @@ public class PostServiceImpl implements PostService {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다. ID: " + id));
         
+        // 조회수 증가
         post.incrementViews();
         postRepository.save(post);
+        
+        log.info("게시글 {} 조회수 증가 완료: {}", id, post.getViews());
     }
+    
+    @Override
+    public Object getTodayRecommendation() {
+        // 펀딩추천 카테고리에서 가장 인기 있는 게시글 찾기
+        try {
+            Post topFundingPost = postRepository.findByCategoryOrderByLikesDesc("펀딩추천")
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+            
+            if (topFundingPost != null) {
+                return Map.of(
+                    "restaurantName", topFundingPost.getRestaurantName() != null ? topFundingPost.getRestaurantName() : "추천 펀딩",
+                    "mentionCount", topFundingPost.getLikes(),
+                    "description", "커뮤니티에서 추천된 펀딩을 확인해보세요!",
+                    "imageUrl", topFundingPost.getImageUrl() != null ? topFundingPost.getImageUrl() : "/images/recommendation-placeholder.jpg"
+                );
+            }
+        } catch (Exception e) {
+            log.error("오늘의 펀딩 추천 조회 중 오류 발생", e);
+        }
+        
+        // 기본값 반환
+        return Map.of(
+            "restaurantName", "추천 펀딩",
+            "mentionCount", 0,
+            "description", "커뮤니티에서 추천된 펀딩을 확인해보세요!",
+            "imageUrl", "/images/recommendation-placeholder.jpg"
+        );
+    }
+
+    @Override
+    public Object getTodayHiddenRestaurant() {
+        // 숨은 맛집추천 카테고리에서 가장 인기 있는 게시글 찾기
+        try {
+            Post topHiddenRestaurantPost = postRepository.findByCategoryOrderByLikesDesc("숨은 맛집추천")
+                    .stream()
+                    .findFirst()
+                    .orElse(null);
+            
+            if (topHiddenRestaurantPost != null) {
+                return Map.of(
+                    "restaurantName", topHiddenRestaurantPost.getRestaurantName() != null ? topHiddenRestaurantPost.getRestaurantName() : "숨은 맛집",
+                    "mentionCount", topHiddenRestaurantPost.getLikes(),
+                    "description", "커뮤니티에서 추천된 숨은 맛집을 확인해보세요!",
+                    "imageUrl", topHiddenRestaurantPost.getImageUrl() != null ? topHiddenRestaurantPost.getImageUrl() : "/images/restaurant-placeholder.jpg",
+                    "address", topHiddenRestaurantPost.getAddress() != null ? topHiddenRestaurantPost.getAddress() : "주소 정보 없음"
+                );
+            }
+        } catch (Exception e) {
+            log.error("오늘의 숨은 맛집 추천 조회 중 오류 발생", e);
+        }
+        
+        // 기본값 반환
+        return Map.of(
+            "restaurantName", "숨은 맛집",
+            "mentionCount", 0,
+            "description", "커뮤니티에서 추천된 숨은 맛집을 확인해보세요!",
+            "imageUrl", "/images/restaurant-placeholder.jpg",
+            "address", "주소 정보 없음"
+        );
+    }
+    
+
     
     /**
      * 이미지 파일을 저장하고 URL을 반환

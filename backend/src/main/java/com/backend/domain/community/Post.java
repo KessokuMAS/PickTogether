@@ -42,6 +42,12 @@ public class Post {
     @Column(length = 500)
     private String imageUrl;
     
+    @Column(length = 200)
+    private String address;
+    
+    @Column(length = 100)
+    private String restaurantName;
+    
     @Column(nullable = false)
     private Integer views;
     
@@ -77,5 +83,11 @@ public class Post {
     
     public void incrementLikes() {
         this.likes++;
+    }
+    
+    public void decrementLikes() {
+        if (this.likes > 0) {
+            this.likes--;
+        }
     }
 } 

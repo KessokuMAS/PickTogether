@@ -1,11 +1,11 @@
-// src/pages/ai/AiRecommendPage.jsx
+// src/pages/ai/SearchResultPage.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { IoRestaurantOutline } from "react-icons/io5";
 
-// 원형 게이지 컴포넌트
-function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
+// 🔵 원형 게이지 (AiRecommendPage와 동일)
+function CircularProgress({ value = 0, size = 45, stroke = 3 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -59,74 +59,67 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
   );
 }
 
-const AiRecommendPage = () => {
-  const userEmail = "winko5606@naver.com"; // 👉 로그인 유저 이메일로 교체
-  const [recommend, setRecommend] = useState(null);
-  const [report, setReport] = useState(null);
+const SearchResultPage = () => {
+  const [searchParams] = useSearchParams();
+  const query = searchParams.get("query") || "";
+
+  const [results, setResults] = useState([]);
+  const [related, setRelated] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:8000/report/summary?user_email=${userEmail}`)
-      .then((res) => {
-        console.log("리포트 응답:", res.data);
-        setReport(res.data);
-      })
-      .catch((err) => console.error("리포트 에러:", err));
-  }, [userEmail]);
-
-  useEffect(() => {
-    axios
-      .get(`http://localhost:8000/recommend/deep?user_email=${userEmail}`)
-      .then((res) => {
-        console.log("추천 응답:", res.data);
-        setRecommend(res.data);
-      })
-      .catch((err) => console.error("추천 에러:", err));
-  }, [userEmail]);
+    const fetchResults = async () => {
+      if (!query) return;
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `http://localhost:8000/search?query=${encodeURIComponent(query)}`
+        );
+        const data = await res.json();
+        setResults(data.results || []);
+        setRelated(data.related_keywords || []);
+      } catch (err) {
+        console.error("검색 실패:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResults();
+  }, [query]);
 
   return (
     <MainLayout>
-      {/* 2. 차트 */}
-      <section className="flex gap-8 justify-center mb-12">
-        {/* 카테고리 차트 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-center">
-            카테고리별 펀딩 비율
-          </h2>
-          <iframe
-            src={`http://localhost:8000/chart/category?user_email=${userEmail}`}
-            title="카테고리"
-            className="border rounded-lg shadow-md w-[600px] h-[600px] mx-auto"
-            scrolling="no"
-          />
-        </div>
-
-        {/* 식당 TOP5 */}
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-center">
-            자주펀딩한 식당 TOP5
-          </h2>
-          <iframe
-            src={`http://localhost:8000/chart/restaurant?user_email=${userEmail}`}
-            title="주문"
-            className="border rounded-lg shadow-md w-[600px] h-[600px] mx-auto"
-            scrolling="no"
-          />
-        </div>
-      </section>
-
-      {/* 3. AI 추천 음식점 */}
-      <section className="flex flex-col items-center mb-12">
-        <h2 className="flex items-center gap-2 text-xl font-bold mb-6">
+      <div className="max-w-7xl mx-auto p-6">
+        <h2 className="flex items-center gap-2 text-2xl font-bold mb-6">
           <IoRestaurantOutline className="text-[28px]" />
-          AI 기반 추천 음식점
+          🔍 "{query}" 검색 결과
         </h2>
 
-        {recommend &&
-        Array.isArray(recommend.recommended) &&
-        recommend.recommended.length > 0 ? (
-          <div className="grid grid-cols-5 gap-6 justify-center">
-            {recommend.recommended.map((r) => {
+        {loading && <p className="text-gray-500">검색 중...</p>}
+
+        {/* 연관검색어 */}
+        {related.length > 0 && (
+          <div className="mb-8">
+            <h3 className="font-bold text-lg mb-3">연관 검색어</h3>
+            <div className="flex flex-wrap gap-2">
+              {related.map((kw, idx) => (
+                <span
+                  key={idx}
+                  className="cursor-pointer px-3 py-1 bg-gray-100 rounded-full hover:bg-emerald-100"
+                >
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 검색 결과 카드 */}
+        {results.length === 0 ? (
+          <p className="text-gray-500">검색 결과가 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-4 gap-6">
+            {results.map((r) => {
               const {
                 id,
                 name,
@@ -179,11 +172,7 @@ const AiRecommendPage = () => {
                         <h3 className="text-lg font-semibold text-black truncate flex-1">
                           {name}
                         </h3>
-                        <CircularProgress
-                          value={percent}
-                          size={45}
-                          stroke={3}
-                        />
+                        <CircularProgress value={percent} />
                       </div>
                       <p className="text-sm text-gray-600 truncate">
                         {address || "-"}
@@ -213,12 +202,10 @@ const AiRecommendPage = () => {
               );
             })}
           </div>
-        ) : (
-          <p>추천 데이터가 없습니다.</p>
         )}
-      </section>
+      </div>
     </MainLayout>
   );
 };
 
-export default AiRecommendPage;
+export default SearchResultPage;

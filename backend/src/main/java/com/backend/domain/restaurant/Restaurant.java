@@ -16,7 +16,7 @@ public class Restaurant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id; // 자동 증가 ID
+    private Long id; // 자동 생성되는 고유 ID
 
     @Column(name = "name", nullable = false, length = 200)
     private String name; // 음식점 이름
@@ -53,4 +53,7 @@ public class Restaurant {
 
     @Column(name = "funding_end_date")
     private LocalDate fundingEndDate; // 펀딩 종료일
+    
+    @OneToOne(mappedBy = "restaurant", cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    private RestaurantDescription description;
 }

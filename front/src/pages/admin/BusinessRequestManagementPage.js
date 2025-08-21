@@ -13,7 +13,6 @@ import {
   reviewBusinessRequest,
   getPendingRequestCount,
 } from "../../api/businessRequestApi";
-import ImageModal from "../../components/common/ImageModal";
 
 export default function BusinessRequestManagementPage() {
   // getImageUrl 함수 추가
@@ -36,8 +35,6 @@ export default function BusinessRequestManagementPage() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [reviewComment, setReviewComment] = useState("");
   const [reviewStatus, setReviewStatus] = useState("APPROVED");
 
@@ -529,17 +526,8 @@ export default function BusinessRequestManagementPage() {
                     <img
                       src={getImageUrl(selectedRequest.imageUrl)}
                       alt="가게 이미지"
-                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => {
-                        setSelectedImageUrl(
-                          getImageUrl(selectedRequest.imageUrl)
-                        );
-                        setShowImageModal(true);
-                      }}
+                      className="w-full h-48 object-cover rounded-lg"
                     />
-                    <p className="text-xs text-slate-500 mt-1">
-                      이미지를 클릭하면 원본 크기로 볼 수 있습니다
-                    </p>
                   </div>
                 )}
 
@@ -661,16 +649,6 @@ export default function BusinessRequestManagementPage() {
           관리자 설정으로 돌아가기
         </a>
       </div>
-
-      {/* 이미지 모달 */}
-      <ImageModal
-        isOpen={showImageModal}
-        imageUrl={selectedImageUrl}
-        onClose={() => {
-          setShowImageModal(false);
-          setSelectedImageUrl("");
-        }}
-      />
     </div>
   );
 }
