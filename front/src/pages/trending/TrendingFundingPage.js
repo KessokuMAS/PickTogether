@@ -1,12 +1,26 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Carousel } from "react-responsive-carousel";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 import MainLayout from "../../layouts/MainLayout";
-import { FiTrendingUp } from "react-icons/fi";
-import { IoRestaurantOutline } from "react-icons/io5";
+import MainMenu from "../../components/menus/Mainmenu";
+import { FiTrendingUp, FiSearch } from "react-icons/fi";
+import { IoRestaurantOutline, IoFilter, IoChevronDown } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
+import { FaFire, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
-// ✅ 원형 게이지 (달성률 색상 변화) - NearbyKakaoRestaurants와 동일
-function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.2 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
+function CircularProgress({ value = 0, size = 44, stroke = 4 }) {
   const pct = Math.max(0, Math.min(100, Math.round(value)));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -23,7 +37,7 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
       className="relative flex items-center justify-center"
       title={`${pct}%`}
     >
-      <svg width={size} height={size}>
+      <svg width={size} height={size} className="drop-shadow-sm">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -44,14 +58,12 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
           strokeDasharray={circumference}
           strokeDashoffset={dashOffset}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          className="transition-colors duration-500 ease-out"
+          className="transition-all duration-500 ease-out"
         />
       </svg>
-      {/* 🔹 퍼센트 텍스트만 크게 */}
       <span
-        className="absolute font-bold transition-colors duration-500 ease-out"
+        className="absolute font-semibold text-sm transition-colors duration-500 ease-out"
         style={{
-          fontSize: `${size * 0.3}px`, // 원 크기보다 크게
           color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
         }}
       >
@@ -61,7 +73,6 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
   );
 }
 
-// 펀딩 카드 컴포넌트 - NearbyKakaoRestaurants와 동일한 스타일
 const FundingCard = ({ funding }) => {
   const {
     restaurantId,
@@ -76,17 +87,9 @@ const FundingCard = ({ funding }) => {
     fundingEndDate,
   } = funding;
 
-  // 디버깅을 위한 로그 출력
-  console.log(`Restaurant ${name}:`, {
-    fundingAmount,
-    totalFundingAmount,
-    합산결과: (fundingAmount || 0) + (totalFundingAmount || 0),
-    restaurantId,
-  });
+  const navigate = useNavigate();
 
-  // 실제 펀딩된 금액 (기본 fundingAmount + 펀딩 테이블 합산 금액)
   const actualFundingAmount = (fundingAmount || 0) + (totalFundingAmount || 0);
-
   const percent = Number.isFinite(fundingPercent)
     ? Number(fundingPercent)
     : fundingGoalAmount > 0 && actualFundingAmount >= 0
@@ -95,11 +98,10 @@ const FundingCard = ({ funding }) => {
       )
     : 0;
 
-  // 이미지 표시 여부 결정
   const hasCustomImage = imageUrl && imageUrl.includes("uploads/");
   const displayImage = hasCustomImage
     ? `http://localhost:8080/${imageUrl}`
-    : `/${restaurantId}.jpg`; // ID 기반으로 일관된 이미지 표시
+    : `/${restaurantId}.jpg`;
 
   const distLabel = Number.isFinite(Number(distance))
     ? `${Math.round(Number(distance)).toLocaleString()}m 거리`
@@ -111,135 +113,200 @@ const FundingCard = ({ funding }) => {
   const daysLeft = Math.max(0, Math.ceil((end - new Date()) / 86400000));
 
   return (
-    <a
-      href={`/restaurant/${restaurantId}`}
-      className="bg-white overflow-hidden border border-gray-300 transition w-[270px] h-[380px] flex flex-col group rounded-lg"
+    <motion.div
+      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:ring-2 hover:ring-yellow-400 transition-all duration-300 group flex flex-col border border-gray-100"
+      variants={itemVariants}
     >
-      {/* 이미지 영역 */}
-      <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden relative group">
+      <div className="relative h-48 overflow-hidden">
+        {percent >= 80 && (
+          <span className="absolute top-2 left-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full z-10 shadow-sm">
+            🔥 HOT
+          </span>
+        )}
         <img
           src={displayImage}
           alt={`${name} 이미지`}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-
-        {/* 호버 시 오버레이 */}
-        <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+        <div className="absolute inset-0 bg-yellow-600 bg-opacity-0 group-hover:bg-opacity-15 flex items-center justify-center transition-all duration-300">
           <button
-            onClick={(e) => {
-              e.preventDefault();
-              window.location.href = `/restaurant/${restaurantId}`;
-            }}
-            className="px-4 py-2 text-white font-bold rounded hover:bg-opacity-80 transition"
+            onClick={() => navigate(`/restaurant/${restaurantId}`)}
+            className="px-4 py-1.5 bg-yellow-600 text-white text-sm font-semibold rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-yellow-700 shadow-md"
           >
-            자세히 보기
+            펀딩 참여
           </button>
         </div>
       </div>
-
-      <div className="p-1  flex-1 flex flex-col justify-between">
-        <div className="min-w-0">
-          {/* 이름 + 게이지 */}
-          <div className="flex items-center justify-between gap-2 ">
-            <h3 className="text-lg font-semibold text-[20px] text-black truncate flex-1">
+      <div className="p-4 flex-1 flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-lg font-bold text-gray-900 truncate flex items-center gap-1.5">
+              <IoRestaurantOutline className="text-yellow-600 text-base" />
               {name}
             </h3>
-            <div className="shrink-0 mt-4">
-              <CircularProgress value={percent} size={50} stroke={3} />
-            </div>
+            <CircularProgress value={percent} size={40} stroke={3} />
           </div>
-
-          <p className="text-sm text-gray-600 truncate">
+          <p className="text-xs text-gray-600 truncate mt-1.5 font-medium">
             {roadAddressName || "-"}
           </p>
-
-          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-            <TbCurrentLocation className="text-base" />
+          <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1.5">
+            <TbCurrentLocation className="text-yellow-600 text-base" />
             {distLabel}
           </p>
-
-          <div className="mt-2 pt-6">
-            {/* 구분선 */}
-            <div className="border-t border-gray-300 mb-2"></div>
-
-            {/* 남은 일수 + 펀딩금액 */}
-            <div className="flex items-center justify-between text-[13px]">
-              <span
-                className={`inline-flex items-center text-[16px] ${
-                  daysLeft <= 5
-                    ? "text-red-600 font-bold"
-                    : "text-black font-normal"
-                }`}
-              >
-                {daysLeft}일 남음
-              </span>
-              <span className="inline-flex items-center text-[16px] text-green-600 ">
-                {actualFundingAmount.toLocaleString()}원 펀딩
-              </span>
-            </div>
+        </div>
+        <div className="mt-3 pt-2 border-t border-gray-200">
+          <div className="flex items-center justify-between text-xs">
+            <span
+              className={`flex items-center gap-1.5 ${
+                daysLeft <= 5 ? "text-red-600 font-semibold" : "text-gray-600"
+              }`}
+            >
+              <FaFire
+                className={`${
+                  daysLeft <= 5 ? "text-red-600" : "text-gray-600"
+                } text-base`}
+              />
+              {daysLeft}일 남음
+            </span>
+            <span className="text-green-600 font-semibold">
+              {actualFundingAmount.toLocaleString()}원
+            </span>
           </div>
         </div>
       </div>
-    </a>
+    </motion.div>
   );
 };
 
+const FilterComponent = ({
+  sort,
+  setSort,
+  selectedSido,
+  setSelectedSido,
+  selectedSigungu,
+  setSelectedSigungu,
+  sidoList,
+  sigunguList,
+}) => (
+  <motion.div
+    className="mb-6 flex flex-wrap gap-2"
+    variants={containerVariants}
+  >
+    <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
+      <div className="flex items-center gap-1">
+        <IoFilter className="text-yellow-600 text-sm" />
+        <label className="text-xs font-semibold text-gray-700">정렬</label>
+      </div>
+      <select
+        value={sort}
+        onChange={(e) => setSort(e.target.value)}
+        className="w-full sm:w-36 pl-2 pr-6 py-1 border border-gray-200 rounded-md  text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-all duration-300 appearance-none cursor-pointer"
+      >
+        <option value="default">기본</option>
+        <option value="fundingHigh">펀딩액 높은 순</option>
+        <option value="fundingLow">펀딩액 낮은 순</option>
+        <option value="percentHigh">달성률 높은 순</option>
+      </select>
+      <div className="absolute right-2 pointer-events-none">
+        <IoChevronDown className="text-yellow-600 text-xs" />
+      </div>
+    </div>
+    <div className="relative flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
+      <select
+        value={selectedSido}
+        onChange={(e) => {
+          setSelectedSido(e.target.value);
+          setSelectedSigungu("");
+        }}
+        className="w-full sm:w-36 pl-2 pr-6 py-1 border border-gray-200 rounded-md text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-all duration-300 appearance-none cursor-pointer"
+      >
+        <option value="">전체 시도</option>
+        {sidoList.map((sido) => (
+          <option key={sido} value={sido}>
+            {sido}
+          </option>
+        ))}
+      </select>
+      <div className="absolute right-2 pointer-events-none">
+        <IoChevronDown className="text-yellow-600 text-xs" />
+      </div>
+    </div>
+    <div className="relative flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
+      <select
+        value={selectedSigungu}
+        onChange={(e) => setSelectedSigungu(e.target.value)}
+        className="w-full sm:w-36 pl-2 pr-6 py-1 border border-gray-200 rounded-md text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-all duration-300 appearance-none cursor-pointer"
+        disabled={!selectedSido}
+      >
+        <option value="">전체 시군구</option>
+        {sigunguList.map((sigungu) => (
+          <option key={sigungu} value={sigungu}>
+            {sigungu}
+          </option>
+        ))}
+      </select>
+      <div className="absolute right-2 pointer-events-none">
+        <IoChevronDown className="text-yellow-600 text-xs" />
+      </div>
+    </div>
+    {(selectedSido || selectedSigungu) && (
+      <button
+        onClick={() => {
+          setSelectedSido("");
+          setSelectedSigungu("");
+        }}
+        className="px-3 py-1.5 bg-yellow-500 text-white text-xs font-semibold rounded-md hover:bg-yellow-600 transition shadow-sm"
+      >
+        필터 초기화
+      </button>
+    )}
+  </motion.div>
+);
+
 const TrendingFundingPage = () => {
   const [fundings, setFundings] = useState([]);
+  const [filteredFundings, setFilteredFundings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
+  const [size] = useState(24);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false); // 추가 로딩 상태
-
-  // Intersection Observer를 위한 ref
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [selectedSido, setSelectedSido] = useState("");
+  const [selectedSigungu, setSelectedSigungu] = useState("");
+  const [sort, setSort] = useState("percentHigh");
   const observerRef = useRef();
   const loadingRef = useRef();
+  const navigate = useNavigate();
 
-  // 기존 API 사용하여 데이터 가져오기
   const fetchTrendingFundings = async (nextPage = 0) => {
     try {
-      // 첫 번째 페이지가 아닐 때는 추가 로딩 상태로 설정
-      if (nextPage === 0) {
-        setLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
+      if (nextPage === 0) setLoading(true);
+      else setIsLoadingMore(true);
       setError("");
 
-      // 서울 강남역 좌표 (기본값)
       const lat = 37.5027;
       const lng = 127.0352;
-      const radius = 10000; // 10km 반경
-      const size = 24;
+      const radius = 10000;
 
       const params = new URLSearchParams({
-        lat: lat,
-        lng: lng,
-        radius: radius,
+        lat,
+        lng,
+        radius,
         page: nextPage,
-        size: size,
+        size,
       }).toString();
 
-      // 백엔드 서버 URL 확인
       const API_BASE =
         import.meta?.env?.VITE_API_BASE || "http://localhost:8080";
       const url = `${API_BASE}/api/restaurants/nearby?${params}`;
 
       const res = await fetch(url);
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`예상치 못한 응답 형식: ${contentType}`);
-      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
 
-      // 진행률 순으로 정렬하여 인기펀딩으로 만들기
       let sortedContent = data.content || [];
       sortedContent.sort((a, b) => {
         const aProgress = Number.isFinite(a.fundingPercent)
@@ -249,7 +316,6 @@ const TrendingFundingPage = () => {
               (Number(a.totalFundingAmount) * 100) / Number(a.fundingGoalAmount)
             )
           : 0;
-
         const bProgress = Number.isFinite(b.fundingPercent)
           ? Number(b.fundingPercent)
           : b.fundingGoalAmount > 0 && b.totalFundingAmount >= 0
@@ -257,18 +323,13 @@ const TrendingFundingPage = () => {
               (Number(b.totalFundingAmount) * 100) / Number(b.fundingGoalAmount)
             )
           : 0;
-
-        // 진행률 높은 순서로 정렬 (내림차순)
         return bProgress - aProgress;
       });
 
-      if (nextPage === 0) {
-        setFundings(sortedContent);
-      } else {
-        setFundings((prev) => [...prev, ...sortedContent]);
-      }
+      if (nextPage === 0) setFundings(sortedContent);
+      else setFundings((prev) => [...prev, ...sortedContent]);
 
-      setHasMore(data.last === false);
+      setHasMore(!data.last);
       setPage(data.number || nextPage);
     } catch (err) {
       console.error("API 호출 에러:", err);
@@ -283,18 +344,73 @@ const TrendingFundingPage = () => {
     fetchTrendingFundings(0);
   }, []);
 
+  useEffect(() => {
+    let filtered = [...fundings];
+
+    if (selectedSido) {
+      filtered = filtered.filter((item) => item.sidoNm === selectedSido);
+    }
+    if (selectedSigungu) {
+      filtered = filtered.filter((item) => item.sigunguNm === selectedSigungu);
+    }
+
+    if (searchText.trim()) {
+      filtered = filtered.filter(
+        (item) =>
+          item.name.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.roadAddressName
+            .toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          item.sidoNm.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.sigunguNm.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    if (sort === "fundingHigh") {
+      filtered.sort(
+        (a, b) =>
+          (b.fundingAmount + b.totalFundingAmount || 0) -
+          (a.fundingAmount + a.totalFundingAmount || 0)
+      );
+    } else if (sort === "fundingLow") {
+      filtered.sort(
+        (a, b) =>
+          (a.fundingAmount + a.totalFundingAmount || 0) -
+          (b.fundingAmount + b.totalFundingAmount || 0)
+      );
+    } else if (sort === "percentHigh") {
+      filtered.sort((a, b) => {
+        const aPercent =
+          a.fundingGoalAmount > 0
+            ? ((a.fundingAmount + a.totalFundingAmount) * 100) /
+              a.fundingGoalAmount
+            : 0;
+        const bPercent =
+          b.fundingGoalAmount > 0
+            ? ((b.fundingAmount + b.totalFundingAmount) * 100) /
+              b.fundingGoalAmount
+            : 0;
+        return bPercent - aPercent;
+      });
+    }
+
+    setFilteredFundings(filtered);
+    setPage(0);
+  }, [fundings, searchText, selectedSido, selectedSigungu, sort]);
+
   const loadMore = useCallback(() => {
     if (!hasMore || loading || isLoadingMore) return;
     fetchTrendingFundings(page + 1);
   }, [hasMore, loading, isLoadingMore, page]);
 
-  // Intersection Observer 설정
   useEffect(() => {
-    if (!hasMore) {
-      console.log("Observer setup skipped - no more data:", { hasMore });
-      return;
-    }
+    const totalItems = filteredFundings.length;
+    const currentlyShown = (page + 1) * size;
+    setHasMore(currentlyShown < totalItems);
+  }, [page, filteredFundings.length, size]);
 
+  useEffect(() => {
+    if (!hasMore) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (
@@ -303,95 +419,395 @@ const TrendingFundingPage = () => {
           !loading &&
           !isLoadingMore
         ) {
-          console.log("Intersection Observer triggered - loading more data");
           loadMore();
         }
       },
-      {
-        threshold: 0.1,
-        rootMargin: "100px", // 100px 전에 미리 로드 시작
-      }
+      { threshold: 0.1, rootMargin: "100px" }
     );
 
-    if (loadingRef.current) {
-      observer.observe(loadingRef.current);
-      console.log("Observer attached to loading element");
-    }
-
+    if (loadingRef.current) observer.observe(loadingRef.current);
     observerRef.current = observer;
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        console.log("Observer disconnected");
-      }
-    };
+    return () => observer.disconnect();
   }, [hasMore, loading, isLoadingMore, loadMore]);
 
-  // 첫 번째 로딩만 전체 화면 로딩으로 표시
+  const currentItems = filteredFundings.slice(0, (page + 1) * size);
+
+  const sidoList = [...new Set(fundings.map((item) => item.sidoNm))].sort();
+  const sigunguList = selectedSido
+    ? [
+        ...new Set(
+          fundings
+            .filter((item) => item.sidoNm === selectedSido)
+            .map((item) => item.sigunguNm)
+        ),
+      ].sort()
+    : [];
+
+  const renderArrowPrev = (onClickHandler, hasPrev, label) =>
+    hasPrev && (
+      <button
+        type="button"
+        onClick={onClickHandler}
+        title={label}
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 text-yellow-600 p-2.5 rounded-full hover:bg-yellow-600 hover:text-white transition-all z-10 shadow-sm"
+      >
+        <FaChevronLeft className="text-lg" />
+      </button>
+    );
+
+  const renderArrowNext = (onClickHandler, hasNext, label) =>
+    hasNext && (
+      <button
+        type="button"
+        onClick={onClickHandler}
+        title={label}
+        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 text-yellow-600 p-2.5 rounded-full hover:bg-yellow-600 hover:text-white transition-all z-10 shadow-sm"
+      >
+        <FaChevronRight className="text-lg" />
+      </button>
+    );
+
   if (loading && page === 0) {
     return (
       <MainLayout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500"></div>
+        <div className="flex justify-center items-center min-h-screen ">
+          <div className="text-center">
+            <svg
+              className="animate-spin h-6 w-6 text-yellow-600 mx-auto mb-3"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            <p className="text-gray-600 text-sm">
+              인기 펀딩 데이터를 불러오는 중...
+            </p>
+          </div>
         </div>
       </MainLayout>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="p-2 flex justify-center bg-white min-h-screen">
-        <div className="w-full max-w-[1200px]">
-          <h2 className="flex items-center gap-2 text-xl mb-3 leading-none">
-            <IoRestaurantOutline className="text-[32px] relative top-[1px] shrink-0" />
-            <span className="text-[22px]">인기 펀딩 음식점</span>
-          </h2>
-
-          {/* 펀딩 목록 */}
-          {error ? (
-            <div className="text-center py-8">
-              <p className="text-red-500 text-lg mb-4">{error}</p>
-              <button
-                onClick={() => fetchTrendingFundings(0)}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+    <>
+      <MainMenu />
+      <div className="p-5 sm:p-6 md:p-8 pt-40 h-auto  bg-[url('https://www.transparenttextures.com/patterns/light-wool.png')]">
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-[3fr,1fr] gap-6 pt-3 lg:pt-44">
+          <div>
+            <motion.div
+              className="mb-8 text-center bg-gradient-to-b from-yellow-100 to-white p-8 rounded-xl shadow-lg pt-42"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div
+                className="flex items-center gap-2 mb-4 justify-center"
+                variants={itemVariants}
               >
-                다시 시도
-              </button>
-            </div>
-          ) : fundings.length === 0 ? (
-            <p className="text-gray-500 text-center">
-              인기 펀딩을 찾을 수 없습니다.
-            </p>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {fundings.map((funding) => (
-                  <FundingCard
-                    key={funding.restaurantId || funding.id}
-                    funding={funding}
-                  />
-                ))}
-              </div>
-
-              {/* 무한스크롤을 위한 감지 요소 - 추가 로딩 상태로 변경 */}
-              {hasMore && (
-                <div ref={loadingRef} className="flex justify-center py-8">
-                  {isLoadingMore && (
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                      <p className="text-sm text-gray-500">
-                        더 많은 인기 펀딩을 불러오는 중...
-                      </p>
+                <Link
+                  to="/main"
+                  className="inline-flex items-center gap-1.5 text-gray-600 hover:text-yellow-600 text-xs font-medium transition-all duration-300 hover:scale-105"
+                ></Link>
+              </motion.div>
+              <motion.h1
+                className="text-3xl font-bold text-yellow-800 mb-3 tracking-tight"
+                variants={itemVariants}
+              >
+                지금 뜨는 펀딩 맛집!
+              </motion.h1>
+              <motion.p
+                className="text-gray-600 max-w-[600px] mx-auto text-base font-medium"
+                variants={itemVariants}
+              >
+                인기 급상승 중인 맛집 펀딩에 참여해 특별한 경험을 누려보세요!
+              </motion.p>
+              <motion.div
+                className="w-full max-w-[600px] mx-auto mt-5 rounded-xl shadow-xl overflow-hidden"
+                variants={itemVariants}
+              >
+                <Carousel
+                  autoPlay
+                  infiniteLoop
+                  showThumbs={false}
+                  showStatus={false}
+                  showIndicators={false}
+                  interval={3000}
+                  transitionTime={600}
+                  className="rounded-xl"
+                  renderArrowPrev={renderArrowPrev}
+                  renderArrowNext={renderArrowNext}
+                >
+                  {filteredFundings.length > 0 ? (
+                    filteredFundings.slice(0, 5).map((funding) => (
+                      <div key={funding.restaurantId} className="relative">
+                        <img
+                          src={
+                            funding.imageUrl &&
+                            funding.imageUrl.includes("uploads/")
+                              ? `http://localhost:8080/${funding.imageUrl}`
+                              : `/${funding.restaurantId}.jpg`
+                          }
+                          alt={`${funding.name} 배너`}
+                          className="w-full h-[280px] object-cover brightness-95 transition-all duration-300"
+                        />
+                        {((funding.fundingAmount + funding.totalFundingAmount) *
+                          100) /
+                          funding.fundingGoalAmount >=
+                          80 && (
+                          <span className="absolute top-3 right-3 bg-yellow-500 text-gray-900 text-xs font-bold px-2.5 py-1 rounded-full z-10 shadow-sm">
+                            🔥 Hot!
+                          </span>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4">
+                          <p className="text-white text-base font-semibold">
+                            {funding.name} -{" "}
+                            {Math.round(
+                              ((funding.fundingAmount +
+                                funding.totalFundingAmount) *
+                                100) /
+                                funding.fundingGoalAmount
+                            )}
+                            % 달성
+                          </p>
+                          <button
+                            onClick={() =>
+                              navigate(`/restaurant/${funding.restaurantId}`)
+                            }
+                            className="mt-2 px-4 py-1.5 bg-yellow-600 text-white text-xs font-semibold rounded-full hover:bg-yellow-700 transition shadow-sm"
+                          >
+                            펀딩 참여
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="relative">
+                      <img
+                        src="/funding-hero.png"
+                        alt="인기 펀딩 소개"
+                        className="w-full h-[280px] object-cover brightness-95"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4">
+                        <p className="text-white text-base font-semibold">
+                          지금 인기 펀딩에 참여하세요!
+                        </p>
+                        <button
+                          className="mt-2 px-4 py-1.5 bg-yellow-600 text-white text-xs font-semibold rounded-full hover:bg-yellow-700 transition shadow-sm"
+                          onClick={() => navigate("/funding")}
+                        >
+                          자세히 보기
+                        </button>
+                      </div>
                     </div>
                   )}
+                </Carousel>
+              </motion.div>
+            </motion.div>
+
+            <motion.div
+              className="flex flex-col justify-center items-center mb-4"
+              variants={itemVariants}
+            >
+              <div className="relative w-full max-w-[1000px]">
+                <input
+                  type="text"
+                  placeholder="인기 맛집을 검색하세요"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-gray-800 placeholder-gray-400 text-sm"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-yellow-600 cursor-pointer transition-colors">
+                  <FiSearch size={18} />
                 </div>
-              )}
-            </>
-          )}
+              </div>
+            </motion.div>
+
+            <motion.h2
+              className="flex flex-col gap-1 text-lg font-bold text-yellow-800"
+              variants={itemVariants}
+            >
+              <span className="flex items-center gap-1.5">
+                <FiTrendingUp className="text-xl" />
+                인기 펀딩 맛집
+              </span>
+              <span className="text-gray-600 text-[14px]">
+                달성률이 높은 펀딩을 확인해보세요 !
+              </span>
+            </motion.h2>
+
+            <FilterComponent
+              sort={sort}
+              setSort={setSort}
+              selectedSido={selectedSido}
+              setSelectedSido={setSelectedSido}
+              selectedSigungu={selectedSigungu}
+              setSelectedSigungu={setSelectedSigungu}
+              sidoList={sidoList}
+              sigunguList={sigunguList}
+            />
+
+            <motion.div
+              className="mb-4 p-2.5 rounded-md shadow-sm"
+              variants={itemVariants}
+            >
+              <p className="text-xs text-gray-600">
+                총{" "}
+                <span className="font-semibold text-yellow-700">
+                  {filteredFundings.length}
+                </span>{" "}
+                개의 인기 펀딩이 진행 중입니다.
+                {searchText && ` (검색어: "${searchText}")`}
+                {selectedSido &&
+                  ` (지역: ${selectedSido}${
+                    selectedSigungu ? ` > ${selectedSigungu}` : ""
+                  })`}
+              </p>
+            </motion.div>
+
+            {error ? (
+              <motion.div className="text-center py-8" variants={itemVariants}>
+                <p className="text-red-500 text-base mb-3">{error}</p>
+                <button
+                  onClick={() => fetchTrendingFundings(0)}
+                  className="px-3 py-1.5 bg-yellow-600 text-white text-xs font-semibold rounded-md hover:bg-yellow-700 transition shadow-sm"
+                >
+                  다시 시도
+                </button>
+              </motion.div>
+            ) : currentItems.length === 0 ? (
+              <motion.div className="text-center py-16" variants={itemVariants}>
+                <div className="text-5xl mb-3">🍴</div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  인기 펀딩이 없습니다
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  새로운 펀딩을 기다려주세요!
+                </p>
+              </motion.div>
+            ) : (
+              <>
+                <motion.div
+                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5"
+                  variants={containerVariants}
+                >
+                  {currentItems.map((funding) => (
+                    <FundingCard
+                      key={funding.restaurantId || funding.id}
+                      funding={funding}
+                    />
+                  ))}
+                </motion.div>
+                {hasMore && (
+                  <motion.div
+                    ref={loadingRef}
+                    className="flex justify-center py-6"
+                    variants={itemVariants}
+                  >
+                    {isLoadingMore && (
+                      <div className="text-center">
+                        <svg
+                          className="animate-spin h-5 w-5 text-yellow-600 mx-auto mb-2"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        <p className="text-xs text-gray-600">
+                          더 많은 인기 펀딩을 불러오는 중...
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </>
+            )}
+          </div>
+          <div className="hidden lg:block">
+            <motion.div
+              className="bg-white rounded-xl shadow-lg p-5 sticky top-5 max-h-[calc(100vh-1.25rem)] overflow-auto pt-42"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.h3
+                className="text-lg font-semibold text-yellow-800 mb-3"
+                variants={itemVariants}
+              >
+                인기 지역
+              </motion.h3>
+              <motion.ul className="space-y-2" variants={containerVariants}>
+                {sidoList.slice(0, 3).map((sido) => (
+                  <motion.li key={sido} variants={itemVariants}>
+                    <button
+                      className="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded-md transition flex items-center gap-2"
+                      onClick={() => {
+                        setSelectedSido(sido);
+                        setSelectedSigungu("");
+                      }}
+                    >
+                      <TbCurrentLocation className="text-yellow-600 text-base" />
+                      {sido}
+                    </button>
+                  </motion.li>
+                ))}
+              </motion.ul>
+              <motion.div
+                className="mt-5 pt-3 border-t border-gray-200"
+                variants={itemVariants}
+              >
+                <h3 className="text-lg font-semibold text-yellow-800 mb-3">
+                  오늘의 핫딜
+                </h3>
+                <div className="relative rounded-md overflow-hidden shadow-md">
+                  <img
+                    src="/45.JPG"
+                    alt="추천 펀딩"
+                    className="w-full h-36 object-cover brightness-95"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/85 to-transparent">
+                    <p className="text-white text-xs font-semibold">
+                      오늘의 인기 펀딩!
+                    </p>
+                    <button
+                      className="mt-1.5 px-3 py-1 bg-yellow-600 text-white text-xs font-medium rounded-full hover:bg-yellow-700 transition shadow-sm"
+                      onClick={() => navigate("/funding")}
+                    >
+                      바로 보기
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 };
 

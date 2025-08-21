@@ -3,6 +3,9 @@ import { Suspense, lazy } from "react";
 import LoadingSpinner from "../components/member/LoadingSpinner";
 import LocationPage from "../pages/location/LocationPage";
 import MemberLayout from "../layouts/MemberLayout";
+import SearchResultPage from "../pages/search/SearchResultPage";
+import ImageSearchResultPage from "../pages/search/ImageSearchResultPage";
+import Test from "../components/test/Test";
 
 // Lazy imports for all pages
 const MainPage = lazy(() => import("../pages/main/MainPage"));
@@ -31,6 +34,9 @@ const RestaurantDetailPage = lazy(() =>
   import("../pages/restaurant/RestaurantDetailPage")
 );
 const PaymentPage = lazy(() => import("../pages/payment/PaymentPage"));
+const ForOnePaymentPage = lazy(() =>
+  import("../pages/payment/ForOnePaymentPage")
+);
 const QRCodePage = lazy(() => import("../pages/member/QRCodePage"));
 const ForOneIndexPage = lazy(() => import("../pages/forone/ForOneIndexPage"));
 const TrendingFundingPage = lazy(() =>
@@ -43,6 +49,7 @@ const LocalSpecialtyDetailPage = lazy(() =>
   import("../pages/localSpecialty/LocalSpecialtyDetailPage")
 );
 const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
+
 const BusinessLocationPage = lazy(() =>
   import("../pages/business/BusinessLocationPage")
 );
@@ -112,6 +119,14 @@ const root = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <PaymentPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/forone-payment",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ForOnePaymentPage />
       </Suspense>
     ),
   },
@@ -228,6 +243,22 @@ const root = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <BusinessLocationPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/image-search",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ImageSearchResultPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/test",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Test />
       </Suspense>
     ),
   },
