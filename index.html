@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS 시스템 - QR 코드 스캔</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .restaurant-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .pos-title {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .order-card {
+            background: white;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .order-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .info-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .amount {
+            color: #e74c3c;
+        }
+        
+        .qr-scan-area {
+            background: linear-gradient(135deg, #e8f5e8, #d4edda);
+            border: 3px dashed #27ae60;
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        .qr-icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        .scan-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+        
+        .scan-subtext {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .scan-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 20px;
+            width: calc(100% - 40px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .scan-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .scan-button:active {
+            transform: translateY(0);
+        }
+        
+        .status-bar {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .status-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="restaurant-name" id="restaurantName">맛있는 식당</div>
+        <div class="pos-title">POS 시스템 - QR 코드 스캔</div>
+    </div>
+    
+    <div class="order-card">
+        <div class="order-info">
+            <div class="info-item">
+                <div class="info-label">주문번호</div>
+                <div class="info-value" id="orderId">12345</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">결제금액</div>
+                <div class="info-value amount" id="amount">15,000원</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">결제수단</div>
+                <div class="info-value" id="paymentMethod">카카오페이</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">결제시간</div>
+                <div class="info-value" id="paymentTime">14:30</div>
+            </div>
+        </div>
+        
+        <div class="qr-scan-area" id="qrScanArea">
+            <div class="qr-icon">📱</div>
+            <div class="scan-text">QR 코드를 스캔하세요</div>
+            <div class="scan-subtext">아래 버튼을 눌러 QR 스캔을 시작하세요</div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-text" id="statusText">대기중</div>
+        </div>
+        
+        <button class="scan-button" onclick="openQRScanner()">
+            �� QR 코드 스캔하기
+        </button>
+    </div>
+    
+    <script>
+        // URL 파라미터에서 주문 정보 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // 기본값 설정
+        const orderId = urlParams.get('orderId') || '12345';
+        const amount = urlParams.get('amount') || '15000';
+        const paymentMethod = urlParams.get('paymentMethod') || '카카오페이';
+        const restaurantName = urlParams.get('restaurantName') || '맛있는 식당';
+        
+        // 화면에 정보 표시
+        document.getElementById('orderId').textContent = orderId;
+        document.getElementById('amount').textContent = parseInt(amount).toLocaleString() + '원';
+        document.getElementById('paymentMethod').textContent = paymentMethod;
+        document.getElementById('restaurantName').textContent = restaurantName;
+        document.getElementById('paymentTime').textContent = new Date().toLocaleTimeString('ko-KR', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        // QR 스캔 앱 실행
+        function openQRScanner() {
+            const statusText = document.getElementById('statusText');
+            const scanButton = document.getElementById('scanButton');
+            
+            // 상태 변경
+            statusText.textContent = 'QR 스캔 앱 실행 중...';
+            scanButton.disabled = true;
+            scanButton.textContent = '실행 중...';
+            
+            try {
+                // QR 스캔 앱 실행 시도
+                const intentUrl = 'intent://qr.scan/#Intent;package=com.qr.scan;S.browser_fallback_url=https://play.google.com/store/apps/details?id=com.qr.scan;end';
+                window.location.href = intentUrl;
+                
+                // 3초 후 앱이 실행되지 않았으면 스토어로 이동
+                setTimeout(() => {
+                    if (document.hidden) return; // 앱이 실행되었으면 중단
+                    
+                    // QR 스캔 앱이 없으면 스토어로 이동
+                    const fallbackUrl = 'https://play.google.com/store/search?q=qr%20scanner';
+                    if (confirm('QR 스캔 앱이 설치되어 있지 않습니다. 스토어에서 설치하시겠습니까?')) {
+                        window.open(fallbackUrl, '_blank');
+                    }
+                    
+                    // 버튼 상태 복구
+                    scanButton.disabled = false;
+                    scanButton.textContent = '📱 QR 코드 스캔하기';
+                    statusText.textContent = '대기중';
+                }, 3000);
+                
+            } catch (error) {
+                // 에러 발생 시 스토어로 이동
+                const fallbackUrl = 'https://play.google.com/store/search?q=qr%20scanner';
+                if (confirm('QR 스캔 앱을 실행할 수 없습니다. 스토어에서 설치하시겠습니까?')) {
+                    window.open(fallbackUrl, '_blank');
+                }
+                
+                // 버튼 상태 복구
+                scanButton.disabled = false;
+                scanButton.textContent = '📱 QR 코드 스캔하기';
+                statusText.textContent = '대기중';
+            }
+        }
+    </script>
+</body>
+</html>
