@@ -51,7 +51,6 @@
   </head>
   <body>
     <div class="header">
-      <div class="restaurant-name" id="restaurantName">맛있는 식당</div>
       <div class="pos-title">POS 시스템 - QR 코드 스캔</div>
     </div>
 
@@ -106,150 +105,37 @@
 
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script>
-      // ====== URL 파라미터로도 채워지게(양쪽 스키마 지원) ======
-      const urlParams = new URLSearchParams(window.location.search);
-      const initialObj = {
-        // 기존 스키마
-        orderId: urlParams.get("orderId") || undefined,
-        amount: urlParams.get("amount") ? Number(urlParams.get("amount")) : undefined,
-        paymentMethod: urlParams.get("paymentMethod") || undefined,
-        paymentTime: urlParams.get("paymentTime") || undefined,
-        restaurantName: urlParams.get("restaurantName") || undefined,
-        // 새 스키마(네가 주는 QR JSON)
-        fundingId: urlParams.get("fundingId") || undefined,
-        totalAmount: urlParams.get("totalAmount") ? Number(urlParams.get("totalAmount")) : undefined,
-        impUid: urlParams.get("impUid") || undefined,
-        createdAt: urlParams.get("createdAt") || undefined,
-      };
-      if (Object.values(initialObj).some(Boolean)) {
-        updateOrderInfo(normalizeOrderData(initialObj));
-      } else {
-        // 기본 표시
-        document.getElementById("paymentTime").textContent = nowTime();
-      }
-
-      // ====== QR 스캔 로직 ======
-      const statusText = document.getElementById("statusText");
-      const scanButton = document.getElementById("scanButton");
-      const previewWrap = document.getElementById("previewWrap");
-      const video = document.getElementById("video");
-      const canvas = document.getElementById("canvas");
-      const fallbackWrap = document.getElementById("fallbackWrap");
-
-      let stream = null;
-      let scanning = false;
-      let barcodeDetector = null;
-      const supportsBarcodeDetector = "BarcodeDetector" in window;
-
-      async function startCamera() {
-        // HTTPS 필요 (localhost 예외)
-        if (location.protocol !== "https:" && location.hostname !== "localhost") {
-          statusText.textContent = "HTTPS에서만 카메라를 열 수 있어요. (GitHub Pages 추천)";
-          fallbackWrap.style.display = "block";
-          return;
-        }
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false,
-          });
-          video.srcObject = stream;
-          await video.play();
-          previewWrap.style.display = "block";
-          statusText.textContent = "카메라 준비 완료. QR을 화면에 비춰주세요.";
-        } catch (e) {
-          console.error(e);
-          statusText.textContent = "카메라 권한이 거부되었거나 열 수 없습니다.";
-          fallbackWrap.style.display = "block";
-        }
-      }
-
-      async function initBarcode() {
-        if (!supportsBarcodeDetector) return false;
-        try {
-          barcodeDetector = new BarcodeDetector({ formats: ["qr_code", "code_128", "ean_13"] });
-          return true;
-        } catch (e) {
-          console.warn("BarcodeDetector 초기화 실패", e);
-          return false;
-        }
-      }
-
-      async function scanLoop() {
-        if (!scanning) return;
-        if (!video.videoWidth) { requestAnimationFrame(scanLoop); return; }
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        try {
-          if (barcodeDetector) {
-            const bitmap = await createImageBitmap(canvas);
-            const codes = await barcodeDetector.detect(bitmap);
-            if (codes && codes.length) {
-              const val = codes[0].rawValue || codes[0].raw || "";
-              onQrDetected(val);
-              return;
-            }
-          } else {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) {
-              onQrDetected(code.data);
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn("디텍션 오류", err);
-        }
-        requestAnimationFrame(scanLoop);
-      }
-
-      // ====== 스키마 정규화 ======
+      // ====== 주문 정보 업데이트용 normalize ======
       function normalizeOrderData(obj) {
-        // 숫자 깔끔히
         const toNumber = (v) => {
-          if (v == null) return undefined;
-          if (typeof v === "number") return v;
-          const s = String(v).replace(/[^0-9.-]/g, "");
-          const n = Number(s);
+          if (!v) return undefined;
+          const n = Number(String(v).replace(/[^0-9]/g, ""));
           return Number.isFinite(n) ? n : undefined;
         };
-
-        // 시간 포맷팅 (KST 로컬)
         const fmtTime = (t) => {
-          if (!t) return undefined;
+          if (!t) return new Date().toLocaleString("ko-KR",{hour12:false});
           const d = new Date(t);
-          if (isNaN(d)) return t; // 이상하면 원본 노출
-          return d.toLocaleString("ko-KR", { hour12: false });
+          return isNaN(d)? t : d.toLocaleString("ko-KR",{hour12:false});
         };
-
-        // 결제수단 추정: impUid가 있으면 간편결제 계열로 표기(필요시 바꿔)
-        const inferredMethod = obj.paymentMethod
-          || (obj.impUid ? "간편결제" : undefined);
-
         return {
           orderId: obj.orderId ?? obj.fundingId ?? obj.impUid ?? "-",
           amount: toNumber(obj.amount ?? obj.totalAmount),
-          paymentMethod: inferredMethod ?? "-",
-          paymentTime: obj.paymentTime ? fmtTime(obj.paymentTime) : (obj.createdAt ? fmtTime(obj.createdAt) : nowTime()),
+          paymentMethod: obj.paymentMethod ?? (obj.impUid? "간편결제":"-"),
+          paymentTime: fmtTime(obj.paymentTime ?? obj.createdAt),
           restaurantName: obj.restaurantName,
-          paymentId: obj.impUid ?? "-", // 결제ID 표시
+          paymentId: obj.impUid ?? "-"
         };
       }
-
       function updateOrderInfo(data) {
-        if (!data) return;
         if (data.orderId) document.getElementById("orderId").textContent = data.orderId;
-        if (data.amount != null) document.getElementById("amount").textContent = Number(data.amount).toLocaleString() + "원";
+        if (data.amount != null) document.getElementById("amount").textContent = data.amount.toLocaleString()+"원";
         if (data.paymentMethod) document.getElementById("paymentMethod").textContent = data.paymentMethod;
         if (data.paymentTime) document.getElementById("paymentTime").textContent = data.paymentTime;
         if (data.restaurantName) document.getElementById("restaurantName").textContent = data.restaurantName;
         if (data.paymentId) document.getElementById("paymentId").textContent = data.paymentId;
       }
 
+      // ====== QR 인식 이벤트 ======
       function onQrDetected(value) {
         scanning = false;
         stopCamera();
@@ -257,82 +143,66 @@
           const parsed = JSON.parse(value);
           const normalized = normalizeOrderData(parsed);
           updateOrderInfo(normalized);
-          statusText.innerHTML = `<span class="ok">QR 인식 성공!</span> 주문 정보가 업데이트되었습니다.`;
-        } catch (e) {
-          statusText.innerHTML = `<span class="ok">QR 인식 성공:</span> ${escapeHtml(value)}`;
+          // 여기서 메시지를 "사용이 완료되었습니다" 로 고정
+          statusText.innerHTML = `<span class="ok">사용이 완료되었습니다 ✅</span>`;
+        } catch {
+          statusText.innerHTML = `<span class="ok">사용이 완료되었습니다 ✅</span>`;
         }
       }
 
-      function stopCamera() {
-        if (stream) {
-          stream.getTracks().forEach((t) => t.stop());
-          stream = null;
+      // ====== 카메라/스캔 로직 기존 코드 ======
+      const statusText = document.getElementById("statusText");
+      const scanButton = document.getElementById("scanButton");
+      const previewWrap = document.getElementById("previewWrap");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const fallbackWrap = document.getElementById("fallbackWrap");
+      let stream = null; let scanning = false; let barcodeDetector = null;
+
+      async function startCamera() {
+        if (location.protocol!=="https:" && location.hostname!=="localhost"){
+          statusText.textContent="HTTPS에서만 카메라 사용 가능"; fallbackWrap.style.display="block"; return;
         }
+        try{
+          stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+          video.srcObject=stream; await video.play();
+          previewWrap.style.display="block";
+          statusText.textContent="카메라 준비 완료. QR을 화면에 비춰주세요.";
+        }catch{statusText.textContent="카메라 권한 거부됨"; fallbackWrap.style.display="block";}
       }
-
-      // 버튼 클릭: 스캔 시작
-      scanButton.addEventListener("click", async () => {
-        scanButton.disabled = true;
-        scanButton.textContent = "실행 중...";
-        statusText.textContent = "카메라 여는 중...";
-
-        await initBarcode();
-        await startCamera();
-
-        if (stream) {
-          scanning = true;
-          scanLoop();
-        } else {
-          fallbackWrap.style.display = "block";
-        }
-
-        setTimeout(() => {
-          scanButton.disabled = false;
-          scanButton.textContent = "📱 QR 코드 스캔하기";
-        }, 600);
-      });
-
-      document.addEventListener("visibilitychange", () => { if (document.hidden) stopCamera(); });
-      window.addEventListener("beforeunload", stopCamera);
-
-      // 파일 업로드로도 인식
-      document.getElementById("fileInput").addEventListener("change", async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const img = new Image();
-        img.onload = async () => {
-          canvas.width = img.width; canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0);
-
-          if (barcodeDetector) {
-            try {
-              const bmp = await createImageBitmap(canvas);
-              const codes = await barcodeDetector.detect(bmp);
-              if (codes && codes.length) {
-                const val = codes[0].rawValue || "";
-                onQrDetected(val);
-                return;
-              }
-            } catch (e) { console.warn("이미지 디텍션 실패", e); }
-          } else {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-            if (code) { onQrDetected(code.data); return; }
+      async function initBarcode(){
+        if(!("BarcodeDetector" in window)) return false;
+        try{barcodeDetector=new BarcodeDetector({formats:["qr_code","code_128","ean_13"]});return true;}
+        catch{return false;}
+      }
+      async function scanLoop(){
+        if(!scanning) return;
+        if(!video.videoWidth){requestAnimationFrame(scanLoop);return;}
+        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+        const ctx=canvas.getContext("2d"); ctx.drawImage(video,0,0);
+        try{
+          if(barcodeDetector){
+            const bmp=await createImageBitmap(canvas);
+            const codes=await barcodeDetector.detect(bmp);
+            if(codes.length){onQrDetected(codes[0].rawValue); return;}
+          }else{
+            const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+            const code=jsQR(img.data,img.width,img.height);
+            if(code){onQrDetected(code.data); return;}
           }
-          statusText.textContent = "이미지에서 QR을 찾지 못했습니다.";
-        };
-        img.onerror = () => { statusText.textContent = "이미지를 불러올 수 없습니다."; };
-        img.src = URL.createObjectURL(file);
+        }catch(e){}
+        requestAnimationFrame(scanLoop);
+      }
+      function stopCamera(){if(stream){stream.getTracks().forEach(t=>t.stop()); stream=null;}}
+      scanButton.addEventListener("click", async ()=>{
+        scanButton.disabled=true; scanButton.textContent="실행 중...";
+        statusText.textContent="카메라 여는 중...";
+        await initBarcode(); await startCamera();
+        if(stream){scanning=true; scanLoop();} else {fallbackWrap.style.display="block";}
+        setTimeout(()=>{scanButton.disabled=false; scanButton.textContent="📱 QR 코드 스캔하기";},600);
       });
-
-      function escapeHtml(s) {
-        return String(s).replace(/[&<>"']/g, (m) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
-      }
-      function nowTime() {
-        return new Date().toLocaleString("ko-KR", { hour12: false });
-      }
+      document.addEventListener("visibilitychange",()=>{if(document.hidden) stopCamera();});
+      window.addEventListener("beforeunload",stopCamera);
     </script>
   </body>
 </html>
