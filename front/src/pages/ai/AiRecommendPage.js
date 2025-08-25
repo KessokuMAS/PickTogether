@@ -60,7 +60,7 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
 }
 
 const AiRecommendPage = () => {
-  const userEmail = "winko5606@naver.com"; // 👉 로그인 유저 이메일로 교체
+  const userEmail = "ish979797@naver.com"; // 👉 로그인 유저 이메일로 교체
   const [recommend, setRecommend] = useState(null);
   const [report, setReport] = useState(null);
 

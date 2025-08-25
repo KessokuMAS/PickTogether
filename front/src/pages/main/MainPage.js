@@ -26,7 +26,6 @@ const MainPage = () => {
       <MainBanner />
 
       <NearbyKakaoRestaurants />
-      <ChatBot />
     </MainLayout>
   );
 };

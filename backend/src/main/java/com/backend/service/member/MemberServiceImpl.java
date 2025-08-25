@@ -69,8 +69,8 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public Map<String, Object> register(String email, String pw, String nickname) {
-        log.info("회원가입 시도: " + email);
+    public Map<String, Object> register(String email, String pw, String nickname, String memberType) {
+        log.info("회원가입 시도: " + email + ", 회원 유형: " + memberType);
 
         // 이메일 중복 확인
         if (memberRepository.existsByEmail(email)) {
@@ -88,8 +88,13 @@ public class MemberServiceImpl implements MemberService {
                 .socialType(null)  // 일반회원은 null
                 .build();
 
-        // 기본 역할 추가 (USER)
-        member.addRole(MemberRole.USER);
+        // 회원 유형에 따른 역할 추가
+        if ("BUSINESS_OWNER".equals(memberType)) {
+            member.addRole(MemberRole.BUSINESS_OWNER);
+        } else {
+            // 기본값은 USER
+            member.addRole(MemberRole.USER);
+        }
 
         // 저장
         memberRepository.save(member);

@@ -13,7 +13,6 @@ const LoginPage = lazy(() => import("../pages/member/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/member/RegisterPage"));
 const BoardPage = lazy(() => import("../pages/board/BoardPage"));
 const MyPage = lazy(() => import("../pages/member/MyPage"));
-const ProfileEditPage = lazy(() => import("../pages/member/ProfileEditPage"));
 const CommunityPage = lazy(() => import("../pages/community/CommunityPage"));
 const CommunityPostDetailPage = lazy(() =>
   import("../pages/community/CommunityPostDetailPage")
@@ -34,9 +33,6 @@ const RestaurantDetailPage = lazy(() =>
   import("../pages/restaurant/RestaurantDetailPage")
 );
 const PaymentPage = lazy(() => import("../pages/payment/PaymentPage"));
-const ForOnePaymentPage = lazy(() =>
-  import("../pages/payment/ForOnePaymentPage")
-);
 const QRCodePage = lazy(() => import("../pages/member/QRCodePage"));
 const ForOneIndexPage = lazy(() => import("../pages/forone/ForOneIndexPage"));
 const TrendingFundingPage = lazy(() =>
@@ -50,10 +46,6 @@ const LocalSpecialtyDetailPage = lazy(() =>
 );
 const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
 
-const BusinessLocationPage = lazy(() =>
-  import("../pages/business/BusinessLocationPage")
-);
-
 // 마이페이지 관련 페이지들
 const BusinessRequestsPage = lazy(() =>
   import("../pages/business/BusinessRequestPage")
@@ -64,6 +56,10 @@ const AdminSettingsPage = lazy(() =>
 const BusinessRequestManagementPage = lazy(() =>
   import("../pages/admin/BusinessRequestManagementPage")
 );
+const BusinessLocationPage = lazy(() =>
+  import("../pages/business/BusinessLocationPage")
+);
+const ProfileEditPage = lazy(() => import("../pages/member/ProfileEditPage"));
 
 const root = createBrowserRouter([
   {
@@ -119,14 +115,6 @@ const root = createBrowserRouter([
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <PaymentPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: "/forone-payment",
-    element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <ForOnePaymentPage />
       </Suspense>
     ),
   },
@@ -223,6 +211,14 @@ const root = createBrowserRouter([
     ),
   },
   {
+    path: "/mypage/edit",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ProfileEditPage />
+      </Suspense>
+    ),
+  },
+  {
     path: "/mypage/admin/business-requests",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
@@ -231,10 +227,10 @@ const root = createBrowserRouter([
     ),
   },
   {
-    path: "/mypage/edit",
+    path: "/search",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <ProfileEditPage />
+        <SearchResultPage />
       </Suspense>
     ),
   },

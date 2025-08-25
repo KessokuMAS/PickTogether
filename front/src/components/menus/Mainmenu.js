@@ -43,7 +43,11 @@ const AnimatedLogo = () => {
 
   return (
     <Link to="/" className="flex items-center">
-      <img src="/logo.png" alt="PickTogether" className="h-[95px] w-auto" />
+      <img
+        src="/logo3.png"
+        alt="PickTogether"
+        className="h-[60px] w-[60px] mr-1 mb-2"
+      />
       <motion.span
         className="text-2xl font-bold tracking-wide font-poppins flex"
         variants={container}
@@ -87,7 +91,7 @@ const menuItems = [
   {
     to: "/trending",
     icon: FiTrendingUp,
-    label: "인기펀딩",
+    label: "내 지역 인기펀딩",
     color: "text-yellow-500",
     hoverColor: "hover:text-yellow-600",
     hoverBg: "hover:bg-yellow-50",
@@ -318,13 +322,13 @@ const MainMenu = () => {
           {!isScrolled && (
             <div
               ref={locationBarRef}
-              className="w-full border-b border-gray-100 bg-white"
+              className="border-b border-gray-100 bg-white"
             >
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-4">
+              <div className="max-w-7xl w-full h-[100px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-nowrap justify-center items-center gap-6">
                 <button
                   type="button"
                   onClick={openLocationPopup}
-                  className="flex items-center space-x-2 w-fit text-left"
+                  className="flex items-center space-x-2 w-fit text-left whitespace-nowrap"
                 >
                   <FiMapPin size={18} className="text-orange-600" />
                   <span className="text-base font-bold text-gray-500">
@@ -361,7 +365,15 @@ const MainMenu = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Icon size={20} className={color} />
-                  <span className="font-semibold text-lg">{label}</span>
+                  <span
+                    className="relative font-semibold text-lg inline-block
+                                 after:absolute after:left-0 after:bottom-0
+                                 after:h-[2px] after:w-full after:bg-gray-600
+                                 after:transition-all after:duration-200
+                                 hover:after:w-full"
+                  >
+                    {label}
+                  </span>
                 </Link>
               )
             )}

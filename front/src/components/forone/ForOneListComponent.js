@@ -223,21 +223,7 @@ const ForOneListComponent = () => {
               >
                 {filteredMenus.length > 0 ? (
                   filteredMenus.map((menu) => (
-                    <div
-                      key={menu.slotId}
-                      className="relative cursor-pointer"
-                      onClick={() => {
-                        const params = new URLSearchParams({
-                          slotId: menu.slotId,
-                          menuName: menu.menuName,
-                          restaurantName: menu.restaurantName || "한그릇 펀딩",
-                          fundingPrice: menu.fundingPrice,
-                          originalPrice: menu.originalPrice || "",
-                          discountPercent: menu.discountPercent || 0,
-                        });
-                        window.location.href = `/forone-payment?${params.toString()}`;
-                      }}
-                    >
+                    <div key={menu.slotId} className="relative">
                       <img
                         src={menu.imageUrl || "/default-menu.png"}
                         alt={`${menu.menuName} 배너`}
@@ -253,18 +239,9 @@ const ForOneListComponent = () => {
                           {menu.menuName} - {menu.discountPercent}% 할인
                         </p>
                         <button
-                          onClick={() => {
-                            const params = new URLSearchParams({
-                              slotId: menu.slotId,
-                              menuName: menu.menuName,
-                              restaurantName:
-                                menu.restaurantName || "한그릇 펀딩",
-                              fundingPrice: menu.fundingPrice,
-                              originalPrice: menu.originalPrice || "",
-                              discountPercent: menu.discountPercent || 0,
-                            });
-                            window.location.href = `/forone-payment?${params.toString()}`;
-                          }}
+                          onClick={() =>
+                            (window.location.href = `/menu/${menu.slotId}`)
+                          }
                           className="mt-3 px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-full hover:bg-teal-700 transition shadow-md"
                         >
                           펀딩 참여
@@ -405,20 +382,10 @@ const ForOneListComponent = () => {
                     : 0;
 
                   return (
-                    <div
+                    <a
                       key={slotId}
-                      onClick={() => {
-                        const params = new URLSearchParams({
-                          slotId: slotId,
-                          menuName: menuName,
-                          restaurantName: restaurantName || "한그릇 펀딩",
-                          fundingPrice: fundingPrice,
-                          originalPrice: originalPrice || "",
-                          discountPercent: discountPercent || 0,
-                        });
-                        window.location.href = `/forone-payment?${params.toString()}`;
-                      }}
-                      className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl hover:ring-2 hover:ring-teal-300 transition-all duration-300 group flex flex-col cursor-pointer"
+                      href={`/menu/${slotId}`}
+                      className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl hover:ring-2 hover:ring-teal-300 transition-all duration-300 group flex flex-col"
                     >
                       {/* Image Section */}
                       <div className="relative h-52 overflow-hidden">
@@ -436,15 +403,7 @@ const ForOneListComponent = () => {
                           <button
                             onClick={(e) => {
                               e.preventDefault();
-                              const params = new URLSearchParams({
-                                slotId: slotId,
-                                menuName: menuName,
-                                restaurantName: restaurantName || "한그릇 펀딩",
-                                fundingPrice: fundingPrice,
-                                originalPrice: originalPrice || "",
-                                discountPercent: discountPercent || 0,
-                              });
-                              window.location.href = `/forone-payment?${params.toString()}`;
+                              window.location.href = `/menu/${slotId}`;
                             }}
                             className="px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-teal-700 shadow-md"
                           >
@@ -511,7 +470,7 @@ const ForOneListComponent = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </a>
                   );
                 })}
               </div>

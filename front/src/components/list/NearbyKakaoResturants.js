@@ -84,9 +84,9 @@ const NearbyKakaoRestaurants = () => {
   const categories = [
     { label: "한식", img: "/korean.png" },
     { label: "중식", img: "/china.png" },
-    { label: "일식", img: "/japan.png" },
+    { label: "일식", img: "/susii.png" },
     { label: "뷔페", img: "/b.png" },
-    { label: "패스트푸드", img: "/fastfood.png" },
+    { label: "패스트푸드", img: "/food.png" },
     { label: "카페", img: "/coffee.png" },
   ];
 
@@ -258,36 +258,32 @@ const NearbyKakaoRestaurants = () => {
         {/* 카테고리 버튼 */}
         <div className="flex flex-wrap gap-8 mb-5 justify-center">
           {/* 전체 버튼 */}
-          <button
-            key="전체"
-            onClick={() => setCategoryFilter("전체")}
-            className={`flex flex-col items-center justify-center w-20 h-20 text-sm font-medium transition rounded-lg
-              ${
-                categoryFilter === "전체"
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-gray-100 text-gray-700 hover:bg-blue-50"
-              }`}
-          >
-            <span>전체</span>
-          </button>
+
           {categories.map((cat) => (
-            <button
-              key={cat.label}
-              onClick={() => setCategoryFilter(cat.label)}
-              className={`flex flex-col items-center justify-center w-20 h-20 text-sm font-medium transition rounded-lg
-                ${
-                  categoryFilter === cat.label
-                    ? "bg-blue-100 text-blue-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-blue-50"
-                }`}
-            >
-              <img
-                src={cat.img}
-                alt={cat.label}
-                className="w-12 h-12 object-contain mb-1"
-              />
-              <span>{cat.label}</span>
-            </button>
+            <div className="flex flex-col items-center mt-5">
+              {/* 배경 (원형 안에 이미지만) */}
+              <button
+                key={cat.label}
+                onClick={() => setCategoryFilter(cat.label)}
+                className={`flex items-center justify-center w-16 h-16   rounded-full transition 
+            ${
+              categoryFilter === cat.label
+                ? "bg-slate-200"
+                : "bg-slate-200 text-gray-700 hover:bg-slate-300"
+            }`}
+              >
+                <img
+                  src={cat.img}
+                  alt={cat.label}
+                  className="w-12 h-12 object-contain"
+                />
+              </button>
+
+              {/* 배경 밖에 글씨 */}
+              <span className="text-sm font-medium text-gray-700">
+                {cat.label}
+              </span>
+            </div>
           ))}
         </div>
 

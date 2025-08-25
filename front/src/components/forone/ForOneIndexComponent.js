@@ -20,7 +20,7 @@ const itemVariants = {
 const ForOneUserIntro = () => {
   return (
     <div className="bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           className="bg-white rounded-lg shadow-lg p-6 flex flex-col lg:flex-row gap-6"
           variants={containerVariants}
@@ -85,7 +85,7 @@ const ForOneUserIntro = () => {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 1 }}
           >
-            <div className="w-full max-w-[800px] h-[400px] rounded-lg overflow-hidden shadow-md relative">
+            <div className="w-full max-w-[1200px] h-[800px] rounded-lg overflow-hidden shadow-md relative">
               <Test />
             </div>
           </motion.div>

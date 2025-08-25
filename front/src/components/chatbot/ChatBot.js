@@ -1,97 +1,168 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { FiX } from "react-icons/fi"; // 아이콘 사용
+import React, { useState, useEffect, useRef } from "react";
+import { FiX } from "react-icons/fi";
+import { chatbotApi } from "../../api/chatBotApi"; // ✅ axios 인스턴스 불러오기
+import MicInput from "../chatbot/MicInput"; // ✅ 새 컴포넌트 불러오기
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [animate, setAnimate] = useState(false);
   const [messages, setMessages] = useState([
     {
       sender: "bot",
       text: "안녕하세요! 무엇을 도와드릴까요?",
       quickReplies: [
-        "내 펀딩 내역",
-        "추천 상품",
-        "가게 요청",
-        "내 위치 설정",
-        "내 정보 수정",
+        { label: "내 펀딩 내역", action: "showFundingButton" },
+        { label: "추천 상품", action: "askRecommend" },
+        { label: "가게 요청", action: "sendShopRequest" },
+        { label: "내 위치 설정", action: "setLocation" },
+        { label: "내 정보 수정", action: "editProfile" },
       ],
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔹 퀵리플라이 버튼 클릭 처리
-  const handleQuickReply = (reply) => {
-    const newMessage = { sender: "user", text: reply };
-    setMessages((prev) => [...prev, newMessage]);
-    sendMessageFromQuickReply(reply);
-  };
+  const messagesEndRef = useRef(null);
 
-  const sendMessageFromQuickReply = async (message) => {
-    setLoading(true);
-    try {
-      const res = await axios.post("http://localhost:8000/chat", { message });
-      const botMessage = { sender: "bot", text: res.data.response };
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "❌ 서버와 연결할 수 없습니다." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🔹 일반 입력 전송 처리
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-
-    const newMessage = { sender: "user", text: input };
-    setMessages((prev) => [...prev, newMessage]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await axios.post("http://localhost:8000/chat", {
-        message: input,
-      });
-      const botMessage = { sender: "bot", text: res.data.response };
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "❌ 서버와 연결할 수 없습니다." },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ✅ 새 메시지 올 때마다 자동 스크롤
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAnimate(true);
-      setTimeout(() => setAnimate(false), 1000);
-    }, 10000);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-    return () => clearInterval(interval);
-  }, []);
+  // ✅ 메시지 전송
+  const sendMessageToServer = async (message) => {
+    setLoading(true);
+    try {
+      const res = await chatbotApi.post("/chat", { message });
+      const botMessage = { sender: "bot", text: res.data.response };
+      setMessages((prev) => [
+        ...prev,
+        { sender: "user", text: message },
+        botMessage,
+      ]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: "❌ 서버와 연결할 수 없습니다." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    sendMessageToServer(input);
+    setInput("");
+  };
+  const handleVoiceResult = (text) => {
+    setInput(text); // 입력창에 표시
+    sendMessageToServer(text); // 바로 전송
+  };
+  // 🔹 퀵리플라이 버튼 처리
+  const handleQuickReply = (reply) => {
+    // 유저 메시지 표시
+    setMessages((prev) => [...prev, { sender: "user", text: reply.label }]);
+
+    // 액션 분기
+    if (reply.action === "showFundingButton") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "여기서 내 펀딩 내역을 확인할 수 있어요!",
+          customComponent: (
+            <a
+              href="/mypage" // ✅ 원하는 페이지 라우팅 경로
+              className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            >
+              내 펀딩 내역 보기
+            </a>
+          ),
+        },
+      ]);
+    } else if (reply.action === "askRecommend") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "주문내역을 기반으로한 AI 추천 페이지 입니다! ",
+          customComponent: (
+            <a
+              href="/ai-recommend"
+              className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            >
+              AI 추천페이지로 이동{" "}
+            </a>
+          ),
+        },
+      ]);
+    } else if (reply.action === "sendShopRequest") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "가게 등록 요청은 자영업자로 등록된 회원만 가능합니다 ! ",
+          customComponent: (
+            <a
+              href="/member/register"
+              className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            >
+              회원가입
+            </a>
+          ),
+        },
+      ]);
+    } else if (reply.action === "setLocation") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "내 위치를 설정하려면 아래 버튼을 클릭하세요!",
+          customComponent: (
+            <a
+              href="/location"
+              className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            >
+              위치 설정하러 가기
+            </a>
+          ),
+        },
+      ]);
+    } else if (reply.action === "editProfile") {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "회원정보를 수정하려면 아래 버튼을 클릭하세요!",
+          customComponent: (
+            <a
+              href="/mypage/edit"
+              className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm"
+            >
+              내 정보 수정하기{" "}
+            </a>
+          ),
+        },
+      ]);
+    }
+  };
 
   return (
     <>
       {/* 플로팅 버튼 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg overflow-hidden w-16 h-16 flex items-center justify-center animate-bounce"
+        className={`fixed bottom-6 right-6 bg-blue-100 hover:bg-blue-600 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center ${
+          !isOpen ? "animate-bounce" : ""
+        }`}
       >
         {isOpen ? (
           <FiX className="w-8 h-8 text-white" />
         ) : (
           <img
-            src="/chatboticon.png"
+            src="/chatboticon (2).png"
             alt="chatbot"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain "
           />
         )}
       </button>
@@ -100,13 +171,23 @@ const ChatBot = () => {
       {isOpen && (
         <div className="fixed bottom-20 right-6 w-[500px] h-[500px] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden">
           {/* 헤더 */}
-          <div className="bg-blue-500 text-white px-4 py-2 font-bold flex items-center gap-2">
-            <img
-              src="/chatbot.png"
-              alt="chatbot"
-              className="w-10 h-10 object-contain"
-            />
-            <span className="text-lg">PickTogether 챗봇</span>
+          <div className="bg-blue-500 text-white px-4 py-2 font-bold flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img
+                src="/chatbot.png"
+                alt="chatbot"
+                className="w-10 h-10 object-contain"
+              />
+              <span className="text-lg">PickTogether 챗봇</span>
+            </div>
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-white hover:text-gray-200"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
           </div>
 
           {/* 메시지 영역 */}
@@ -118,7 +199,7 @@ const ChatBot = () => {
                   msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {/* 봇일 때 아이콘 */}
+                {/* 봇 아이콘 */}
                 {msg.sender === "bot" && (
                   <img
                     src="/chatboticon.png"
@@ -128,39 +209,60 @@ const ChatBot = () => {
                 )}
 
                 {/* 말풍선 */}
-                <div
-                  className={`px-3 py-2 rounded-2xl max-w-[70%] ${
-                    msg.sender === "user"
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-200 text-gray-900"
-                  }`}
-                >
-                  {msg.text}
+                <div className="flex flex-col max-w-[70%]">
+                  <div
+                    className={`px-3 py-2 rounded-2xl ${
+                      msg.sender === "user"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200 text-gray-900"
+                    }`}
+                  >
+                    {msg.text}
 
-                  {/* 🔹 Quick Replies 버튼 */}
-                  {msg.quickReplies && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {msg.quickReplies.map((reply, i) => (
-                        <button
-                          key={i}
-                          onClick={() => handleQuickReply(reply)}
-                          className="px-3 py-1 bg-white border border-blue-400 text-blue-500 text-sm rounded-full hover:bg-blue-50"
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    {/* 커스텀 컴포넌트 (버튼 등) */}
+                    {msg.customComponent && (
+                      <div className="mt-2">{msg.customComponent}</div>
+                    )}
+
+                    {/* Quick Replies */}
+                    {msg.quickReplies && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {msg.quickReplies.map((reply, i) => (
+                          <button
+                            key={i}
+                            onClick={() => handleQuickReply(reply)}
+                            className="px-3 py-1 bg-white border border-blue-400 text-blue-500 text-sm rounded-full hover:bg-blue-50"
+                          >
+                            {reply.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* 시간 */}
+                  <span className="text-[10px] text-gray-400 mt-1 self-end">
+                    {new Date().toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 </div>
               </div>
             ))}
 
-            {/* 로딩 중 표시 */}
+            {/* 로딩 */}
             {loading && (
-              <div className="text-center text-gray-500 text-sm">
-                ...답변 작성중
+              <div className="flex items-center gap-2 text-gray-500 text-sm">
+                <img
+                  src="/chatboticon.png"
+                  alt="bot"
+                  className="w-6 h-6 rounded-full"
+                />
+                <span className="animate-pulse">입력중...</span>
               </div>
             )}
+
+            <div ref={messagesEndRef} />
           </div>
 
           {/* 입력창 */}
@@ -173,6 +275,10 @@ const ChatBot = () => {
               placeholder="메시지를 입력하세요..."
               className="flex-1 px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+
+            {/* 🎤 음성 입력 */}
+            <MicInput onResult={handleVoiceResult} />
+
             <button
               onClick={sendMessage}
               className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"

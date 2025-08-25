@@ -9,12 +9,15 @@ const JoinPage = () => {
     password: "",
     confirmPassword: "",
     name: "",
+    memberType: "USER", // 기본값은 일반 사용자
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [emailChecked, setEmailChecked] = useState(false); // 이메일 중복 확인 상태 추가
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false); // 이메일 중복 확인 중 상태 추가
 
   const navigate = useNavigate();
 
@@ -25,13 +28,55 @@ const JoinPage = () => {
       [name]: value,
     }));
 
-    // 이메일 입력 시 에러 초기화
+    // 이메일 입력 시 에러 초기화 및 중복 확인 상태 초기화
     if (name === "email") {
       setEmailError("");
+      setEmailChecked(false);
+    }
+  };
+
+  // 이메일 중복 확인 함수 추가
+  const handleEmailCheck = async () => {
+    if (!formData.email) {
+      setEmailError("이메일을 입력해주세요.");
+      return;
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setEmailError("올바른 이메일 형식을 입력해주세요.");
+      return;
+    }
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      const result = await memberApi.checkEmailDuplicate(formData.email);
+
+      if (result.duplicate) {
+        setEmailError("이미 사용 중인 이메일입니다.");
+        setEmailChecked(false);
+      } else {
+        setEmailError("사용 가능한 이메일입니다.");
+        setEmailChecked(true);
+      }
+    } catch (error) {
+      setEmailError("이메일 중복 확인에 실패했습니다.");
+      setEmailChecked(false);
+    } finally {
+      setIsCheckingEmail(false);
     }
   };
 
   const validateForm = () => {
+    // 이메일 중복 확인 여부 검증
+    if (!emailChecked) {
+      setError("이메일 중복 확인을 해주세요.");
+      return false;
+    }
+
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
@@ -69,6 +114,7 @@ const JoinPage = () => {
         email: formData.email,
         password: formData.password,
         name: formData.name,
+        memberType: formData.memberType,
       });
 
       // 회원가입 성공 시 로그인 페이지로 이동
@@ -77,18 +123,6 @@ const JoinPage = () => {
       setError(error.message || "회원가입에 실패했습니다.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleEmailBlur = async () => {
-    if (formData.email && !emailError) {
-      try {
-        await memberApi.checkEmailDuplicate(formData.email);
-        setEmailError("이미 사용 중인 이메일입니다.");
-      } catch (error) {
-        // 이메일이 사용 가능한 경우 (중복이 아닌 경우)
-        setEmailError("");
-      }
     }
   };
 
@@ -160,17 +194,43 @@ const JoinPage = () => {
                   type="email"
                   autoComplete="email"
                   required
-                  className={`appearance-none block w-full pl-10 pr-3 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+                  className={`appearance-none block w-full pl-10 pr-24 py-2 border rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                     emailError ? "border-red-300" : "border-gray-300"
                   }`}
                   placeholder="이메일을 입력하세요"
                   value={formData.email}
                   onChange={handleInputChange}
-                  onBlur={handleEmailBlur}
                 />
+                <div className="absolute inset-y-0 right-0 flex items-center">
+                  <button
+                    type="button"
+                    onClick={handleEmailCheck}
+                    disabled={isCheckingEmail || !formData.email}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      isCheckingEmail || !formData.email
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
+                  >
+                    {isCheckingEmail ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                        확인중
+                      </div>
+                    ) : (
+                      "중복확인"
+                    )}
+                  </button>
+                </div>
               </div>
               {emailError && (
-                <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                <p
+                  className={`mt-1 text-sm ${
+                    emailChecked ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {emailError}
+                </p>
               )}
             </div>
 
@@ -248,6 +308,49 @@ const JoinPage = () => {
                       <FiEye className="h-5 w-5" />
                     )}
                   </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 회원 유형 선택 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                회원 유형
+              </label>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <input
+                    id="user"
+                    name="memberType"
+                    type="radio"
+                    value="USER"
+                    checked={formData.memberType === "USER"}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <label
+                    htmlFor="user"
+                    className="ml-3 block text-sm text-gray-700"
+                  >
+                    일반 사용자
+                  </label>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    id="businessOwner"
+                    name="memberType"
+                    type="radio"
+                    value="BUSINESS_OWNER"
+                    checked={formData.memberType === "BUSINESS_OWNER"}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <label
+                    htmlFor="businessOwner"
+                    className="ml-3 block text-sm text-gray-700"
+                  >
+                    자영업자
+                  </label>
                 </div>
               </div>
             </div>

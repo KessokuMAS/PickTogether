@@ -65,6 +65,7 @@ public class MemberController {
             String pw = request.get("pw"); // 백엔드에서 기대하는 필드명
             String name = request.get("name"); // 프론트엔드에서 보내는 필드명
             String nickname = request.get("nickname"); // 백엔드에서 기대하는 필드명
+            String memberType = request.get("memberType"); // 회원 유형
 
             // password 또는 pw 필드 중 하나를 사용
             String actualPassword = password != null ? password : pw;
@@ -77,7 +78,12 @@ public class MemberController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            Map<String, Object> result = memberService.register(email, actualPassword, actualNickname);
+            // memberType이 null인 경우 기본값 USER로 설정
+            if (memberType == null) {
+                memberType = "USER";
+            }
+
+            Map<String, Object> result = memberService.register(email, actualPassword, actualNickname, memberType);
             log.info("회원가입 성공: " + email);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {

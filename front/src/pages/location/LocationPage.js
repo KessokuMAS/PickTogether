@@ -151,11 +151,10 @@ const LocationPage = () => {
         lat: latLng.lat,
         lng: latLng.lng,
         address: address,
-        roadAddress: address, // 필요시 분리
+        roadAddress: address,
         kakaoPlaceId: null,
       });
 
-      // localStorage 동기화(선택)
       localStorage.setItem(
         "selectedLocation",
         JSON.stringify({
@@ -168,8 +167,8 @@ const LocationPage = () => {
         })
       );
 
-      // 부모창 통지
       if (window.opener) {
+        // 부모창에 데이터 전달
         window.opener.postMessage(
           {
             type: "ADDRESS_SELECTED",
@@ -180,14 +179,12 @@ const LocationPage = () => {
           },
           "*"
         );
+        // 부모창 새로고침
+        window.opener.location.reload();
       }
 
-      // 목록 리프레시
-      await fetchLocations();
-
-      // 필요하면 창 닫기
-      // window.close();
-      alert("주소가 저장되었습니다.");
+      alert("주소지가 설정되었습니다.");
+      window.close();
     } catch (e) {
       console.error(e);
       alert("주소 저장에 실패했습니다.");
@@ -334,10 +331,9 @@ const LocationPage = () => {
                     ({loc.lat?.toFixed?.(6)}, {loc.lng?.toFixed?.(6)})
                   </div>
                 </div>
-                <div className="ml-3 shrink-0">
+                <div className="ml-3 shrink-0 flex gap-2">
                   <button
                     onClick={() => {
-                      // 선택 시 localStorage 갱신 + 부모창 통지
                       localStorage.setItem(
                         "selectedLocation",
                         JSON.stringify({
@@ -349,6 +345,7 @@ const LocationPage = () => {
                           timestamp: new Date().toISOString(),
                         })
                       );
+
                       if (window.opener) {
                         window.opener.postMessage(
                           {
@@ -360,14 +357,17 @@ const LocationPage = () => {
                           },
                           "*"
                         );
+                        window.opener.location.reload(); // 부모창 새로고침
                       }
-                      alert("주소지를 선택했습니다.");
-                      // window.close();
+
+                      alert("주소지가 설정되었습니다.");
+                      window.close(); // 🔥 현재 창 닫기
                     }}
-                    className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                    className="rounded-lg border border-indigo-200  px-3 py-1.5 text-xs font-bold text-black hover:bg-indigo-100"
                   >
                     이 주소 사용
                   </button>
+
                   {/* 삭제 버튼 */}
                   <button
                     onClick={async () => {
@@ -384,7 +384,7 @@ const LocationPage = () => {
                         alert("주소 삭제에 실패했습니다.");
                       }
                     }}
-                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100"
+                    className="rounded-lg border border-red-200  px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100"
                   >
                     삭제
                   </button>
