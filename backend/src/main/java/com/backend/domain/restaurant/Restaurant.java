@@ -14,9 +14,8 @@ import java.time.LocalDate;
 public class Restaurant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Long id; // 자동 생성되는 고유 ID
+    private Long id; // 카카오 장소 ID (고유값)
 
     @Column(name = "name", nullable = false, length = 200)
     private String name; // 음식점 이름

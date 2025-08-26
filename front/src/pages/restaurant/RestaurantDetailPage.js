@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import MainLayout from "../../layouts/MainLayout";
 import {
   fetchRestaurantDetail,
@@ -28,21 +29,45 @@ const API_BASE =
   process.env.REACT_APP_API_BASE ||
   "http://localhost:8080";
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.2 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
+// Cart item animation (no scale to prevent image scaling)
+const cartItemVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.3 } },
+};
+
 // Bar Progress Component
 const BarProgress = ({ value = 0, maxValue = 100 }) => {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const barColor = pct >= 80 ? "#10b981" : pct >= 50 ? "#f59e0b" : "#3b82f6";
+  const raw = Math.max(0, Math.round(value)); // 실제 값 (텍스트 출력용)
+  const pct = Math.min(100, raw); // 게이지용 (100%까지만 표시, 넘어가면 100%로 고정)
+  const barColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
 
   return (
-    <div className="w-full flex flex-col gap-4">
-      <div className="w-full bg-gray-100 rounded-full h-6">
-        <div
-          className="h-6 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: barColor }}
+    <div className="w-full flex flex-col gap-2">
+      <div className="w-full bg-gray-100 rounded-full h-4 overflow-hidden shadow-sm">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: barColor }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         />
       </div>
-      <div className="flex justify-between items-center text-lg font-semibold text-gray-800">
-        <span>{pct}% 달성</span>
+      <div className="flex justify-between items-center text-xs font-semibold text-gray-700">
+        <span>{raw}% 달성</span>
         <span>목표 {maxValue.toLocaleString()}원</span>
       </div>
     </div>
@@ -59,14 +84,36 @@ const RestaurantDetailPage = () => {
   const [selectedMenus, setSelectedMenus] = useState([]);
   const [isAddingToCart, setIsAddingToCart] = useState({});
   const [addedToCart, setAddedToCart] = useState({});
+  const [totalFundingAmount, setTotalFundingAmount] = useState(0);
 
   // Fetch restaurant details
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetchRestaurantDetail(id);
-        setData(res);
+        // NearbyKakaoResturants.js와 동일한 API 사용
+        const response = await fetch(
+          `${API_BASE}/api/restaurants/nearby?lat=37.5027&lng=127.0352&radius=10000&page=0&size=1000`
+        );
+        if (response.ok) {
+          const nearbyData = await response.json();
+          // 해당 ID의 레스토랑 찾기
+          const restaurant = nearbyData.content?.find(
+            (store) => store.restaurantId == id
+          );
+          if (restaurant) {
+            setData(restaurant);
+            console.log("Nearby API에서 찾은 레스토랑:", restaurant);
+          } else {
+            // 기존 API로 fallback
+            const res = await fetchRestaurantDetail(id);
+            setData(res);
+          }
+        } else {
+          // 기존 API로 fallback
+          const res = await fetchRestaurantDetail(id);
+          setData(res);
+        }
       } catch (e) {
         setError("상세 정보를 불러오지 못했습니다.");
       } finally {
@@ -74,6 +121,27 @@ const RestaurantDetailPage = () => {
       }
     })();
   }, [id]);
+
+  // Fetch funding total amount from funding table
+  useEffect(() => {
+    if (!id) return;
+
+    // NearbyKakaoResturants.js와 동일한 방식으로 totalFundingAmount 사용
+    if (data) {
+      console.log("Restaurant API 응답 데이터:", data);
+      console.log("사용 가능한 필드들:", Object.keys(data));
+
+      // totalFundingAmount가 있는지 확인 (NearbyKakaoResturants.js와 동일)
+      if (data.totalFundingAmount !== undefined) {
+        setTotalFundingAmount(data.totalFundingAmount || 0);
+        console.log("totalFundingAmount 사용:", data.totalFundingAmount);
+      } else {
+        // totalFundingAmount가 없다면 fundingAmount만 사용
+        console.log("totalFundingAmount 필드가 없음, fundingAmount만 사용");
+        setTotalFundingAmount(0);
+      }
+    }
+  }, [id, data]);
 
   // Fallback index for placeholder images
   const fallbackIdx = useMemo(() => ((Number(id) || 0) % 45) + 1, [id]);
@@ -237,42 +305,57 @@ const RestaurantDetailPage = () => {
 
   return (
     <MainLayout>
-      <div className="bg-gray-50 min-h-screen p-4 sm:p-8 bg-[url('https://www.transparenttextures.com/patterns/light-wool.png')]">
-        <div className="w-full max-w-7xl mx-auto">
+      <div className="bg-orange-50 min-h-screen p-4 sm:p-6 md:p-8 bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')]">
+        <div className="w-full max-w-6xl mx-auto">
           {/* Back Button */}
-          <Link
-            to="/main"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-emerald-600 text-sm font-medium mb-8 transition-colors"
-          >
-            <IoRestaurantOutline className="text-lg" /> 뒤로
-          </Link>
+          <motion.div variants={itemVariants}>
+            <Link
+              to="/main"
+              className="inline-flex items-center gap-2 text-gray-700 hover:text-orange-600 text-sm font-semibold mb-8 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400"
+              aria-label="메인 페이지로 돌아가기"
+            >
+              <IoRestaurantOutline className="text-lg" />
+              뒤로
+            </Link>
+          </motion.div>
 
           {loading ? (
-            <div className="animate-pulse space-y-8">
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                <div className="col-span-3 h-96 bg-gray-100 rounded-2xl" />
-                <div className="col-span-2 space-y-4">
-                  <div className="h-12 w-80 bg-gray-100 rounded-lg" />
-                  <div className="h-6 w-full bg-gray-100 rounded-lg" />
-                  <div className="h-6 w-1/2 bg-gray-100 rounded-lg" />
+            <motion.div
+              className="animate-pulse space-y-8"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="min-h-[360px] bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl shadow-sm" />
+                <div className="space-y-4">
+                  <div className="h-9 w-3/4 bg-gray-100 rounded-lg" />
+                  <div className="h-5 w-full bg-gray-100 rounded-lg" />
+                  <div className="h-5 w-1/2 bg-gray-100 rounded-lg" />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-72 bg-gray-100 rounded-2xl" />
-                ))}
-              </div>
-            </div>
+            </motion.div>
           ) : error ? (
-            <p className="text-red-600 text-center text-lg font-medium">
+            <motion.div
+              className="text-center text-red-600 text-sm font-semibold py-16"
+              variants={itemVariants}
+            >
               {error}
-            </p>
+            </motion.div>
           ) : data ? (
-            <div className="space-y-10">
+            <motion.div
+              className="space-y-10"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
               {/* Top Section: Image (Left) and Details (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                {/* Hero Image (Left, larger, fills div) */}
-                <div className="col-span-3 relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-gray-100 group shadow-md">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Hero Image */}
+                <motion.div
+                  className="relative w-full min-h-[360px] rounded-2xl overflow-hidden bg-gray-100 group shadow-md"
+                  variants={itemVariants}
+                >
                   <img
                     src={imgSrc}
                     alt={data.name}
@@ -284,35 +367,54 @@ const RestaurantDetailPage = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <button
                     onClick={handleShare}
-                    className="absolute top-4 right-4 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-md animate-fade-in"
+                    className="absolute top-4 right-4 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    aria-label="공유하기"
                   >
                     {copied ? "복사됨" : "공유"}
-                    <FiShare2 />
+                    <FiShare2 className="text-sm" />
                   </button>
-                </div>
+                </motion.div>
 
-                {/* Details (Right) */}
-                <div className="col-span-2 bg-white rounded-2xl p-8 shadow-md border border-teal-100">
-                  <h1 className="text-5xl font-bold text-gray-800 mb-4 tracking-tight">
-                    {data.name}
-                  </h1>
-                  {data.categoryName && (
-                    <span className="inline-flex items-center px-4 py-1.5 text-sm font-semibold rounded-full bg-teal-50 text-teal-600 mb-6 animate-fade-in">
-                      {data.categoryName}
-                    </span>
-                  )}
-                  <div className="flex flex-col gap-6">
-                    {/* Funding Info */}
+                {/* Details and Cart */}
+                <motion.div
+                  className="bg-white rounded-2xl p-8 shadow-md border border-orange-100 flex flex-col lg:sticky lg:top-8 max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-gray-100"
+                  variants={itemVariants}
+                >
+                  <div className="space-y-6">
+                    {/* Restaurant Info */}
                     <div>
-                      <div className="text-3xl font-bold text-gray-800 mb-3">
-                        {Number(data.fundingAmount ?? 0).toLocaleString()}원
-                        펀딩
+                      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
+                        {data.name}
+                      </h1>
+                      {data.categoryName && (
+                        <span className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600 mb-4 transition-all duration-300 hover:bg-orange-200">
+                          {data.categoryName}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900 mb-3">
+                        {(
+                          Number(data.fundingAmount ?? 0) +
+                          Number(totalFundingAmount)
+                        ).toLocaleString()}
+                        원 펀딩
+                        {/* 디버깅 정보 */}
                       </div>
                       <BarProgress
-                        value={data.fundingPercent ?? 0}
+                        value={
+                          data.fundingGoalAmount > 0
+                            ? Math.round(
+                                ((Number(data.fundingAmount ?? 0) +
+                                  Number(totalFundingAmount)) *
+                                  100) /
+                                  Number(data.fundingGoalAmount)
+                              )
+                            : 0
+                        }
                         maxValue={data.fundingGoalAmount ?? 0}
                       />
-                      <div className="mt-4 text-base text-gray-600 flex items-center gap-2">
+                      <div className="mt-3 text-sm text-gray-600 flex items-center gap-3">
                         <span
                           className={`${
                             fundingPeriod.daysLeft <= 5
@@ -328,21 +430,14 @@ const RestaurantDetailPage = () => {
                           {formatDate(fundingPeriod.end)}
                         </span>
                       </div>
-                      <button
-                        onClick={handleFundingClick}
-                        className="mt-6 px-8 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-colors flex items-center gap-3 shadow-md animate-fade-in"
-                      >
-                        <FiShoppingCart className="text-xl" /> 펀딩 참여
-                      </button>
                     </div>
-                    {/* Basic Info */}
-                    <div className="text-base text-gray-600 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <FiPhone className="text-teal-600 text-lg" />
+                    <div className="text-sm text-gray-600 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <FiPhone className="text-orange-600 text-base" />
                         <span>{data.phone || "-"}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <FiMapPin className="text-teal-600 text-lg" />
+                      <div className="flex items-center gap-2">
+                        <FiMapPin className="text-orange-600 text-base" />
                         <span className="truncate">
                           {data.roadAddressName || "-"}
                         </span>
@@ -354,24 +449,24 @@ const RestaurantDetailPage = () => {
                           )},${data.y},${data.x}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          aria-label="길찾기"
                         >
-                          <TbCurrentLocation className="text-lg" /> 길찾기
+                          <TbCurrentLocation className="text-base" /> 길찾기
                         </a>
                       )}
                     </div>
-                    {/* Price and Tags */}
                     {(data.priceRange || data.tags) && (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         {data.priceRange && (
-                          <div className="flex items-center gap-3 text-base text-gray-600">
-                            <FiTag className="text-teal-600 text-lg" />
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <FiTag className="text-orange-600 text-base" />
                             <span>가격대: {data.priceRange}</span>
                           </div>
                         )}
                         {data.tags && (
-                          <div className="flex flex-wrap items-center gap-3">
-                            <FiTag className="text-teal-600 text-lg" />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <FiTag className="text-orange-600 text-base" />
                             <div className="flex flex-wrap gap-2">
                               {String(data.tags)
                                 .split(",")
@@ -380,7 +475,7 @@ const RestaurantDetailPage = () => {
                                 .map((t, idx) => (
                                   <span
                                     key={`${t}-${idx}`}
-                                    className="px-3 py-1.5 text-sm font-semibold rounded-full bg-teal-50 text-teal-600 animate-fade-in"
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600 hover:bg-orange-200 transition-all duration-300"
                                   >
                                     {t}
                                   </span>
@@ -390,24 +485,138 @@ const RestaurantDetailPage = () => {
                         )}
                       </div>
                     )}
+
+                    {/* Cart Section */}
+                    <motion.div
+                      className="pt-6 border-t border-orange-100"
+                      variants={itemVariants}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                          <FiShoppingCart className="text-orange-600 text-base" />
+                          장바구니
+                        </h2>
+                        <span className="text-orange-600 font-semibold text-sm">
+                          총 {totalPrice.toLocaleString()}원
+                        </span>
+                      </div>
+                      {selectedMenus.length > 0 ? (
+                        <>
+                          <div className="space-y-3 max-h-48 overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-gray-100">
+                            {selectedMenus.map((menu, index) => (
+                              <motion.div
+                                key={menu.id}
+                                className="flex items-center gap-4 p-3 bg-orange-50 rounded-lg transition-all duration-300 hover:bg-orange-100 shadow-sm"
+                                variants={cartItemVariants}
+                                initial="hidden"
+                                animate="visible"
+                              >
+                                <img
+                                  src={menu.imageUrl}
+                                  alt={menu.name}
+                                  className="w-12 h-12 rounded-full object-cover border border-orange-100"
+                                  onError={(e) => {
+                                    e.currentTarget.src = `/${
+                                      ((fallbackIdx + index) % 45) + 1
+                                    }.png`;
+                                  }}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-semibold text-gray-900 text-sm">
+                                    {menu.name}
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    {Number(menu.price).toLocaleString()}원 ×{" "}
+                                    {menu.quantity}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(menu.id, menu.quantity - 1)
+                                    }
+                                    className="w-8 h-8 rounded-full bg-orange-200 hover:bg-orange-300 flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    aria-label={`Decrease quantity of ${menu.name}`}
+                                  >
+                                    <FiMinus className="text-sm text-orange-600" />
+                                  </button>
+                                  <span className="w-10 text-center text-sm font-medium text-gray-900">
+                                    {menu.quantity}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      updateQuantity(menu.id, menu.quantity + 1)
+                                    }
+                                    className="w-8 h-8 rounded-full bg-orange-200 hover:bg-orange-300 flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                    aria-label={`Increase quantity of ${menu.name}`}
+                                  >
+                                    <FiPlus className="text-sm text-orange-600" />
+                                  </button>
+                                </div>
+                              </motion.div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setSelectedMenus([])}
+                            className="mt-4 w-full py-2.5 border border-orange-200 text-orange-600 text-sm font-semibold rounded-lg hover:bg-orange-50 hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            aria-label="장바구니 비우기"
+                          >
+                            장바구니 비우기
+                          </button>
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center">
+                          장바구니가 비어 있습니다.
+                        </p>
+                      )}
+                      <div className="mt-4">
+                        <button
+                          onClick={handleFundingClick}
+                          className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          disabled={selectedMenus.length === 0}
+                          aria-label={
+                            selectedMenus.length > 0
+                              ? `펀딩 참여 (${selectedMenus.length} items)`
+                              : "펀딩 참여"
+                          }
+                        >
+                          <FiShoppingCart className="text-base" />
+                          {selectedMenus.length > 0
+                            ? `펀딩 참여 (${selectedMenus.length})`
+                            : "펀딩 참여"}
+                        </button>
+                      </div>
+                    </motion.div>
                   </div>
-                </div>
+                </motion.div>
               </div>
 
               {/* Menu Selection */}
               {menuItems.length > 0 && (
-                <div className="bg-gradient-to-b from-teal-50 to-white rounded-2xl p-8 shadow-md">
-                  <div className="flex items-center gap-3 mb-6">
-                    <FiShoppingCart className="text-xl text-teal-600" />
-                    <h2 className="text-2xl font-bold text-gray-800">메뉴</h2>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <motion.div
+                  className="bg-white rounded-2xl p-8 shadow-md border border-orange-100"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.div
+                    className="flex items-center gap-2 mb-6"
+                    variants={itemVariants}
+                  >
+                    <FiShoppingCart className="text-lg text-orange-600" />
+                    <h2 className="text-xl font-bold text-gray-900">메뉴</h2>
+                  </motion.div>
+                  <motion.div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                    variants={containerVariants}
+                  >
                     {menuItems.map((menu, index) => (
-                      <div
+                      <motion.div
                         key={menu.id}
-                        className="relative rounded-2xl overflow-hidden bg-white group hover:shadow-xl hover:ring-2 hover:ring-teal-300 transition-all duration-500 border border-teal-100"
+                        className="relative rounded-xl overflow-hidden bg-white group hover:shadow-lg hover:ring-2 hover:ring-orange-200 transition-all duration-300 border border-orange-100"
+                        variants={itemVariants}
                       >
-                        <div className="relative w-full h-56 overflow-hidden">
+                        <div className="relative w-full aspect-[4/3] overflow-hidden">
                           <img
                             src={menu.imageUrl}
                             alt={menu.name}
@@ -418,146 +627,86 @@ const RestaurantDetailPage = () => {
                               }.png`;
                             }}
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                          <div className="absolute bottom-4 right-4">
-                            <button
-                              onClick={() => addToCart(menu)}
-                              disabled={isAddingToCart[menu.id]}
-                              className="px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 hover:bg-emerald-700 transition-all duration-300 disabled:opacity-50 shadow-md group-hover:scale-105 animate-fade-in"
-                            >
-                              {addedToCart[menu.id] ? (
-                                <>
-                                  <FiCheck className="text-lg" />
-                                  추가됨
-                                </>
-                              ) : (
-                                <>
-                                  <FiPlus className="text-lg" />
-                                  추가
-                                </>
-                              )}
-                            </button>
-                          </div>
+                          <div className="absolute inset-0 bg-orange-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
+                          <button
+                            onClick={() => addToCart(menu)}
+                            disabled={isAddingToCart[menu.id]}
+                            className="absolute bottom-3 right-3 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 disabled:opacity-50 shadow-md group-hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            aria-label={`Add ${menu.name} to cart`}
+                          >
+                            {addedToCart[menu.id] ? (
+                              <>
+                                <FiCheck className="text-sm" />
+                                추가됨
+                              </>
+                            ) : (
+                              <>
+                                <FiPlus className="text-sm" />
+                                추가
+                              </>
+                            )}
+                          </button>
                         </div>
                         <div className="p-5">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-gray-800 text-xl truncate">
+                            <h3 className="font-semibold text-gray-900 text-lg truncate">
                               {menu.name}
                             </h3>
-                            <span className="text-red-600 font-semibold text-lg">
+                            <span className="text-orange-600 font-semibold text-sm">
                               {Number(menu.price).toLocaleString()}원
                             </span>
                           </div>
                           {menu.description && (
-                            <p className="text-sm text-gray-600 mt-3 line-clamp-2">
+                            <p className="text-sm text-gray-600 mt-2 line-clamp-2">
                               {menu.description}
                             </p>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Selected Menus */}
-              {selectedMenus.length > 0 && (
-                <div className="bg-white rounded-2xl p-8 shadow-md">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                      장바구니
-                    </h2>
-                    <span className="text-red-600 font-semibold text-lg">
-                      총 {totalPrice.toLocaleString()}원
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    {selectedMenus.map((menu) => (
-                      <div
-                        key={menu.id}
-                        className="flex items-center justify-between p-4 bg-teal-50 rounded-lg transition-all duration-300 animate-fade-in"
-                      >
-                        <div>
-                          <div className="font-semibold text-gray-800 text-lg">
-                            {menu.name}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {Number(menu.price).toLocaleString()}원 ×{" "}
-                            {menu.quantity}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() =>
-                              updateQuantity(menu.id, menu.quantity - 1)
-                            }
-                            className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300"
-                          >
-                            <FiMinus className="text-base text-teal-600" />
-                          </button>
-                          <span className="w-8 text-center text-base font-medium text-gray-800">
-                            {menu.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              updateQuantity(menu.id, menu.quantity + 1)
-                            }
-                            className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-all duration-300"
-                          >
-                            <FiPlus className="text-base text-teal-600" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-6 flex gap-4">
-                    <button
-                      onClick={handleFundingClick}
-                      className="flex-1 px-6 py-3 bg-emerald-600 text-white text-lg font-semibold rounded-full hover:bg-emerald-700 transition-all duration-300 flex items-center justify-center gap-3 shadow-md animate-fade-in"
-                    >
-                      <FiShoppingCart className="text-xl" />
-                      결제 ({selectedMenus.length})
-                    </button>
-                    <button
-                      onClick={() => setSelectedMenus([])}
-                      className="px-6 py-3 border border-teal-200 text-emerald-600 text-sm font-semibold rounded-full hover:bg-teal-50 transition-all duration-300 animate-fade-in"
-                    >
-                      초기화
-                    </button>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               )}
 
               {/* Additional Info */}
-              <div className="bg-white rounded-2xl p-8 shadow-md space-y-6">
+              <motion.div
+                className="bg-white rounded-2xl p-8 shadow-md border border-orange-100 space-y-8"
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+              >
                 {data.description && (
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-3">
+                  <motion.div variants={itemVariants}>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 tracking-tight">
                       소개
                     </h3>
-                    <p className="text-base text-gray-600 leading-relaxed">
+                    <p className="text-sm text-gray-600 leading-relaxed">
                       {data.description}
                     </p>
-                  </div>
+                  </motion.div>
                 )}
                 {data.businessHours && (
-                  <div>
-                    <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-3">
-                      <FiClock className="text-teal-600 text-lg" /> 영업시간
+                  <motion.div variants={itemVariants}>
+                    <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
+                      <FiClock className="text-orange-600 text-lg" /> 영업시간
                     </div>
-                    <p className="text-base text-gray-600">
+                    <p className="text-sm text-gray-600">
                       {data.businessHours}
                     </p>
-                  </div>
+                  </motion.div>
                 )}
                 {(data.homepageUrl || data.instagramUrl) && (
-                  <div className="flex flex-wrap gap-4">
+                  <motion.div
+                    className="flex flex-wrap gap-4"
+                    variants={itemVariants}
+                  >
                     {data.homepageUrl && (
                       <a
                         href={data.homepageUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors text-base font-semibold animate-fade-in"
+                        className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        aria-label="홈페이지 방문"
                       >
                         <FiGlobe className="text-lg" /> 홈페이지
                       </a>
@@ -567,40 +716,43 @@ const RestaurantDetailPage = () => {
                         href={data.instagramUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-3 text-teal-600 hover:text-teal-700 transition-colors text-base font-semibold animate-fade-in"
+                        className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        aria-label="인스타그램 방문"
                       >
                         <FiInstagram className="text-lg" /> 인스타그램
                       </a>
                     )}
-                  </div>
+                  </motion.div>
                 )}
                 {data.notice && (
-                  <div>
-                    <div className="flex items-center gap-3 font-bold text-gray-800 text-lg mb-3">
-                      <FiAlertCircle className="text-teal-600 text-lg" /> 공지
+                  <motion.div variants={itemVariants}>
+                    <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
+                      <FiAlertCircle className="text-orange-600 text-lg" /> 공지
                     </div>
-                    <p className="text-base text-gray-600">{data.notice}</p>
-                  </div>
+                    <p className="text-sm text-gray-600">{data.notice}</p>
+                  </motion.div>
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           ) : null}
         </div>
 
-        {/* Custom CSS for Animations */}
+        {/* Custom CSS */}
         <style jsx>{`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+          .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: #f5a623 #f3f4f6;
           }
-          .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
+          .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+          }
+          .scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: #f5a623;
+            border-radius: 9999px;
+          }
+          .scrollbar-thin::-webkit-scrollbar-track {
+            background: #f3f4f6;
+            border-radius: 9999px;
           }
         `}</style>
       </div>

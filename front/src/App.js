@@ -6,6 +6,7 @@ import LoadingSpinner from "./components/member/LoadingSpinner";
 import { RouterProvider } from "react-router-dom";
 import root from "./router/root";
 import { KAKAO_MAP_CONFIG } from "./config/constants";
+import ChatBot from "./components/chatbot/ChatBot";
 
 function App() {
   useEffect(() => {
@@ -29,6 +30,7 @@ function App() {
       <Suspense fallback={<LoadingSpinner />}>
         <RouterProvider router={root} />
       </Suspense>
+      <ChatBot />
     </AuthProvider>
   );
 }

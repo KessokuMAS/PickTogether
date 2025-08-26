@@ -1,4 +1,3 @@
-// src/components/layout/MainMenu.js
 import { motion } from "framer-motion";
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -18,10 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { listMemberLocations } from "../../api/memberApi";
 import SearchBar from "../common/SearchBar";
 
-// ==========================
-// 로고 + 글자 애니메이션
-// ==========================
-
+// Animated Logo Component
 const AnimatedLogo = () => {
   const text = "PickTogether";
 
@@ -47,7 +43,11 @@ const AnimatedLogo = () => {
 
   return (
     <Link to="/" className="flex items-center">
-      <img src="/logo2.png" alt="PickTogether" className="h-[95px] w-auto" />
+      <img
+        src="/logo3.png"
+        alt="PickTogether"
+        className="h-[60px] w-[60px] mr-1 mb-2"
+      />
       <motion.span
         className="text-2xl font-bold tracking-wide font-poppins flex"
         variants={container}
@@ -68,45 +68,56 @@ const AnimatedLogo = () => {
   );
 };
 
-// ==========================
-// 메뉴 항목
-// ==========================
+// Menu Items
 const menuItems = [
   {
     to: "/for-one",
     icon: FiShoppingCart,
     label: "한 그릇",
-    color: "text-orange-500",
+    color: "text-teal-600",
+    hoverColor: "hover:text-teal-700",
+    hoverBg: "hover:bg-teal-50",
+    underlineColor: "bg-teal-600",
   },
   {
     to: "/local-specialty",
     icon: FiHeart,
     label: "지역특산품",
     color: "text-red-500",
+    hoverColor: "hover:text-red-600",
+    hoverBg: "hover:bg-red-50",
+    underlineColor: "bg-red-500",
   },
   {
     to: "/trending",
     icon: FiTrendingUp,
-    label: "인기펀딩",
+    label: "내 지역 인기펀딩",
     color: "text-yellow-500",
+    hoverColor: "hover:text-yellow-600",
+    hoverBg: "hover:bg-yellow-50",
+    underlineColor: "bg-yellow-500",
   },
   {
     to: "/ai-recommend",
     icon: GiArtificialIntelligence,
     label: "AI 추천",
     color: "text-blue-500",
+    hoverColor: "hover:text-blue-600",
+    hoverBg: "hover:bg-blue-50",
+    underlineColor: "bg-blue-500",
   },
   {
     to: "/community",
     icon: FiMessageSquare,
     label: "커뮤니티",
-    color: "text-green-500",
+    color: "text-gray-600",
+    hoverColor: "hover:text-gray-500",
+    hoverBg: "hover:bg-gray-50",
+    underlineColor: "bg-gray-600",
   },
 ];
 
-// ==========================
-// 메인 메뉴
-// ==========================
+// Main Menu Component
 const MainMenu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -119,20 +130,20 @@ const MainMenu = () => {
 
   const { isLoggedIn, userInfo, logout } = useAuth();
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+
   const handleLogout = () => {
     logout();
     navigate("/main");
   };
 
-  // 스크롤 상태 감지
+  // Scroll detection
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 저장된 위치 불러오기
+  // Load saved location
   useEffect(() => {
     const saved = localStorage.getItem("selectedLocation");
     if (saved) {
@@ -141,7 +152,7 @@ const MainMenu = () => {
     }
   }, []);
 
-  // 회원 위치 목록 API 호출
+  // Fetch member locations
   const fetchLocations = async () => {
     try {
       setListError("");
@@ -155,7 +166,7 @@ const MainMenu = () => {
     }
   };
 
-  // 카카오맵 선택 메시지 수신
+  // Handle KakaoMap address selection
   useEffect(() => {
     const handler = (e) => {
       if (!e?.data || typeof e.data !== "object") return;
@@ -176,14 +187,14 @@ const MainMenu = () => {
     return () => window.removeEventListener("message", handler);
   }, []);
 
-  // 위치바 토글
+  // Toggle location bar
   const toggleLocationBar = async () => {
     const next = !isLocationBarOpen;
     setIsLocationBarOpen(next);
     if (next) await fetchLocations();
   };
 
-  // 저장된 위치 선택
+  // Select saved location
   const selectSavedLocation = (loc) => {
     const address =
       loc.address ||
@@ -203,7 +214,7 @@ const MainMenu = () => {
     setIsLocationBarOpen(false);
   };
 
-  // 외부 클릭 시 위치바 닫기
+  // Close location bar on outside click
   useEffect(() => {
     const onClickOutside = (e) => {
       if (!isLocationBarOpen) return;
@@ -218,36 +229,11 @@ const MainMenu = () => {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [isLocationBarOpen]);
 
-  // 위치 설정 팝업
+  // Open location popup
   const openLocationPopup = () => {
     window.open("/location", "위치 설정", "width=800,height=700");
   };
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && search.trim()) {
-      navigate(`/search?query=${encodeURIComponent(search)}`);
-    }
-  };
 
-  //이미지 검색 API
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("http://localhost:8000/search/image", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      console.log("이미지 검색 결과:", data);
-      // 👉 여기서 setResults(data.results) 같은 걸로 UI 업데이트 가능
-    } catch (err) {
-      console.error("이미지 업로드 실패:", err);
-    }
-  };
   return (
     <>
       <nav
@@ -261,58 +247,70 @@ const MainMenu = () => {
           <div className="flex justify-between items-center h-24">
             <AnimatedLogo />
 
-            {/* 데스크탑 메뉴 */}
+            {/* Desktop Menu */}
             <div className="hidden lg:flex flex-1 justify-center space-x-6">
-              {menuItems.map(({ to, icon: Icon, label, color }) => (
-                <Link
-                  key={to + label}
-                  to={to}
-                  className="flex items-center space-x-2 text-black hover:text-emerald-600 transition-colors duration-200 py-2 px-3 rounded-full hover:bg-emerald-50 relative group"
-                >
-                  <Icon size={20} className={color} />
-                  <span className="font-semibold text-1xl">{label}</span>
-                  <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-500 group-hover:w-full transition-all duration-300"></div>
-                </Link>
-              ))}
+              {menuItems.map(
+                ({
+                  to,
+                  icon: Icon,
+                  label,
+                  color,
+                  hoverColor,
+                  hoverBg,
+                  underlineColor,
+                }) => (
+                  <Link
+                    key={to + label}
+                    to={to}
+                    className={`flex items-center space-x-2 text-black ${hoverColor} transition-colors duration-200 py-2 px-3 rounded-full ${hoverBg} relative group`}
+                  >
+                    <Icon size={20} className={color} />
+                    <span className="font-semibold text-1xl">{label}</span>
+                    <div
+                      className={`absolute bottom-0 left-0 w-0 h-0.5 ${underlineColor} group-hover:w-full transition-all duration-300`}
+                    ></div>
+                  </Link>
+                )
+              )}
             </div>
 
-            {/* 계정 / 모바일 메뉴 */}
+            {/* Account / Mobile Menu */}
             <div className="flex items-center gap-4">
-              {/* 데스크탑 메뉴 */}
+              {/* Desktop Account Menu */}
               <div className="hidden md:flex items-center gap-3">
                 {isLoggedIn ? (
                   <>
                     <Link
                       to="/mypage"
-                      className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-emerald-600 px-3 py-1.5 rounded-full hover:bg-emerald-50 transition-colors duration-200"
+                      className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-orange-600 px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors duration-200"
                     >
-                      <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <FiUser size={14} className="text-emerald-600" />
+                      <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center">
+                        <FiUser size={14} className="text-orange-600" />
                       </div>
                       <span>마이페이지</span>
                     </Link>
 
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-500 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors duration-200"
+                      className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-red-600 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors duration-200"
                     >
-                      <FiLogOut size={16} />
+                      <FiLogOut size={16} className="text-red-600" />
                       <span>로그아웃</span>
                     </button>
                   </>
                 ) : (
                   <Link
                     to="/member/login"
-                    className="text-sm font-semibold text-gray-700 hover:text-emerald-600 px-3 py-1.5 rounded-full hover:bg-emerald-50 transition-colors duration-200"
+                    className="text-sm font-semibold text-gray-700 hover:text-orange-600 px-3 py-1.5 rounded-full hover:bg-orange-50 transition-colors duration-200"
                   >
                     회원가입/로그인
                   </Link>
                 )}
               </div>
 
-              {/* 모바일 메뉴 버튼 */}
+              {/* Mobile Menu Button */}
               <button
-                className="lg:hidden p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-all duration-200"
+                className="lg:hidden p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-full transition-all duration-200"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -320,19 +318,19 @@ const MainMenu = () => {
             </div>
           </div>
 
-          {/* 위치바 + 검색창 */}
+          {/* Location Bar + Search */}
           {!isScrolled && (
             <div
               ref={locationBarRef}
-              className="w-full border-b border-gray-100 bg-white"
+              className="border-b border-gray-100 bg-white"
             >
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-4">
+              <div className="max-w-7xl w-full h-[100px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-nowrap justify-center items-center gap-6">
                 <button
                   type="button"
                   onClick={openLocationPopup}
-                  className="flex items-center space-x-2 w-fit text-left"
+                  className="flex items-center space-x-2 w-fit text-left whitespace-nowrap"
                 >
-                  <FiMapPin size={18} className="text-emerald-600" />
+                  <FiMapPin size={18} className="text-orange-600" />
                   <span className="text-base font-bold text-gray-500">
                     위치
                   </span>
@@ -340,43 +338,79 @@ const MainMenu = () => {
                     {regionName || "지역 미선택"}
                   </span>
                 </button>
-                <SearchBar />
 
-                {/* <div className="relative w-1/2 max-w-md">
-                  <input
-                    type="text"
-                    placeholder="원하는 상품을 검색하세요"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="w-full rounded-full border border-gray-300 pl-4 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="absolute right-3 top-2.5 h-5 w-5 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
-                    />
-                  </svg>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="text-sm"
-                /> */}
+                <SearchBar />
               </div>
             </div>
           )}
         </div>
       </nav>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <motion.div
+          className="lg:hidden fixed top-24 left-0 w-full bg-white shadow-lg z-40"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            {menuItems.map(
+              ({ to, icon: Icon, label, color, hoverColor, hoverBg }) => (
+                <Link
+                  key={to + label}
+                  to={to}
+                  className={`flex items-center space-x-3 text-black ${hoverColor} ${hoverBg} py-3 px-4 rounded-lg transition-colors duration-200`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Icon size={20} className={color} />
+                  <span
+                    className="relative font-semibold text-lg inline-block
+                                 after:absolute after:left-0 after:bottom-0
+                                 after:h-[2px] after:w-full after:bg-gray-600
+                                 after:transition-all after:duration-200
+                                 hover:after:w-full"
+                  >
+                    {label}
+                  </span>
+                </Link>
+              )
+            )}
+            {isLoggedIn ? (
+              <>
+                <Link
+                  to="/mypage"
+                  className="flex items-center space-x-3 text-gray-600 hover:text-orange-600 hover:bg-orange-50 py-3 px-4 rounded-lg transition-colors duration-200"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FiUser size={20} className="text-orange-600" />
+                  <span className="font-semibold text-lg">마이페이지</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-3 text-gray-600 hover:text-red-600 hover:bg-red-50 py-3 px-4 rounded-lg transition-colors duration-200 w-full text-left"
+                >
+                  <FiLogOut size={20} className="text-red-600" />
+                  <span className="font-semibold text-lg">로그아웃</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/member/login"
+                className="flex items-center space-x-3 text-gray-600 hover:text-orange-600 hover:bg-orange-50 py-3 px-4 rounded-lg transition-colors duration-200"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <FiUser size={20} className="text-orange-600" />
+                <span className="font-semibold text-lg">회원가입/로그인</span>
+              </Link>
+            )}
+          </div>
+        </motion.div>
+      )}
     </>
   );
 };

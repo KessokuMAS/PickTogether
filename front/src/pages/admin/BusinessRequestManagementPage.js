@@ -13,6 +13,7 @@ import {
   reviewBusinessRequest,
   getPendingRequestCount,
 } from "../../api/businessRequestApi";
+import ImageModal from "../../components/common/ImageModal";
 
 export default function BusinessRequestManagementPage() {
   // getImageUrl 함수 추가
@@ -37,6 +38,7 @@ export default function BusinessRequestManagementPage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewStatus, setReviewStatus] = useState("APPROVED");
+  const [showImageModal, setShowImageModal] = useState(false);
 
   const pageSize = 10;
 
@@ -526,8 +528,12 @@ export default function BusinessRequestManagementPage() {
                     <img
                       src={getImageUrl(selectedRequest.imageUrl)}
                       alt="가게 이미지"
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setShowImageModal(true)}
                     />
+                    <div className="mt-2 text-center text-sm text-slate-500">
+                      클릭하여 원본 보기
+                    </div>
                   </div>
                 )}
 
@@ -637,6 +643,15 @@ export default function BusinessRequestManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 이미지 모달 */}
+      {showImageModal && selectedRequest && (
+        <ImageModal
+          isOpen={showImageModal}
+          onClose={() => setShowImageModal(false)}
+          imageUrl={getImageUrl(selectedRequest.imageUrl)}
+        />
       )}
 
       {/* 뒤로가기 버튼 */}

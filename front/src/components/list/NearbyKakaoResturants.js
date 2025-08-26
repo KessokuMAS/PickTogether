@@ -1,16 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { IoRestaurantOutline } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
-import { FaFire } from "react-icons/fa"; // 🔥 추가
-
-const API_BASE =
-  (import.meta?.env?.VITE_API_BASE ||
-    process.env.REACT_APP_API_BASE ||
-    "http://localhost:8080") + "/api/restaurants";
 
 // ✅ 원형 게이지 (달성률 색상 변화)
 function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const raw = Math.max(0, Math.round(value)); // 실제 값 (텍스트 출력용)
+  const pct = Math.min(100, raw); // 게이지용 (100%까지만)
+
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);
@@ -24,7 +19,7 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
     <div
       style={{ width: size, height: size }}
       className="relative flex items-center justify-center"
-      title={`${pct}%`}
+      title={`${raw}%`}
     >
       <svg width={size} height={size}>
         <circle
@@ -50,19 +45,23 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
           className="transition-colors duration-500 ease-out"
         />
       </svg>
-      {/* 🔹 퍼센트 텍스트만 크게 */}
       <span
         className="absolute font-bold transition-colors duration-500 ease-out"
         style={{
-          fontSize: `${size * 0.3}px`, // 원 크기보다 크게
-          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
+          fontSize: raw >= 100 ? `${size * 0.25}px` : `${size * 0.3}px`,
+          color: raw >= 80 ? "#b91c1c" : raw >= 50 ? "#a16207" : "#1e40af",
         }}
       >
-        {pct}%
+        {raw}%
       </span>
     </div>
   );
 }
+
+const API_BASE =
+  (import.meta?.env?.VITE_API_BASE ||
+    process.env.REACT_APP_API_BASE ||
+    "http://localhost:8080") + "/api/restaurants";
 
 const NearbyKakaoRestaurants = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -75,29 +74,30 @@ const NearbyKakaoRestaurants = () => {
 
   const [coords, setCoords] = useState(null);
 
-  // Intersection Observer를 위한 ref
+  const [statusFilter, setStatusFilter] = useState("전체");
+  const [sortFilter, setSortFilter] = useState("거리순");
+  const [categoryFilter, setCategoryFilter] = useState("전체"); // ✅ 카테고리 필터 상태
+
   const observerRef = useRef();
   const loadingRef = useRef();
 
   const categories = [
     { label: "한식", img: "/korean.png" },
     { label: "중식", img: "/china.png" },
-    { label: "일식", img: "/japan.png" },
+    { label: "일식", img: "/susii.png" },
     { label: "뷔페", img: "/b.png" },
-    { label: "패스트푸드", img: "/fastfood.png" },
+    { label: "패스트푸드", img: "/food.png" },
     { label: "카페", img: "/coffee.png" },
   ];
-  // 이미지 URL을 프론트엔드에서 접근 가능한 URL로 변환
+
   const getImageUrl = (imageUrl) => {
     if (!imageUrl) return null;
     if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
       return imageUrl;
     }
-    // 백엔드에서 반환된 상대 경로를 절대 URL로 변환
     return `http://localhost:8080/${imageUrl}`;
   };
 
-  // 위치 가져오기
   useEffect(() => {
     const saved = localStorage.getItem("selectedLocation");
     if (!saved) {
@@ -140,6 +140,7 @@ const NearbyKakaoRestaurants = () => {
         const res = await fetch(`${API_BASE}/nearby?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        console.log(data);
 
         setRestaurants((prev) =>
           nextPage === 0 ? data.content ?? [] : prev.concat(data.content ?? [])
@@ -162,75 +163,135 @@ const NearbyKakaoRestaurants = () => {
 
   const canLoadMore = page + 1 < totalPages;
 
-  // 무한스크롤 loadMore 함수
   const loadMore = useCallback(() => {
     if (!canLoadMore || loading) return;
     fetchNearby(page + 1);
   }, [canLoadMore, loading, page, fetchNearby]);
 
-  // Intersection Observer 설정
   useEffect(() => {
-    if (!canLoadMore) {
-      console.log("Observer setup skipped - no more data:", { canLoadMore });
-      return;
-    }
+    if (!canLoadMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && canLoadMore && !loading) {
-          console.log(
-            "Intersection Observer triggered - loading more restaurants"
-          );
           loadMore();
         }
       },
-      {
-        threshold: 0.1,
-        rootMargin: "100px", // 100px 전에 미리 로드 시작
-      }
+      { threshold: 0.1, rootMargin: "100px" }
     );
 
-    if (loadingRef.current) {
-      observer.observe(loadingRef.current);
-      console.log("Observer attached to loading element");
-    }
-
+    if (loadingRef.current) observer.observe(loadingRef.current);
     observerRef.current = observer;
 
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        console.log("Observer disconnected");
-      }
+      if (observerRef.current) observerRef.current.disconnect();
     };
   }, [canLoadMore, loading, loadMore]);
+
+  // 🔹 상태 + 정렬 + 카테고리 필터 적용 (포함 매칭)
+  const filteredRestaurants = [...restaurants]
+    .filter((store) => {
+      // ✅ 카테고리 필터 (포함 매칭)
+      if (categoryFilter !== "전체") {
+        if (
+          !store.categoryName ||
+          !store.categoryName.includes(categoryFilter)
+        ) {
+          return false;
+        }
+      }
+
+      const end = store.fundingEndDate
+        ? new Date(store.fundingEndDate)
+        : new Date(Date.now() + 14 * 86400000);
+      const daysLeft = Math.max(0, Math.ceil((end - new Date()) / 86400000));
+
+      if (statusFilter === "진행중") return daysLeft > 0;
+      if (statusFilter === "종료") return daysLeft === 0;
+      return true;
+    })
+    .sort((a, b) => {
+      const endA = a.fundingEndDate ? new Date(a.fundingEndDate) : new Date();
+      const endB = b.fundingEndDate ? new Date(b.fundingEndDate) : new Date();
+      const daysLeftA = Math.max(0, Math.ceil((endA - new Date()) / 86400000));
+      const daysLeftB = Math.max(0, Math.ceil((endB - new Date()) / 86400000));
+
+      const actualA = (a.fundingAmount || 0) + (a.totalFundingAmount || 0);
+      const actualB = (b.fundingAmount || 0) + (b.totalFundingAmount || 0);
+
+      const percentA =
+        a.fundingGoalAmount > 0
+          ? Math.round((actualA * 100) / a.fundingGoalAmount)
+          : 0;
+      const percentB =
+        b.fundingGoalAmount > 0
+          ? Math.round((actualB * 100) / b.fundingGoalAmount)
+          : 0;
+
+      let cmp = 0;
+      switch (sortFilter) {
+        case "거리순":
+          cmp = (a.distance || 0) - (b.distance || 0);
+          break;
+        case "참여금액순":
+          cmp = actualB - actualA;
+          break;
+        case "참여율순":
+          cmp = percentB - percentA;
+          break;
+        case "종료임박순":
+          cmp = daysLeftA - daysLeftB;
+          break;
+        default:
+          cmp = 0;
+      }
+
+      // ✅ 종료된 펀딩은 항상 뒤로 밀기
+      if (daysLeftA === 0 && daysLeftB > 0) return 1;
+      if (daysLeftB === 0 && daysLeftA > 0) return -1;
+
+      return cmp;
+    });
 
   return (
     <div className="p-2 flex justify-center bg-white min-h-screen">
       <div className="w-full max-w-[1200px]">
         {/* 카테고리 버튼 */}
-        <div className="flex flex-wrap gap-8 mb-5 justify-center ">
+        <div className="flex flex-wrap gap-8 mb-5 justify-center">
+          {/* 전체 버튼 */}
+
           {categories.map((cat) => (
-            <button
-              key={cat.label}
-              className="flex flex-col items-center justify-center w-20 h-20 bg-gray-100 text-gray-700 
-            text-sm font-medium hover:bg-blue-100 hover:text-blue-600 transition"
-            >
-              <img
-                src={cat.img}
-                alt={cat.label}
-                className="w-12 h-12 object-contain mb-1"
-              />
-              <span>{cat.label}</span>
-            </button>
+            <div className="flex flex-col items-center mt-5">
+              {/* 배경 (원형 안에 이미지만) */}
+              <button
+                key={cat.label}
+                onClick={() => setCategoryFilter(cat.label)}
+                className={`flex items-center justify-center w-16 h-16   rounded-full transition 
+            ${
+              categoryFilter === cat.label
+                ? "bg-slate-200"
+                : "bg-slate-200 text-gray-700 hover:bg-slate-300"
+            }`}
+              >
+                <img
+                  src={cat.img}
+                  alt={cat.label}
+                  className="w-12 h-12 object-contain"
+                />
+              </button>
+
+              {/* 배경 밖에 글씨 */}
+              <span className="text-sm font-medium text-gray-700">
+                {cat.label}
+              </span>
+            </div>
           ))}
         </div>
 
-        {/* 🔽 설명(왼쪽) + 필터(오른쪽) */}
+        {/* 제목 + 필터 */}
         <div className="flex items-center justify-between mb-6 px-5">
-          {/* 왼쪽: 설명 */}
           <div>
-            <h2 className="flex items-center gap-2 text-[22px] font-bold leading-none mt-3">
+            <h2 className="flex items-center gap-2 text-[22px] font-bold mt-3">
               펀딩 진행 중 음식점
             </h2>
             <p className="text-[15px] text-gray-500 font-semibold mt-1">
@@ -238,24 +299,21 @@ const NearbyKakaoRestaurants = () => {
             </p>
           </div>
 
-          {/* 오른쪽: 필터 메뉴 */}
           <div className="flex gap-4">
-            {/* 상태 필터 */}
             <select
               className="px-4 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-md"
-              defaultValue="전체"
-              onChange={(e) => console.log("상태 필터:", e.target.value)}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="전체">전체</option>
               <option value="진행중">진행중</option>
               <option value="종료">종료</option>
             </select>
 
-            {/* 정렬 필터 */}
             <select
               className="px-4 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-md"
-              defaultValue="거리순"
-              onChange={(e) => console.log("정렬 필터:", e.target.value)}
+              value={sortFilter}
+              onChange={(e) => setSortFilter(e.target.value)}
             >
               <option value="거리순">가까운 거리순</option>
               <option value="참여금액순">참여 금액순</option>
@@ -269,12 +327,12 @@ const NearbyKakaoRestaurants = () => {
           <p className="text-gray-400">음식점을 불러오는 중입니다...</p>
         ) : error ? (
           <p className="text-red-500">{error}</p>
-        ) : restaurants.length === 0 ? (
+        ) : filteredRestaurants.length === 0 ? (
           <p className="text-gray-500">근처 음식점을 찾지 못했습니다.</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {restaurants.map((store) => {
+              {filteredRestaurants.map((store) => {
                 const {
                   restaurantId,
                   name,
@@ -285,40 +343,25 @@ const NearbyKakaoRestaurants = () => {
                   fundingPercent,
                   imageUrl,
                   fundingEndDate,
-                  totalFundingAmount, // 펀딩 테이블 결제내역 합산 금액
+                  totalFundingAmount,
+                  categoryName,
                 } = store;
 
-                // 디버깅을 위한 로그 출력
-                console.log(`Restaurant ${name}:`, {
-                  fundingAmount,
-                  totalFundingAmount,
-                  합산결과: (fundingAmount || 0) + (totalFundingAmount || 0),
-                  restaurantId,
-                });
-
-                // 실제 펀딩된 금액 (기본 fundingAmount + 펀딩 테이블 합산 금액)
                 const actualFundingAmount =
                   (fundingAmount || 0) + (totalFundingAmount || 0);
 
-                const percent = Number.isFinite(fundingPercent)
-                  ? Number(fundingPercent)
-                  : fundingGoalAmount > 0 && actualFundingAmount >= 0
-                  ? Math.round(
-                      (Number(actualFundingAmount) * 100) /
-                        Number(fundingGoalAmount)
-                    )
-                  : 0;
+                const percent =
+                  fundingGoalAmount > 0 && actualFundingAmount >= 0
+                    ? Math.round(
+                        (Number(actualFundingAmount) * 100) /
+                          Number(fundingGoalAmount)
+                      )
+                    : 0;
 
-                const imgSrc =
-                  getImageUrl(imageUrl) ||
-                  `/${Math.floor(Math.random() * 45 + 1)}.jpg`;
-
-                // 이미지 표시 여부 결정
-                const hasCustomImage =
-                  imageUrl && imageUrl.includes("uploads/");
-                const displayImage = hasCustomImage
-                  ? getImageUrl(imageUrl)
-                  : `/${restaurantId}.jpg`; // ID 기반으로 일관된 이미지 표시
+                const displayImage =
+                  imageUrl && imageUrl.includes("uploads/")
+                    ? getImageUrl(imageUrl)
+                    : `/${restaurantId}.jpg`;
 
                 const distLabel = Number.isFinite(Number(distance))
                   ? `${Math.round(Number(distance)).toLocaleString()}m 거리`
@@ -336,45 +379,34 @@ const NearbyKakaoRestaurants = () => {
                   <a
                     key={restaurantId}
                     href={`/restaurant/${restaurantId}`}
-                    className="bg-white overflow-hidden border border-gray-300 transition w-[270px] h-[380px] flex flex-col group rounded-lg"
+                    className={`relative border border-gray-300 transition w-[270px] h-[380px] flex flex-col group rounded-lg
+                      ${daysLeft === 0 ? "bg-gray-300 opacity-80" : "bg-white"}
+                    `}
                   >
-                    {/* 이미지 영역 */}
-                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400 overflow-hidden relative group">
+                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative group rounded-t-lg">
                       <img
                         src={displayImage}
                         alt={`${name} 이미지`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
-
-                      {/* 호버 시 오버레이 */}
-                      <div className="absolute inset-0 bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = `/restaurant/${restaurantId}`;
-                          }}
-                          className="px-4 py-2 text-white font-bold rounded hover:bg-opacity-80 transition"
-                        >
-                          자세히 보기
-                        </button>
-                      </div>
+                      {daysLeft === 0 && percent >= 100 && (
+                        <div className="absolute top-2 right-2 bg-green-600 text-white text-[14px] font-semibold px-2 py-1 rounded shadow">
+                          펀딩 성공
+                        </div>
+                      )}
                     </div>
 
-                    <div className="p-1  flex-1 flex flex-col justify-between">
+                    <div className="p-2 flex-1 flex flex-col justify-between">
                       <div className="min-w-0">
-                        {/* 이름 + 게이지 */}
-                        {/* 이름 + 게이지 */}
-                        <div className="flex items-center justify-between gap-2 ">
-                          <h3 className="text-lg font-semibold text-[20px] text-black truncate flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-lg font-semibold text-black truncate flex-1">
                             {name}
                           </h3>
-                          <div className="shrink-0 mt-4">
-                            <CircularProgress
-                              value={percent}
-                              size={50} // ✅ 기존 40 → 70으로 확대
-                              stroke={3} // ✅ 선 두께도 약간 두껍게
-                            />
-                          </div>
+                          <CircularProgress
+                            value={percent}
+                            size={50}
+                            stroke={3}
+                          />
                         </div>
 
                         <p className="text-sm text-gray-600 truncate">
@@ -386,26 +418,24 @@ const NearbyKakaoRestaurants = () => {
                           {distLabel}
                         </p>
 
-                        <div className="mt-2 pt-6">
-                          {/* 구분선 */}
-                          <div className="border-t border-gray-300 mb-2"></div>
+                        {/* ✅ 카테고리도 보여주고 싶다면 */}
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {categoryName}
+                        </p>
 
-                          {/* 남은 일수 + 펀딩금액 */}
+                        <div className="mt-2 pt-6 border-t border-gray-300">
                           <div className="flex items-center justify-between text-[13px]">
                             <span
                               className={`inline-flex items-center text-[16px] ${
-                                daysLeft <= 5
+                                daysLeft <= 5 && daysLeft !== 0
                                   ? "text-red-600 font-bold"
                                   : "text-black font-normal"
                               }`}
                             >
-                              {daysLeft}일 남음
+                              {daysLeft === 0 ? "종료" : `${daysLeft}일 남음`}
                             </span>
-                            <span className="inline-flex items-center text-[16px] text-green-600 ">
-                              {(
-                                (fundingAmount || 0) + (totalFundingAmount || 0)
-                              ).toLocaleString()}
-                              원 펀딩
+                            <span className="inline-flex items-center text-[16px] text-green-600">
+                              {actualFundingAmount.toLocaleString()}원 펀딩
                             </span>
                           </div>
                         </div>
@@ -416,7 +446,6 @@ const NearbyKakaoRestaurants = () => {
               })}
             </div>
 
-            {/* 무한스크롤을 위한 감지 요소 */}
             {canLoadMore && !loading && (
               <div ref={loadingRef} className="flex justify-center py-8">
                 <div className="text-center">

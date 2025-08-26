@@ -66,6 +66,12 @@ const register = async (userData) => {
   return res.data;
 };
 
+// 이메일 중복 확인 함수 추가
+const checkEmailDuplicate = async (email) => {
+  const res = await apiClient.post("/member/check-email", { email });
+  return res.data;
+};
+
 export const getMyPageInfo = async () => {
   const res = await apiClient.get("/member/mypage");
   return res.data;
@@ -122,6 +128,7 @@ export async function deleteMemberLocation(id) {
 export const memberApi = {
   login,
   register,
+  checkEmailDuplicate,
   getMyPageInfo,
   updateMemberProfile,
   updateMemberPassword,

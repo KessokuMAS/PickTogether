@@ -5,6 +5,7 @@ import { getMemberFundings } from "../../api/fundingApi";
 import { fundingSpecialtyApi } from "../../api/fundingSpecialtyApi";
 import { getCookie, removeCookie } from "../../utils/cookieUtil";
 import { useNavigate } from "react-router-dom";
+import MyPageHeader from "../../layouts/MyPageHeader";
 import {
   FiMaximize2,
   FiDownload,
@@ -211,7 +212,7 @@ export default function MyPageComponent() {
 
     const roleMap = {
       USER: "일반 사용자",
-      BUSINESS_OWNER: "소상공인",
+      BUSINESS_OWNER: "자영업자",
       ADMIN: "관리자",
     };
 
@@ -250,290 +251,255 @@ export default function MyPageComponent() {
   const isBusinessOwner = member?.roleNames?.includes("BUSINESS_OWNER");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 페이지 헤더 */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">마이페이지</h1>
-          <p className="text-slate-600 text-lg">
-            내 정보와 활동을 한눈에 확인하세요
-          </p>
-        </div>
+    <>
+      {/* 고정 헤더 */}
+      <MyPageHeader
+        isAdmin={isAdmin}
+        isBusinessOwner={isBusinessOwner}
+        onLogout={handleLogout}
+      />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 왼쪽 컬럼 - 계정 정보 및 통계 */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* 계정 정보 카드 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <FiUser className="text-emerald-600" size={20} />
-                계정 정보
-              </h3>
-              <div className="space-y-3">
-                <Row label="이메일" value={member.email} />
-                <Row label="닉네임" value={member.nickname || "미설정"} />
-                <Row label="회원 역할" value={getRoleDisplayText} />
-              </div>
+      {/* 상단바 높이만큼 패딩 주기 */}
+      <div className="pt-[120px] min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* 왼쪽 컬럼 - 계정 정보 및 통계 */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* 계정 정보 카드 */}
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <FiUser className="text-emerald-600" size={20} />
+                  계정 정보
+                </h3>
+                <div className="space-y-3">
+                  <Row label="이메일" value={member.email} />
+                  <Row label="닉네임" value={member.nickname || "미설정"} />
+                  <Row label="회원 역할" value={getRoleDisplayText} />
+                </div>
 
-              {/* 기능 버튼들 */}
-              <div className="mt-6 space-y-2 flex flex-col items-center">
-                <a
-                  href="/main"
-                  className="w-1/2 px-1.5 py-2 bg-white text-blue-600 rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
-                >
-                  <FiMapPin size={16} />
-                  메인으로 가기
-                </a>
-
-                <a
-                  href="/mypage/edit"
-                  className="w-1/2 px-1.5 py-2 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
-                >
-                  <FiSettings size={16} />
-                  회원 정보 수정
-                </a>
-
-                {isAdmin && (
+                {/* 기능 버튼들 */}
+                <div className="mt-6 space-y-2 flex flex-col items-center">
                   <a
-                    href="/mypage/admin/settings"
-                    className="w-1/2 px-1.5 py-2 bg-white text-yellow-600 rounded-lg border-2 border-yellow-500 hover:bg-yellow-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                    href="/mypage/edit"
+                    className="w-1/2 px-1.5 py-2 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
                   >
                     <FiSettings size={16} />
-                    관리자 설정
+                    회원 정보 수정
                   </a>
-                )}
-
-                {isBusinessOwner && (
-                  <a
-                    href="/mypage/business/requests"
-                    className="w-1/2 px-1.5 py-2 bg-white text-green-600 rounded-lg border-2 border-green-500 hover:bg-green-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
-                  >
-                    <FiShoppingCart size={16} />
-                    가게 요청
-                  </a>
-                )}
-
-                {/* 로그아웃 버튼 */}
-                <button
-                  onClick={handleLogout}
-                  className="w-1/2 px-1.5 py-2 bg-white text-red-600 rounded-lg border-2 border-red-500 hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
-                >
-                  <FiLogOut size={16} />
-                  로그아웃
-                </button>
+                </div>
               </div>
-            </div>
 
-            {/* 통계 카드 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <FiTrendingUp className="text-emerald-600" size={20} />
-                활동 통계
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 flex items-center gap-2">
-                    <FiDollarSign className="text-blue-500" size={16} />
-                    포인트
-                  </span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {member.points ?? 0}P
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 flex items-center gap-2">
-                    <FiUser className="text-purple-500" size={16} />
-                    등급
-                  </span>
-                  <span className="text-xl font-bold text-purple-600">
-                    {member.grade ?? "없음"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 flex items-center gap-2">
-                    <FiShoppingCart className="text-green-500" size={16} />
-                    참여한 펀딩
-                  </span>
-                  <span className="text-2xl font-bold text-green-600">
-                    {fundings.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 flex items-center gap-2">
-                    <FiHeart className="text-pink-500" size={16} />
-                    특산품 구매
-                  </span>
-                  <span className="text-2xl font-bold text-pink-600">
-                    {specialtyOrders.length}
-                  </span>
-                </div>
-                {/* 알림 통계는 소상공인만 표시 */}
-                {member?.roleNames?.includes("BUSINESS_OWNER") && (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600 flex items-center gap-2">
-                        <FiBell className="text-orange-500" size={16} />
-                        받은 알림
-                      </span>
-                      <span className="text-2xl font-bold text-orange-600">
-                        {notifications.length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600 flex items-center gap-2">
-                        <FiMail className="text-red-500" size={16} />
-                        읽지 않은 알림
-                      </span>
-                      <span className="text-2xl font-bold text-red-600">
-                        {unreadCount}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* 오른쪽 컬럼 - 수신함 및 펀딩 내역 */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* 수신함 카드 - 소상공인만 */}
-            {member?.roleNames?.includes("BUSINESS_OWNER") && (
+              {/* 통계 카드 */}
               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <FiMail className="text-emerald-600" size={20} />
-                    수신함
-                  </h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm rounded-lg hover:bg-emerald-200 transition-colors flex items-center gap-1"
-                    >
-                      <FiCheck size={14} />
-                      모두 읽음
-                    </button>
-                    <button
-                      onClick={handleDeleteAllRead}
-                      className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
-                    >
-                      <FiTrash2 size={14} />
-                      읽은 알림 삭제
-                    </button>
-                  </div>
-                </div>
-
-                {notifications.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FiMail className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <p className="text-slate-500 mb-2">
-                      수신된 알림이 없습니다
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      가게 요청 관련 알림을 받아보세요
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {notifications.map((notification) => (
-                      <NotificationRow
-                        key={notification.id}
-                        notification={notification}
-                        onMarkAsRead={handleMarkAsRead}
-                        onDelete={handleDeleteNotification}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 펀딩 내역 카드 */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <FiShoppingCart className="text-emerald-600" size={20} />
-                  펀딩 내역
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <FiTrendingUp className="text-emerald-600" size={20} />
+                  활동 통계
                 </h3>
-                <div className="flex bg-slate-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setActiveTab("funding")}
-                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                      activeTab === "funding"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    식당 펀딩 ({fundings.length})
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log(
-                        "특산품 탭 클릭됨, 현재 데이터:",
-                        specialtyOrders
-                      );
-                      setActiveTab("specialty");
-                    }}
-                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
-                      activeTab === "specialty"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    특산품 펀딩 ({specialtyOrders.length})
-                  </button>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 flex items-center gap-2">
+                      <FiDollarSign className="text-blue-500" size={16} />
+                      포인트
+                    </span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {member.points ?? 0}P
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 flex items-center gap-2">
+                      <FiUser className="text-purple-500" size={16} />
+                      등급
+                    </span>
+                    <span className="text-xl font-bold text-purple-600">
+                      {member.grade ?? "없음"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 flex items-center gap-2">
+                      <FiShoppingCart className="text-green-500" size={16} />
+                      참여한 펀딩
+                    </span>
+                    <span className="text-2xl font-bold text-green-600">
+                      {fundings.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 flex items-center gap-2">
+                      <FiHeart className="text-pink-500" size={16} />
+                      특산품 구매
+                    </span>
+                    <span className="text-2xl font-bold text-pink-600">
+                      {specialtyOrders.length}
+                    </span>
+                  </div>
+                  {/* 알림 통계는 소상공인만 표시 */}
+                  {member?.roleNames?.includes("BUSINESS_OWNER") && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 flex items-center gap-2">
+                          <FiBell className="text-orange-500" size={16} />
+                          받은 알림
+                        </span>
+                        <span className="text-2xl font-bold text-orange-600">
+                          {notifications.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 flex items-center gap-2">
+                          <FiMail className="text-red-500" size={16} />
+                          읽지 않은 알림
+                        </span>
+                        <span className="text-2xl font-bold text-red-600">
+                          {unreadCount}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
+            </div>
 
-              <div className="mt-4">
-                {activeTab === "funding" ? (
-                  // 식당 펀딩 내역
-                  fundings.length === 0 ? (
+            {/* 오른쪽 컬럼 - 수신함 및 펀딩 내역 */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* 수신함 카드 - 소상공인만 */}
+              {member?.roleNames?.includes("BUSINESS_OWNER") && (
+                <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <FiMail className="text-emerald-600" size={20} />
+                      수신함
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm rounded-lg hover:bg-emerald-200 transition-colors flex items-center gap-1"
+                      >
+                        <FiCheck size={14} />
+                        모두 읽음
+                      </button>
+                      <button
+                        onClick={handleDeleteAllRead}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-colors flex items-center gap-1"
+                      >
+                        <FiTrash2 size={14} />
+                        읽은 알림 삭제
+                      </button>
+                    </div>
+                  </div>
+
+                  {notifications.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FiShoppingCart className="w-8 h-8 text-slate-400" />
+                        <FiMail className="w-8 h-8 text-slate-400" />
                       </div>
                       <p className="text-slate-500 mb-2">
-                        아직 참여한 펀딩이 없습니다
+                        수신된 알림이 없습니다
                       </p>
                       <p className="text-sm text-slate-400">
-                        첫 번째 펀딩에 참여해보세요!
+                        가게 요청 관련 알림을 받아보세요
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((notification) => (
+                        <NotificationRow
+                          key={notification.id}
+                          notification={notification}
+                          onMarkAsRead={handleMarkAsRead}
+                          onDelete={handleDeleteNotification}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 펀딩 내역 카드 */}
+              <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <FiShoppingCart className="text-emerald-600" size={20} />
+                    펀딩 내역
+                  </h3>
+                  <div className="flex bg-slate-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setActiveTab("funding")}
+                      className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                        activeTab === "funding"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      식당 펀딩 ({fundings.length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log(
+                          "특산품 탭 클릭됨, 현재 데이터:",
+                          specialtyOrders
+                        );
+                        setActiveTab("specialty");
+                      }}
+                      className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                        activeTab === "specialty"
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      특산품 펀딩 ({specialtyOrders.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  {activeTab === "funding" ? (
+                    // 식당 펀딩 내역
+                    fundings.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <FiShoppingCart className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <p className="text-slate-500 mb-2">
+                          아직 참여한 펀딩이 없습니다
+                        </p>
+                        <p className="text-sm text-slate-400">
+                          첫 번째 펀딩에 참여해보세요!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {fundings.map((funding) => (
+                          <FundingRow key={funding.id} funding={funding} />
+                        ))}
+                      </div>
+                    )
+                  ) : // 지역특산품 구매 내역
+                  specialtyOrders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FiHeart className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <p className="text-slate-500 mb-2">
+                        아직 구매한 특산품이 없습니다
+                      </p>
+                      <p className="text-sm text-slate-400">
+                        지역특산품을 펀딩해보세요!
                       </p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {fundings.map((funding) => (
-                        <FundingRow key={funding.id} funding={funding} />
+                      {specialtyOrders.map((order) => (
+                        <SpecialtyOrderRow key={order.id} order={order} />
                       ))}
                     </div>
-                  )
-                ) : // 지역특산품 구매 내역
-                specialtyOrders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FiHeart className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <p className="text-slate-500 mb-2">
-                      아직 구매한 특산품이 없습니다
-                    </p>
-                    <p className="text-sm text-slate-400">
-                      지역특산품을 펀딩해보세요!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {specialtyOrders.map((order) => (
-                      <SpecialtyOrderRow key={order.id} order={order} />
-                    ))}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -557,6 +523,7 @@ function FundingRow({ funding }) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
   const [showLargeQR, setShowLargeQR] = useState(false);
+  const [isUsed, setIsUsed] = useState(false); // 사용완료 상태 추가
 
   // QR 코드 생성
   useEffect(() => {
@@ -564,6 +531,44 @@ function FundingRow({ funding }) {
       generateQRCode();
     }
   }, [funding]);
+
+  // Ctrl+Q 키보드 이벤트 처리 - 특정 펀딩에만 적용
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.ctrlKey && event.key === "q") {
+        // 마지막으로 클릭된 펀딩 카드 확인
+        const lastClickedCard = document.querySelector(
+          "[data-funding-id].last-clicked"
+        );
+        if (
+          lastClickedCard &&
+          lastClickedCard.dataset.fundingId === funding.id.toString()
+        ) {
+          setIsUsed(true);
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [funding.id]);
+
+  // 클릭 이벤트 처리
+  const handleCardClick = () => {
+    // 다른 모든 카드에서 last-clicked 클래스 제거
+    document.querySelectorAll("[data-funding-id]").forEach((card) => {
+      card.classList.remove("last-clicked");
+    });
+    // 현재 카드에 last-clicked 클래스 추가
+    const currentCard = document.querySelector(
+      `[data-funding-id="${funding.id}"]`
+    );
+    if (currentCard) {
+      currentCard.classList.add("last-clicked");
+    }
+  };
 
   const generateQRCode = async () => {
     try {
@@ -642,7 +647,11 @@ function FundingRow({ funding }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all">
+    <div
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-lg hover:shadow-xl transition-all cursor-pointer"
+      data-funding-id={funding.id}
+      onClick={handleCardClick}
+    >
       <div className="space-y-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between">
@@ -742,11 +751,23 @@ function FundingRow({ funding }) {
 
         {/* QR 코드 영역 - 결제 완료된 경우에만 표시 */}
         {funding.status === "COMPLETED" && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+          <div
+            className={`rounded-lg p-4 border ${
+              isUsed
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
+                : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100"
+            }`}
+          >
             <div className="flex items-center justify-between mb-3">
-              <div className="font-semibold text-blue-800 flex items-center gap-2">
+              <div
+                className={`font-semibold flex items-center gap-2 ${
+                  isUsed ? "text-green-800" : "text-blue-800"
+                }`}
+              >
                 <svg
-                  className="w-5 h-5 text-blue-600"
+                  className={`w-5 h-5 ${
+                    isUsed ? "text-green-600" : "text-blue-600"
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -758,7 +779,7 @@ function FundingRow({ funding }) {
                     d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
                   />
                 </svg>
-                사용 QR 코드
+                {isUsed ? "사용완료된 QR 코드" : "사용 QR 코드"}
               </div>
               {qrCodeUrl && (
                 <button
@@ -790,18 +811,26 @@ function FundingRow({ funding }) {
                     <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 ) : qrCodeUrl ? (
-                  <div
-                    onClick={() => setShowLargeQR(true)}
-                    className="cursor-pointer hover:scale-105 transition-transform"
-                  >
-                    <img
-                      src={qrCodeUrl}
-                      alt="QR Code"
-                      className="w-32 h-32 rounded-lg border-2 border-blue-200 hover:border-blue-400"
-                    />
-                    <div className="text-center mt-2 text-xs text-blue-600">
-                      클릭하여 확대보기
+                  <div className="relative">
+                    <div
+                      onClick={() => setShowLargeQR(true)}
+                      className="cursor-pointer hover:scale-105 transition-transform"
+                    >
+                      <img
+                        src={qrCodeUrl}
+                        alt="QR Code"
+                        className="w-32 h-32 rounded-lg border-2 border-blue-200 hover:border-blue-400"
+                      />
+                      <div className="text-center mt-2 text-xs text-blue-600">
+                        클릭하여 확대보기
+                      </div>
                     </div>
+                    {/* 사용완료 표시 */}
+                    {isUsed && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                        사용완료
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -810,9 +839,15 @@ function FundingRow({ funding }) {
                 )}
               </div>
 
-              <div className="flex-1 text-sm text-blue-700">
+              <div
+                className={`flex-1 text-sm ${
+                  isUsed ? "text-green-700" : "text-blue-700"
+                }`}
+              >
                 <p className="font-medium mb-1">
-                  레스토랑에서 이 QR 코드를 스캔하세요
+                  {isUsed
+                    ? "QR 코드가 사용완료되었습니다"
+                    : "레스토랑에서 이 QR 코드를 스캔하세요"}
                 </p>
                 <p className="text-xs opacity-80">
                   • 펀딩 ID: {funding.id}
@@ -868,11 +903,19 @@ function FundingRow({ funding }) {
             </div>
 
             <div className="text-center">
-              <img
-                src={qrCodeUrl}
-                alt="QR Code Large"
-                className="w-80 h-80 mx-auto rounded-lg border-2 border-blue-200"
-              />
+              <div className="relative inline-block">
+                <img
+                  src={qrCodeUrl}
+                  alt="QR Code Large"
+                  className="w-80 h-80 mx-auto rounded-lg border-2 border-blue-200"
+                />
+                {/* 확대보기에서도 사용완료 표시 */}
+                {isUsed && (
+                  <div className="absolute -top-3 -right-3 bg-green-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                    사용완료
+                  </div>
+                )}
+              </div>
               <div className="mt-4 text-sm text-gray-600">
                 <p className="font-medium mb-2">{funding.restaurantName}</p>
                 <p>펀딩 ID: {funding.id}</p>

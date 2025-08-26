@@ -11,24 +11,18 @@ export const communityApi = {
     page = 0,
     size = 10,
     sortBy = "createdAt",
-    sortDir = "desc",
-    userEmail = null
+    sortDir = "desc"
   ) => {
     try {
-      const params = {
-        page,
-        size,
-        sort: `${sortBy},${sortDir}`, // 스프링 Pageable 형식으로 변경
-      };
-
-      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
-      if (userEmail) {
-        params.userEmail = userEmail;
-      }
-
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts`,
-        { params }
+        {
+          params: {
+            page,
+            size,
+            sort: `${sortBy},${sortDir}`, // 스프링 Pageable 형식으로 변경
+          },
+        }
       );
       return response.data;
     } catch (error) {
@@ -38,30 +32,20 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts`,
-        params: { page, size, sort: `${sortBy},${sortDir}`, userEmail },
+        params: { page, size, sort: `${sortBy},${sortDir}` },
       });
       throw error;
     }
   },
 
   // 카테고리별 게시글 조회 (인증 불필요)
-  getPostsByCategory: async (
-    category,
-    page = 0,
-    size = 10,
-    userEmail = null
-  ) => {
+  getPostsByCategory: async (category, page = 0, size = 10) => {
     try {
-      const params = { page, size };
-
-      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
-      if (userEmail) {
-        params.userEmail = userEmail;
-      }
-
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts/category/${category}`,
-        { params }
+        {
+          params: { page, size },
+        }
       );
       return response.data;
     } catch (error) {
@@ -71,25 +55,20 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts/category/${category}`,
-        params: { page, size, userEmail },
+        params: { page, size },
       });
       throw error;
     }
   },
 
   // 키워드로 게시글 검색 (인증 불필요)
-  searchPosts: async (keyword, page = 0, size = 10, userEmail = null) => {
+  searchPosts: async (keyword, page = 0, size = 10) => {
     try {
-      const params = { keyword, page, size };
-
-      // 로그인한 사용자가 있으면 좋아요 상태도 함께 가져오기
-      if (userEmail) {
-        params.userEmail = userEmail;
-      }
-
       const response = await axios.get(
         `${API_SERVER_HOST}${API_BASE_URL}/posts/search`,
-        { params }
+        {
+          params: { keyword, page, size },
+        }
       );
       return response.data;
     } catch (error) {
@@ -99,7 +78,7 @@ export const communityApi = {
         status,
         data,
         url: `${API_SERVER_HOST}${API_BASE_URL}/posts/search`,
-        params: { keyword, page, size, userEmail },
+        params: { keyword, page, size },
       });
       throw error;
     }
@@ -222,51 +201,6 @@ export const communityApi = {
     }
   },
 
-  // 게시글 좋아요 토글 (인증 필요)
-  toggleLike: async (id, userEmail) => {
-    try {
-      const response = await jwtAxios.post(`${API_BASE_URL}/posts/${id}/like`, {
-        userEmail,
-      });
-      return response.data;
-    } catch (error) {
-      const status = error?.response?.status;
-      const data = error?.response?.data;
-      console.error("게시글 좋아요 토글 실패", {
-        status,
-        data,
-        url: `${API_BASE_URL}/posts/${id}/like`,
-        userEmail,
-      });
-      throw error;
-    }
-  },
-
-  // 조회수 증가 (공개 엔드포인트)
-  incrementViews: async (id) => {
-    try {
-      console.log("조회수 증가 요청 시작:", id);
-
-      // 일반 axios 사용 (공개 엔드포인트)
-      const response = await axios.post(
-        `${API_SERVER_HOST}${API_BASE_URL}/posts/${id}/views`
-      );
-
-      console.log("조회수 증가 성공:", response.data);
-      return response.data;
-    } catch (error) {
-      const status = error?.response?.status;
-      const data = error?.response?.data;
-      console.error("조회수 증가 실패", {
-        status,
-        data,
-        url: `${API_SERVER_HOST}${API_BASE_URL}/posts/${id}/views`,
-        error: error.message,
-      });
-      throw error;
-    }
-  },
-
   // 댓글 API
   getComments: async (postId) => {
     const url = `${API_SERVER_HOST}${API_BASE_URL}/posts/${postId}/comments`;
@@ -315,32 +249,6 @@ export const communityApi = {
         data: error?.response?.data,
         url,
       });
-      throw error;
-    }
-  },
-
-  // 오늘의 추천 가져오기
-  getTodayRecommendation: async () => {
-    try {
-      const response = await axios.get(
-        `${API_SERVER_HOST}${API_BASE_URL}/posts/today-recommendation`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("오늘의 추천 조회 실패:", error);
-      throw error;
-    }
-  },
-
-  // 오늘의 숨은 맛집 가져오기
-  getTodayHiddenRestaurant: async () => {
-    try {
-      const response = await axios.get(
-        `${API_SERVER_HOST}${API_BASE_URL}/posts/today-hidden-restaurant`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("오늘의 숨은 맛집 조회 실패:", error);
       throw error;
     }
   },

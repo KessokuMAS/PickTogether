@@ -1,18 +1,15 @@
-// src/components/common/ImageUploadOverlay.js
 import React, { useState, useRef, useEffect } from "react";
 import { FiUploadCloud, FiCamera } from "react-icons/fi";
 
-const ImageUploadOverlay = ({ onUpload }) => {
+const ImageUploadOverlay = ({ onUpload, loading }) => {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef();
 
-  // 파일 선택 핸들러
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) onUpload(file);
   };
 
-  // 드래그 앤 드롭
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
@@ -20,7 +17,6 @@ const ImageUploadOverlay = ({ onUpload }) => {
     if (file) onUpload(file);
   };
 
-  // 붙여넣기 (CTRL+V)
   useEffect(() => {
     const handlePaste = (e) => {
       const file = e.clipboardData.files[0];
@@ -39,7 +35,7 @@ const ImageUploadOverlay = ({ onUpload }) => {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
       className="relative border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-500 transition"
-      onClick={() => fileInputRef.current.click()}
+      onClick={() => !loading && fileInputRef.current.click()}
     >
       <input
         ref={fileInputRef}
@@ -47,9 +43,17 @@ const ImageUploadOverlay = ({ onUpload }) => {
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        disabled={loading}
       />
 
-      {dragOver ? (
+      {loading ? (
+        // ✅ 로딩 UI
+        <div className="flex flex-col items-center justify-center text-emerald-600 gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500"></div>
+          <p className="font-semibold">이미지 분석중...</p>
+          <p className="text-xs text-gray-400">잠시만 기다려주세요 </p>
+        </div>
+      ) : dragOver ? (
         <div className="text-emerald-600 font-semibold flex flex-col items-center gap-2">
           <FiUploadCloud size={40} />
           <p>이곳으로 이미지를 드래그하기</p>

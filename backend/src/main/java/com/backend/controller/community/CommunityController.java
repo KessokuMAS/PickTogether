@@ -18,8 +18,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/community")
 @RequiredArgsConstructor
@@ -140,42 +138,12 @@ public class CommunityController {
         return ResponseEntity.noContent().build();
     }
     
-    // 게시글 좋아요 토글
+    // 게시글 좋아요
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<PostDTO> toggleLike(@PathVariable("id") Long id, @RequestBody Map<String, String> request) {
-        String userEmail = request.get("userEmail");
-        log.info("게시글 좋아요 토글 요청: ID {}, UserEmail: {}", id, userEmail);
-        
-        if (userEmail == null || userEmail.trim().isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        
-        PostDTO updatedPost = postService.toggleLike(id, userEmail);
-        return ResponseEntity.ok(updatedPost);
-    }
-    
-    // 게시글 조회수 증가
-    @PostMapping("/posts/{id}/views")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<Map<String, Object>> incrementViews(@PathVariable("id") Long id) {
-        log.info("게시글 조회수 증가 요청: ID {}", id);
-        
-        try {
-            postService.incrementViews(id);
-            Map<String, Object> response = Map.of(
-                "success", true,
-                "message", "조회수가 증가되었습니다."
-            );
-            log.info("게시글 조회수 증가 성공: ID {}", id);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            log.error("게시글 조회수 증가 실패: ID {}, 오류: {}", id, e.getMessage(), e);
-            Map<String, Object> errorResponse = Map.of(
-                "success", false,
-                "error", "조회수 증가에 실패했습니다."
-            );
-            return ResponseEntity.internalServerError().body(errorResponse);
-        }
+    public ResponseEntity<PostDTO> likePost(@PathVariable("id") Long id) {
+        log.info("게시글 좋아요 요청: ID {}", id);
+        PostDTO likedPost = postService.likePost(id);
+        return ResponseEntity.ok(likedPost);
     }
 
     // 댓글 목록 조회
@@ -268,31 +236,5 @@ public class CommunityController {
         CommentDTO updated = commentService.updateComment(commentId, requesterEmail, dto.getContent());
         log.info("[댓글] 수정 성공 - commentId={}", updated.getId());
         return ResponseEntity.ok(updated);
-    }
-    
-    // 오늘의 추천 게시글 조회
-    @GetMapping("/posts/today-recommendation")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<Map<String, Object>> getTodayRecommendation() {
-        log.info("오늘의 추천 게시글 조회 요청");
-        
-        try {
-            // 임시로 더미 데이터 반환 (실제 구현은 PostService에서 처리)
-            Map<String, Object> recommendation = Map.of(
-                "restaurantName", "오늘의 추천 맛집",
-                "mentionCount", 15,
-                "description", "커뮤니티에서 가장 많이 언급된 맛집입니다!",
-                "imageUrl", "/uploads/images/sample.jpg"
-            );
-            
-            log.info("오늘의 추천 게시글 조회 성공");
-            return ResponseEntity.ok(recommendation);
-        } catch (Exception e) {
-            log.error("오늘의 추천 게시글 조회 실패: {}", e.getMessage(), e);
-            Map<String, Object> errorResponse = Map.of(
-                "error", "오늘의 추천을 불러오는데 실패했습니다."
-            );
-            return ResponseEntity.internalServerError().body(errorResponse);
-        }
     }
 } 

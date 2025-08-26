@@ -3,6 +3,9 @@ import { Suspense, lazy } from "react";
 import LoadingSpinner from "../components/member/LoadingSpinner";
 import LocationPage from "../pages/location/LocationPage";
 import MemberLayout from "../layouts/MemberLayout";
+import SearchResultPage from "../pages/search/SearchResultPage";
+import ImageSearchResultPage from "../pages/search/ImageSearchResultPage";
+import Test from "../components/test/Test";
 
 // Lazy imports for all pages
 const MainPage = lazy(() => import("../pages/main/MainPage"));
@@ -10,7 +13,6 @@ const LoginPage = lazy(() => import("../pages/member/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/member/RegisterPage"));
 const BoardPage = lazy(() => import("../pages/board/BoardPage"));
 const MyPage = lazy(() => import("../pages/member/MyPage"));
-const ProfileEditPage = lazy(() => import("../pages/member/ProfileEditPage"));
 const CommunityPage = lazy(() => import("../pages/community/CommunityPage"));
 const CommunityPostDetailPage = lazy(() =>
   import("../pages/community/CommunityPostDetailPage")
@@ -43,9 +45,6 @@ const LocalSpecialtyDetailPage = lazy(() =>
   import("../pages/localSpecialty/LocalSpecialtyDetailPage")
 );
 const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
-const BusinessLocationPage = lazy(() =>
-  import("../pages/business/BusinessLocationPage")
-);
 
 // 마이페이지 관련 페이지들
 const BusinessRequestsPage = lazy(() =>
@@ -57,6 +56,10 @@ const AdminSettingsPage = lazy(() =>
 const BusinessRequestManagementPage = lazy(() =>
   import("../pages/admin/BusinessRequestManagementPage")
 );
+const BusinessLocationPage = lazy(() =>
+  import("../pages/business/BusinessLocationPage")
+);
+const ProfileEditPage = lazy(() => import("../pages/member/ProfileEditPage"));
 
 const root = createBrowserRouter([
   {
@@ -208,14 +211,6 @@ const root = createBrowserRouter([
     ),
   },
   {
-    path: "/mypage/admin/business-requests",
-    element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <BusinessRequestManagementPage />
-      </Suspense>
-    ),
-  },
-  {
     path: "/mypage/edit",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
@@ -224,10 +219,42 @@ const root = createBrowserRouter([
     ),
   },
   {
+    path: "/mypage/admin/business-requests",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <BusinessRequestManagementPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/search",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <SearchResultPage />
+      </Suspense>
+    ),
+  },
+  {
     path: "/business-location",
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <BusinessLocationPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/image-search",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ImageSearchResultPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/test",
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Test />
       </Suspense>
     ),
   },
