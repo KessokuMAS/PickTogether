@@ -19,6 +19,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 		  r.name                                      AS name,
 		  r.road_address_name                         AS roadAddressName,
 		  r.place_url                                 AS placeUrl,
+		  r.category_name                             AS categoryName,
 		  r.funding_amount                            AS fundingAmount,
 		  r.funding_goal_amount                       AS fundingGoalAmount,
 		  LEAST(100, GREATEST(0,

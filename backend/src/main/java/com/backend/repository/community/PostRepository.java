@@ -15,9 +15,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 카테고리별 게시글 조회
     Page<Post> findByCategoryOrderByCreatedAtDesc(String category, Pageable pageable);
     
-    // 카테고리별 게시글 개수 조회
-    long countByCategory(String category);
-    
     // 제목 또는 내용으로 검색
     @Query("SELECT p FROM Post p WHERE p.title LIKE %:keyword% OR p.content LIKE %:keyword%")
     Page<Post> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
@@ -30,7 +27,4 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     
     // 최신순으로 조회
     Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
-    
-    // 카테고리별 좋아요 높은 순으로 조회
-    java.util.List<Post> findByCategoryOrderByLikesDesc(String category);
 } 

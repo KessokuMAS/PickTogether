@@ -21,7 +21,8 @@ const itemVariants = {
 };
 
 function CircularProgress({ value = 0, size = 44, stroke = 4 }) {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const raw = Math.max(0, Math.round(value)); // 실제 값 (텍스트 출력용)
+  const pct = Math.min(100, raw); // 게이지용 (100%까지만 표시, 넘어가면 100%로 고정)
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - pct / 100);
@@ -35,7 +36,7 @@ function CircularProgress({ value = 0, size = 44, stroke = 4 }) {
     <div
       style={{ width: size, height: size }}
       className="relative flex items-center justify-center"
-      title={`${pct}%`}
+      title={`${raw}%`}
     >
       <svg width={size} height={size} className="drop-shadow-sm">
         <circle
@@ -62,12 +63,13 @@ function CircularProgress({ value = 0, size = 44, stroke = 4 }) {
         />
       </svg>
       <span
-        className="absolute font-semibold text-sm transition-colors duration-500 ease-out"
+        className="absolute font-semibold transition-colors duration-500 ease-out"
         style={{
-          color: pct >= 80 ? "#b91c1c" : pct >= 50 ? "#a16207" : "#1e40af",
+          color: raw >= 80 ? "#b91c1c" : raw >= 50 ? "#a16207" : "#1e40af",
+          fontSize: raw >= 100 ? `${size * 0.25}px` : `${size * 0.3}px`,
         }}
       >
-        {pct}%
+        {raw}%
       </span>
     </div>
   );
@@ -89,14 +91,14 @@ const FundingCard = ({ funding }) => {
 
   const navigate = useNavigate();
 
+  // ✅ NearbyKakaoResturants.js와 동일한 로직 적용
   const actualFundingAmount = (fundingAmount || 0) + (totalFundingAmount || 0);
-  const percent = Number.isFinite(fundingPercent)
-    ? Number(fundingPercent)
-    : fundingGoalAmount > 0 && actualFundingAmount >= 0
-    ? Math.round(
-        (Number(actualFundingAmount) * 100) / Number(fundingGoalAmount)
-      )
-    : 0;
+  const percent =
+    fundingGoalAmount > 0 && actualFundingAmount >= 0
+      ? Math.round(
+          (Number(actualFundingAmount) * 100) / Number(fundingGoalAmount)
+        )
+      : 0;
 
   const hasCustomImage = imageUrl && imageUrl.includes("uploads/");
   const displayImage = hasCustomImage
@@ -138,11 +140,11 @@ const FundingCard = ({ funding }) => {
         </div>
       </div>
       <div className="p-4 flex-1 flex flex-col justify-between">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-bold text-gray-900 truncate flex items-center gap-1.5">
-              <IoRestaurantOutline className="text-yellow-600 text-base" />
-              {name}
+            <h3 className="text-lg font-bold text-gray-900 truncate flex-1 flex items-center gap-1.5">
+              <IoRestaurantOutline className="text-yellow-600 text-base flex-shrink-0" />
+              <span className="truncate">{name}</span>
             </h3>
             <CircularProgress value={percent} size={40} stroke={3} />
           </div>
@@ -150,8 +152,8 @@ const FundingCard = ({ funding }) => {
             {roadAddressName || "-"}
           </p>
           <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-1.5">
-            <TbCurrentLocation className="text-yellow-600 text-base" />
-            {distLabel}
+            <TbCurrentLocation className="text-yellow-600 text-base flex-shrink-0" />
+            <span className="truncate">{distLabel}</span>
           </p>
         </div>
         <div className="mt-3 pt-2 border-t border-gray-200">
@@ -164,12 +166,12 @@ const FundingCard = ({ funding }) => {
               <FaFire
                 className={`${
                   daysLeft <= 5 ? "text-red-600" : "text-gray-600"
-                } text-base`}
+                } text-base flex-shrink-0`}
               />
-              {daysLeft}일 남음
+              <span className="truncate">{daysLeft}일 남음</span>
             </span>
-            <span className="text-green-600 font-semibold">
-              {actualFundingAmount.toLocaleString()}원
+            <span className="text-green-600 font-semibold truncate">
+              {actualFundingAmount.toLocaleString()}원 펀딩
             </span>
           </div>
         </div>
@@ -269,7 +271,7 @@ const TrendingFundingPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
-  const [size] = useState(24);
+  const [size] = useState(48);
   const [hasMore, setHasMore] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -309,20 +311,24 @@ const TrendingFundingPage = () => {
 
       let sortedContent = data.content || [];
       sortedContent.sort((a, b) => {
-        const aProgress = Number.isFinite(a.fundingPercent)
-          ? Number(a.fundingPercent)
-          : a.fundingGoalAmount > 0 && a.totalFundingAmount >= 0
-          ? Math.round(
-              (Number(a.totalFundingAmount) * 100) / Number(a.fundingGoalAmount)
-            )
-          : 0;
-        const bProgress = Number.isFinite(b.fundingPercent)
-          ? Number(b.fundingPercent)
-          : b.fundingGoalAmount > 0 && b.totalFundingAmount >= 0
-          ? Math.round(
-              (Number(b.totalFundingAmount) * 100) / Number(b.fundingGoalAmount)
-            )
-          : 0;
+        const aProgress =
+          a.fundingGoalAmount > 0 &&
+          (a.fundingAmount || 0) + (a.totalFundingAmount || 0) >= 0
+            ? Math.round(
+                (Number((a.fundingAmount || 0) + (a.totalFundingAmount || 0)) *
+                  100) /
+                  Number(a.fundingGoalAmount)
+              )
+            : 0;
+        const bProgress =
+          b.fundingGoalAmount > 0 &&
+          (b.fundingAmount || 0) + (b.totalFundingAmount || 0) >= 0
+            ? Math.round(
+                (Number((b.fundingAmount || 0) + (b.totalFundingAmount || 0)) *
+                  100) /
+                  Number(b.fundingGoalAmount)
+              )
+            : 0;
         return bProgress - aProgress;
       });
 
@@ -369,25 +375,27 @@ const TrendingFundingPage = () => {
     if (sort === "fundingHigh") {
       filtered.sort(
         (a, b) =>
-          (b.fundingAmount + b.totalFundingAmount || 0) -
-          (a.fundingAmount + a.totalFundingAmount || 0)
+          (b.fundingAmount || 0) +
+          (b.totalFundingAmount || 0) -
+          ((a.fundingAmount || 0) + (a.totalFundingAmount || 0))
       );
     } else if (sort === "fundingLow") {
       filtered.sort(
         (a, b) =>
-          (a.fundingAmount + a.totalFundingAmount || 0) -
-          (b.fundingAmount + b.totalFundingAmount || 0)
+          (a.fundingAmount || 0) +
+          (a.totalFundingAmount || 0) -
+          ((b.fundingAmount || 0) + (b.totalFundingAmount || 0))
       );
     } else if (sort === "percentHigh") {
       filtered.sort((a, b) => {
         const aPercent =
           a.fundingGoalAmount > 0
-            ? ((a.fundingAmount + a.totalFundingAmount) * 100) /
+            ? (((a.fundingAmount || 0) + (a.totalFundingAmount || 0)) * 100) /
               a.fundingGoalAmount
             : 0;
         const bPercent =
           b.fundingGoalAmount > 0
-            ? ((b.fundingAmount + b.totalFundingAmount) * 100) /
+            ? (((b.fundingAmount || 0) + (b.totalFundingAmount || 0)) * 100) /
               b.fundingGoalAmount
             : 0;
         return bPercent - aPercent;
@@ -563,7 +571,8 @@ const TrendingFundingPage = () => {
                           alt={`${funding.name} 배너`}
                           className="w-full h-[280px] object-cover brightness-95 transition-all duration-300"
                         />
-                        {((funding.fundingAmount + funding.totalFundingAmount) *
+                        {(((funding.fundingAmount || 0) +
+                          (funding.totalFundingAmount || 0)) *
                           100) /
                           funding.fundingGoalAmount >=
                           80 && (
@@ -572,11 +581,11 @@ const TrendingFundingPage = () => {
                           </span>
                         )}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 to-transparent p-4">
-                          <p className="text-white text-base font-semibold">
+                          <p className="text-white text-base font-semibold truncate">
                             {funding.name} -{" "}
                             {Math.round(
-                              ((funding.fundingAmount +
-                                funding.totalFundingAmount) *
+                              (((funding.fundingAmount || 0) +
+                                (funding.totalFundingAmount || 0)) *
                                 100) /
                                 funding.fundingGoalAmount
                             )}
@@ -640,10 +649,10 @@ const TrendingFundingPage = () => {
               variants={itemVariants}
             >
               <span className="flex items-center gap-1.5">
-                <FiTrendingUp className="text-xl" />
-                인기 펀딩 맛집
+                <FiTrendingUp className="text-xl flex-shrink-0" />
+                <span className="truncate">인기 펀딩 맛집</span>
               </span>
-              <span className="text-gray-600 text-[14px]">
+              <span className="text-gray-600 text-[14px] truncate">
                 달성률이 높은 펀딩을 확인해보세요 !
               </span>
             </motion.h2>
@@ -663,7 +672,7 @@ const TrendingFundingPage = () => {
               className="mb-4 p-2.5 rounded-md shadow-sm"
               variants={itemVariants}
             >
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 truncate">
                 총{" "}
                 <span className="font-semibold text-yellow-700">
                   {filteredFundings.length}
@@ -756,7 +765,7 @@ const TrendingFundingPage = () => {
               animate="visible"
             >
               <motion.h3
-                className="text-lg font-semibold text-yellow-800 mb-3"
+                className="text-lg font-semibold text-yellow-800 mb-3 truncate"
                 variants={itemVariants}
               >
                 인기 지역
@@ -771,8 +780,8 @@ const TrendingFundingPage = () => {
                         setSelectedSigungu("");
                       }}
                     >
-                      <TbCurrentLocation className="text-yellow-600 text-base" />
-                      {sido}
+                      <TbCurrentLocation className="text-yellow-600 text-base flex-shrink-0" />
+                      <span className="truncate">{sido}</span>
                     </button>
                   </motion.li>
                 ))}
@@ -781,7 +790,7 @@ const TrendingFundingPage = () => {
                 className="mt-5 pt-3 border-t border-gray-200"
                 variants={itemVariants}
               >
-                <h3 className="text-lg font-semibold text-yellow-800 mb-3">
+                <h3 className="text-lg font-semibold text-yellow-800 mb-3 truncate">
                   오늘의 핫딜
                 </h3>
                 <div className="relative rounded-md overflow-hidden shadow-md">
@@ -791,7 +800,7 @@ const TrendingFundingPage = () => {
                     className="w-full h-36 object-cover brightness-95"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/85 to-transparent">
-                    <p className="text-white text-xs font-semibold">
+                    <p className="text-white text-xs font-semibold truncate">
                       오늘의 인기 펀딩!
                     </p>
                     <button

@@ -23,11 +23,7 @@ public interface PostService {
     
     void deletePost(Long id);
     
-    PostDTO toggleLike(Long id, String userEmail);
+    PostDTO likePost(Long id);
     
     void incrementViews(Long id);
-    
-    Object getTodayRecommendation();
-    
-    Object getTodayHiddenRestaurant();
 } 

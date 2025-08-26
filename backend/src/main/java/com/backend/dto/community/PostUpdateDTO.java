@@ -16,6 +16,4 @@ public class PostUpdateDTO {
     private String content;
     private String category;
     private MultipartFile imageFile;
-    private String address;
-    private String restaurantName;
 } 

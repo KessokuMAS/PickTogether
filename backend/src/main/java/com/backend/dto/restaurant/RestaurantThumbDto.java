@@ -16,6 +16,7 @@ public class RestaurantThumbDto {
     private String name;             // 음식점 이름
     private String placeUrl;         // 카카오 장소 URL
     private String roadAddressName;  // 도로명 주소
+    private String categoryName;
 
     private Long imageId;            // 이미지 ID
     private String imageUrl;         // 썸네일 URL

@@ -8,6 +8,7 @@ public interface RestaurantThumbView {
     String getName();
     String getRoadAddressName();
     String getPlaceUrl();
+    String getCategoryName();
 
     Double getDistance();           // m (동적 계산)
     Long getFundingAmount();

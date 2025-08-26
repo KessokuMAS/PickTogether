@@ -69,8 +69,8 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public Map<String, Object> register(String email, String pw, String nickname, String memberType) {
-        log.info("회원가입 시도: " + email + ", 회원 유형: " + memberType);
+    public Map<String, Object> register(String email, String pw, String nickname) {
+        log.info("회원가입 시도: " + email);
 
         // 이메일 중복 확인
         if (memberRepository.existsByEmail(email)) {
@@ -88,13 +88,8 @@ public class MemberServiceImpl implements MemberService {
                 .socialType(null)  // 일반회원은 null
                 .build();
 
-        // 회원 유형에 따른 역할 추가
-        if ("BUSINESS_OWNER".equals(memberType)) {
-            member.addRole(MemberRole.BUSINESS_OWNER);
-        } else {
-            // 기본값은 USER
-            member.addRole(MemberRole.USER);
-        }
+        // 기본 역할 추가 (USER)
+        member.addRole(MemberRole.USER);
 
         // 저장
         memberRepository.save(member);
@@ -115,38 +110,11 @@ public class MemberServiceImpl implements MemberService {
                     
                     return MemberDTO.builder()
                             .email(member.getEmail())
-                            .pw(member.getPw())
                             .nickname(member.getNickname())
                             .socialType(member.getSocialType())
                             .roleNames(roleNames)
                             .build();
                 })
                 .orElse(null);
-    }
-
-    // 회원 정보 수정 메서드들 구현
-    @Override
-    public void updateNickname(String email, String nickname) {
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
-        
-        member.changeNickname(nickname);
-        memberRepository.save(member);
-    }
-
-    @Override
-    public void updatePassword(String email, String currentPassword, String newPassword) {
-        Member member = memberRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
-        
-        // 현재 비밀번호 검증
-        if (!passwordEncoder.matches(currentPassword, member.getPw())) {
-            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
-        }
-        
-        // 새 비밀번호 암호화 및 저장
-        String encodedNewPassword = passwordEncoder.encode(newPassword);
-        member.changePw(encodedNewPassword);
-        memberRepository.save(member);
     }
 } 

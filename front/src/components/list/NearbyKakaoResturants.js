@@ -48,7 +48,7 @@ function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
       <span
         className="absolute font-bold transition-colors duration-500 ease-out"
         style={{
-          fontSize: `${size * 0.3}px`,
+          fontSize: raw >= 100 ? `${size * 0.25}px` : `${size * 0.3}px`,
           color: raw >= 80 ? "#b91c1c" : raw >= 50 ? "#a16207" : "#1e40af",
         }}
       >
@@ -140,6 +140,7 @@ const NearbyKakaoRestaurants = () => {
         const res = await fetch(`${API_BASE}/nearby?${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+        console.log(data);
 
         setRestaurants((prev) =>
           nextPage === 0 ? data.content ?? [] : prev.concat(data.content ?? [])
@@ -346,7 +347,8 @@ const NearbyKakaoRestaurants = () => {
                   categoryName,
                 } = store;
 
-                const actualFundingAmount = fundingAmount || 0;
+                const actualFundingAmount =
+                  (fundingAmount || 0) + (totalFundingAmount || 0);
 
                 const percent =
                   fundingGoalAmount > 0 && actualFundingAmount >= 0
@@ -381,7 +383,7 @@ const NearbyKakaoRestaurants = () => {
                       ${daysLeft === 0 ? "bg-gray-300 opacity-80" : "bg-white"}
                     `}
                   >
-                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative group">
+                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative group rounded-t-lg">
                       <img
                         src={displayImage}
                         alt={`${name} 이미지`}

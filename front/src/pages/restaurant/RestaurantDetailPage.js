@@ -51,7 +51,8 @@ const cartItemVariants = {
 
 // Bar Progress Component
 const BarProgress = ({ value = 0, maxValue = 100 }) => {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const raw = Math.max(0, Math.round(value)); // 실제 값 (텍스트 출력용)
+  const pct = Math.min(100, raw); // 게이지용 (100%까지만 표시, 넘어가면 100%로 고정)
   const barColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
 
   return (
@@ -66,7 +67,7 @@ const BarProgress = ({ value = 0, maxValue = 100 }) => {
         />
       </div>
       <div className="flex justify-between items-center text-xs font-semibold text-gray-700">
-        <span>{pct}% 달성</span>
+        <span>{raw}% 달성</span>
         <span>목표 {maxValue.toLocaleString()}원</span>
       </div>
     </div>
@@ -83,14 +84,36 @@ const RestaurantDetailPage = () => {
   const [selectedMenus, setSelectedMenus] = useState([]);
   const [isAddingToCart, setIsAddingToCart] = useState({});
   const [addedToCart, setAddedToCart] = useState({});
+  const [totalFundingAmount, setTotalFundingAmount] = useState(0);
 
   // Fetch restaurant details
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetchRestaurantDetail(id);
-        setData(res);
+        // NearbyKakaoResturants.js와 동일한 API 사용
+        const response = await fetch(
+          `${API_BASE}/api/restaurants/nearby?lat=37.5027&lng=127.0352&radius=10000&page=0&size=1000`
+        );
+        if (response.ok) {
+          const nearbyData = await response.json();
+          // 해당 ID의 레스토랑 찾기
+          const restaurant = nearbyData.content?.find(
+            (store) => store.restaurantId == id
+          );
+          if (restaurant) {
+            setData(restaurant);
+            console.log("Nearby API에서 찾은 레스토랑:", restaurant);
+          } else {
+            // 기존 API로 fallback
+            const res = await fetchRestaurantDetail(id);
+            setData(res);
+          }
+        } else {
+          // 기존 API로 fallback
+          const res = await fetchRestaurantDetail(id);
+          setData(res);
+        }
       } catch (e) {
         setError("상세 정보를 불러오지 못했습니다.");
       } finally {
@@ -98,6 +121,27 @@ const RestaurantDetailPage = () => {
       }
     })();
   }, [id]);
+
+  // Fetch funding total amount from funding table
+  useEffect(() => {
+    if (!id) return;
+
+    // NearbyKakaoResturants.js와 동일한 방식으로 totalFundingAmount 사용
+    if (data) {
+      console.log("Restaurant API 응답 데이터:", data);
+      console.log("사용 가능한 필드들:", Object.keys(data));
+
+      // totalFundingAmount가 있는지 확인 (NearbyKakaoResturants.js와 동일)
+      if (data.totalFundingAmount !== undefined) {
+        setTotalFundingAmount(data.totalFundingAmount || 0);
+        console.log("totalFundingAmount 사용:", data.totalFundingAmount);
+      } else {
+        // totalFundingAmount가 없다면 fundingAmount만 사용
+        console.log("totalFundingAmount 필드가 없음, fundingAmount만 사용");
+        setTotalFundingAmount(0);
+      }
+    }
+  }, [id, data]);
 
   // Fallback index for placeholder images
   const fallbackIdx = useMemo(() => ((Number(id) || 0) % 45) + 1, [id]);
@@ -350,11 +394,24 @@ const RestaurantDetailPage = () => {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
-                        {Number(data.fundingAmount ?? 0).toLocaleString()}원
-                        펀딩
+                        {(
+                          Number(data.fundingAmount ?? 0) +
+                          Number(totalFundingAmount)
+                        ).toLocaleString()}
+                        원 펀딩
+                        {/* 디버깅 정보 */}
                       </div>
                       <BarProgress
-                        value={data.fundingPercent ?? 0}
+                        value={
+                          data.fundingGoalAmount > 0
+                            ? Math.round(
+                                ((Number(data.fundingAmount ?? 0) +
+                                  Number(totalFundingAmount)) *
+                                  100) /
+                                  Number(data.fundingGoalAmount)
+                              )
+                            : 0
+                        }
                         maxValue={data.fundingGoalAmount ?? 0}
                       />
                       <div className="mt-3 text-sm text-gray-600 flex items-center gap-3">

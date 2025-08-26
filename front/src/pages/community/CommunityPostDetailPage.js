@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "../../layouts/MainLayout";
 import { communityApi } from "../../api/communityApi";
 import { useAuth } from "../../context/AuthContext";
 
+// 아이콘들
 import {
   FiArrowLeft,
   FiHeart,
   FiMessageSquare,
   FiEye,
-  FiEdit,
-  FiTrash2,
   FiShare2,
   FiBookmark,
   FiUser,
@@ -18,6 +17,9 @@ import {
   FiTag,
   FiMoreVertical,
 } from "react-icons/fi";
+
+import { FaInstagram, FaFacebook, FaTwitter } from "react-icons/fa";
+import { SiKakaotalk } from "react-icons/si";
 
 const CommunityPostDetailPage = () => {
   const { postId } = useParams();
@@ -41,15 +43,134 @@ const CommunityPostDetailPage = () => {
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [shareMenuPosition, setShareMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+
+  // 사용자가 좋아요를 누른 게시글 ID들을 저장 (로컬 상태)
+  const [likedPosts, setLikedPosts] = useState(new Set());
+
+  const shareMenuRef = useRef(null);
+  const shareButtonRef = useRef(null);
+
+  // 공유 메뉴 위치를 버튼 위치에 맞게 계산해 갱신
+  const updateShareMenuPosition = useCallback(() => {
+    const buttonEl = shareButtonRef.current;
+    if (!buttonEl) return;
+
+    const rect = buttonEl.getBoundingClientRect();
+    const MENU_WIDTH = 192; // w-48
+    const PADDING = 8;
+    const menuEl = shareMenuRef.current;
+    const menuHeight = menuEl ? menuEl.offsetHeight : 0;
+
+    let left = Math.min(rect.left, window.innerWidth - MENU_WIDTH - PADDING);
+    let top = rect.bottom + PADDING; // 기본적으로 버튼 아래
+
+    if (menuHeight && top + menuHeight > window.innerHeight - PADDING) {
+      // 아래 공간이 부족하면 위쪽에 배치
+      top = Math.max(PADDING, rect.top - menuHeight - PADDING);
+    }
+
+    setShareMenuPosition({ top, left });
+  }, []);
+
   const getCurrentUserEmail = () =>
     currentUser?.email || currentUser?.username || "";
 
+  // 통합된 useEffect: 게시글 로드, 댓글 로드, 조회수 증가를 한 번에 처리
   useEffect(() => {
-    loadPost();
-    loadComments();
-    // TODO: 실제 사용자 정보 로드
-    setCurrentUser({ id: 1, username: "테스트사용자" });
-  }, [postId]);
+    const currentPostId = parseInt(postId);
+
+    // React Strict Mode 이중 실행 방지를 위한 플래그
+    let isInitialized = false;
+
+    // 1. 게시글과 댓글 로드
+    const loadData = async () => {
+      await loadPost();
+      await loadComments();
+    };
+
+    // 2. 조회수 증가 처리 (세션 스토리지 제거 - 매번 증가)
+    const handleViewIncrement = async () => {
+      // 이미 처리되었는지 확인 (React Strict Mode 방지)
+      if (isInitialized) {
+        console.log(
+          `조회수 증가 스킵: 이미 초기화됨 (게시글 ${currentPostId})`
+        );
+        return;
+      }
+
+      console.log(`조회수 증가 시작: 게시글 ${currentPostId}`);
+
+      // 조회수 증가 실행 (백엔드 + 로컬)
+      await incrementViewCount();
+
+      // 초기화 완료 표시
+      isInitialized = true;
+    };
+
+    // 3. 순차적으로 실행
+    const initializePage = async () => {
+      // 먼저 조회수 증가 처리 (async 함수이므로 await 필요)
+      await handleViewIncrement();
+
+      // 그 다음 데이터 로드
+      await loadData();
+
+      // 사용자 정보 설정
+      setCurrentUser({ id: 1, username: "테스트사용자" });
+    };
+
+    initializePage();
+
+    // Cleanup 함수: 컴포넌트 언마운트 시 정리
+    return () => {
+      isInitialized = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [postId]); // postId가 변경될 때만 실행
+
+  // 공유 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isShareMenuOpen) return;
+      const menuEl = shareMenuRef.current;
+      const buttonEl = shareButtonRef.current;
+      if (
+        menuEl &&
+        !menuEl.contains(event.target) &&
+        buttonEl &&
+        !buttonEl.contains(event.target)
+      ) {
+        setIsShareMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("click", handleClickOutside, true);
+    return () => window.removeEventListener("click", handleClickOutside, true);
+  }, [isShareMenuOpen]);
+
+  // 메뉴가 열려있는 동안 스크롤/리사이즈 시 위치 재계산
+  useEffect(() => {
+    if (!isShareMenuOpen) return;
+
+    // 처음 열릴 때 한 번 계산
+    updateShareMenuPosition();
+
+    const handleScroll = () => updateShareMenuPosition();
+    const handleResize = () => updateShareMenuPosition();
+
+    window.addEventListener("scroll", handleScroll, true);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isShareMenuOpen, updateShareMenuPosition]);
 
   const loadPost = async () => {
     setIsLoading(true);
@@ -90,6 +211,40 @@ const CommunityPostDetailPage = () => {
     }
   };
 
+  // 조회수 증가 함수 (백엔드 + 로컬 동기화)
+  const incrementViewCount = async () => {
+    try {
+      const currentPostId = parseInt(postId);
+
+      // 먼저 로컬 상태 업데이트 (사용자 경험 향상)
+      setPost((prev) => {
+        if (!prev) return null;
+
+        // 현재 조회수 확인
+        const currentViews = prev.views || 0;
+        console.log(`조회수 업데이트: ${currentViews} → ${currentViews + 1}`);
+
+        return { ...prev, views: currentViews + 1 };
+      });
+
+      console.log(`조회수 증가 완료 (로컬): 게시글 ${currentPostId}`);
+
+      // 백엔드 API 호출 시도 (실패해도 로컬은 업데이트됨)
+      try {
+        await communityApi.incrementViews(currentPostId);
+        console.log(`조회수 증가 백엔드 성공: 게시글 ${currentPostId}`);
+      } catch (backendError) {
+        console.warn(
+          `백엔드 조회수 증가 실패 (로컬은 업데이트됨):`,
+          backendError
+        );
+        // 백엔드 실패해도 로컬 상태는 이미 업데이트됨
+      }
+    } catch (error) {
+      console.error("조회수 증가 처리 실패:", error);
+    }
+  };
+
   const loadComments = async () => {
     try {
       const list = await communityApi.getComments(postId);
@@ -109,10 +264,56 @@ const CommunityPostDetailPage = () => {
         return;
       }
 
-      const updatedPost = await communityApi.toggleLike(postId, userEmail);
-      setPost(updatedPost);
+      console.log("좋아요 버튼 클릭:", postId);
+      console.log("현재 likedPosts:", Array.from(likedPosts));
+      console.log(
+        "이 게시글에 좋아요를 눌렀나요?",
+        likedPosts.has(parseInt(postId))
+      );
+
+      // 로컬 상태 즉시 업데이트 (즉시 반응)
+      if (likedPosts.has(parseInt(postId))) {
+        // 좋아요 취소
+        console.log("좋아요 취소 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(parseInt(postId));
+          console.log("새로운 likedPosts (취소 후):", Array.from(newSet));
+          return newSet;
+        });
+
+        // 게시글의 좋아요 수 감소
+        setPost((prev) => ({
+          ...prev,
+          likes: Math.max(0, (prev.likes || 1) - 1),
+        }));
+      } else {
+        // 좋아요 추가
+        console.log("좋아요 추가 처리");
+        setLikedPosts((prev) => {
+          const newSet = new Set([...prev, parseInt(postId)]);
+          console.log("새로운 likedPosts (추가 후):", Array.from(newSet));
+          return newSet;
+        });
+
+        // 게시글의 좋아요 수 증가
+        setPost((prev) => ({
+          ...prev,
+          likes: (prev.likes || 0) + 1,
+        }));
+      }
+
+      // 백엔드 API 호출 (백그라운드에서 처리)
+      try {
+        await communityApi.toggleLike(postId, userEmail);
+        console.log("좋아요 백엔드 처리 성공");
+      } catch (error) {
+        console.error("백엔드 좋아요 처리 실패:", error);
+        // 백엔드 실패 시에도 프론트엔드는 유지 (사용자 경험 향상)
+      }
     } catch (error) {
       console.error("좋아요 처리 실패:", error);
+      alert("좋아요 처리에 실패했습니다. 다시 시도해주세요.");
     }
   };
 
@@ -178,6 +379,161 @@ const CommunityPostDetailPage = () => {
     }
   };
 
+  // 게시글 공유
+  const handleSharePost = async () => {
+    if (!post) {
+      console.log("post 데이터가 없습니다.");
+      return;
+    }
+
+    console.log("공유 시작:", post);
+
+    const shareUrl = window.location.href;
+    const shareText =
+      post.content && post.content.length > 100
+        ? post.content.substring(0, 100) + "..."
+        : post.content || "흥미로운 게시글을 확인해보세요!";
+
+    console.log("공유 URL:", shareUrl);
+    console.log("공유 텍스트:", shareText);
+
+    try {
+      // 1. Web Share API 시도 (모바일에서 네이티브 공유)
+      // localhost 환경에서는 Web Share API가 불안정하므로 클립보드 복사 우선
+      if (navigator.share && !window.location.hostname.includes("localhost")) {
+        console.log("Web Share API 사용 시도...");
+        try {
+          const shareResult = await navigator.share({
+            title: post.title || "커뮤니티 게시글",
+            text: shareText,
+            url: shareUrl,
+          });
+          console.log("Web Share API 공유 성공:", shareResult);
+          return;
+        } catch (shareError) {
+          console.log("Web Share API 실패, 클립보드 복사로 전환:", shareError);
+          // Web Share API 실패 시 자동으로 클립보드 복사로 진행
+        }
+      } else {
+        console.log(
+          "Web Share API 미지원 또는 localhost 환경, 클립보드 복사로 진행"
+        );
+      }
+
+      // 2. 클립보드 복사 시도
+      console.log("클립보드 복사 시도...");
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          console.log("클립보드 복사 성공!");
+
+          // 컴퓨터에서 공유할 때는 링크를 직접 보여주기
+          const shareMessage = `🔗 공유 링크가 클립보드에 복사되었습니다!\n\n📋 링크: ${shareUrl}\n\n이제 다른 곳에 붙여넣기(Ctrl+V)할 수 있습니다.`;
+          alert(shareMessage);
+          return;
+        } catch (clipboardError) {
+          console.log(
+            "navigator.clipboard 실패, fallback 사용:",
+            clipboardError
+          );
+        }
+      }
+
+      // 3. Fallback: document.execCommand 사용
+      console.log("document.execCommand fallback 사용...");
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        console.log("document.execCommand 복사 성공!");
+
+        // 컴퓨터에서 공유할 때는 링크를 직접 보여주기
+        const shareMessage = `🔗 공유 링크가 클립보드에 복사되었습니다!\n\n📋 링크: ${shareUrl}\n\n이제 다른 곳에 붙여넣기(Ctrl+V)할 수 있습니다.`;
+        alert(shareMessage);
+      } else {
+        throw new Error("document.execCommand 실패");
+      }
+    } catch (error) {
+      console.error("모든 공유 방법 실패:", error);
+
+      // 4. 최종 fallback: 사용자에게 링크 직접 표시
+      const finalMessage = `📋 공유 링크:\n${shareUrl}\n\n링크를 복사하여 공유해주세요.`;
+      alert(finalMessage);
+    }
+  };
+
+  // 소셜미디어 공유 함수들
+  const shareToKakaoTalk = () => {
+    if (!post) return;
+
+    const shareUrl = window.location.href;
+    const shareText = post.title || "커뮤니티 게시글";
+
+    // 카카오톡 공유 URL (카카오톡 앱이 설치되어 있어야 함)
+    const kakaoUrl = `https://story.kakao.com/share?url=${encodeURIComponent(
+      shareUrl
+    )}&text=${encodeURIComponent(shareText)}`;
+    window.open(kakaoUrl, "_blank");
+  };
+
+  const shareToInstagram = () => {
+    if (!post) return;
+
+    const shareUrl = window.location.href;
+    const shareText = post.title || "커뮤니티 게시글";
+
+    // 인스타그램은 링크 공유가 제한적이므로 클립보드에 복사
+    const instagramText = `${shareText}\n\n${shareUrl}`;
+    navigator.clipboard
+      .writeText(instagramText)
+      .then(() => {
+        alert(
+          "📸 인스타그램 공유용 텍스트가 클립보드에 복사되었습니다!\n\n인스타그램 앱에서 붙여넣기(Ctrl+V)하여 공유해주세요."
+        );
+      })
+      .catch(() => {
+        alert(
+          `📸 인스타그램 공유용 텍스트:\n\n${instagramText}\n\n위 텍스트를 복사하여 인스타그램에 공유해주세요.`
+        );
+      });
+  };
+
+  const shareToFacebook = () => {
+    if (!post) return;
+
+    const shareUrl = window.location.href;
+    const shareText = post.title || "커뮤니티 게시글";
+
+    // 페이스북 공유 URL
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      shareUrl
+    )}&quote=${encodeURIComponent(shareText)}`;
+    window.open(facebookUrl, "_blank", "width=600,height=400");
+  };
+
+  const shareToTwitter = () => {
+    if (!post) return;
+
+    const shareUrl = window.location.href;
+    const shareText = post.title || "커뮤니티 게시글";
+
+    // 트위터 공유 URL
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+      shareUrl
+    )}&text=${encodeURIComponent(shareText)}`;
+    window.open(twitterUrl, "_blank", "width=600,height=400");
+  };
+
   // 날짜 포맷팅 (요청사항)
   // - 오늘: 1분전 / 5분전 / 10분전 / 이후는 1시간전
   // - 어제부터는 YYYY/MM/DD
@@ -209,7 +565,7 @@ const CommunityPostDetailPage = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+        <div className="min-h-screen bg-white flex justify-center items-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-500 border-t-transparent"></div>
         </div>
       </MainLayout>
@@ -219,7 +575,7 @@ const CommunityPostDetailPage = () => {
   if (!post) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+        <div className="min-h-screen bg-white flex justify-center items-center">
           <div className="text-center">
             <p className="text-xl text-gray-500">게시글을 찾을 수 없습니다.</p>
           </div>
@@ -232,7 +588,7 @@ const CommunityPostDetailPage = () => {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 헤더 */}
           <div className="flex items-center justify-between mb-8">
@@ -335,18 +691,29 @@ const CommunityPostDetailPage = () => {
                   {/* 좋아요 버튼 */}
                   <button
                     onClick={handleLike}
-                    disabled={post.isLiked}
-                    className={`flex items-center gap-1 transition-colors ${
-                      post.isLiked
-                        ? "text-red-500 cursor-not-allowed"
-                        : "text-gray-400 hover:text-red-500"
+                    className={`flex items-center gap-1 transition-all duration-200 ${
+                      likedPosts.has(parseInt(postId))
+                        ? "text-red-500 hover:text-red-600 scale-105"
+                        : "text-gray-400 hover:text-red-500 hover:scale-105"
                     }`}
                   >
                     <FiHeart
                       size={16}
-                      className={post.isLiked ? "fill-current" : ""}
+                      className={`transition-all duration-200 ${
+                        likedPosts.has(parseInt(postId))
+                          ? "fill-current text-red-500"
+                          : "hover:scale-110"
+                      }`}
                     />
-                    <span className="font-medium">{post.likes || 0}</span>
+                    <span
+                      className={`font-medium ${
+                        likedPosts.has(parseInt(postId))
+                          ? "text-red-500"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {post.likes || 0}
+                    </span>
                   </button>
 
                   {/* 댓글 수 */}
@@ -364,9 +731,108 @@ const CommunityPostDetailPage = () => {
 
                 {/* 오른쪽 끝: 공유, 북마크 */}
                 <div className="flex items-center gap-3">
-                  <button className="p-2 text-gray-400 hover:text-green-500 transition-colors rounded-full hover:bg-green-50">
-                    <FiShare2 size={18} />
-                  </button>
+                  <div>
+                    <button
+                      ref={shareButtonRef}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const MENU_WIDTH = 192; // w-48
+                        const PADDING = 8;
+                        const left = Math.min(
+                          rect.left,
+                          window.innerWidth - MENU_WIDTH - PADDING
+                        );
+                        const top = rect.bottom + PADDING;
+                        setShareMenuPosition({ top, left });
+                        setIsShareMenuOpen((prev) => !prev);
+                      }}
+                      className="p-2 text-gray-400 hover:text-green-500 transition-colors rounded-full hover:bg-green-50"
+                      title="게시글 공유"
+                    >
+                      <FiShare2 size={18} />
+                    </button>
+                    {isShareMenuOpen && (
+                      <div
+                        ref={shareMenuRef}
+                        className="fixed z-[99999] w-48 rounded-md bg-white shadow-2xl ring-2 ring-black ring-opacity-20 border-2 border-gray-200"
+                        style={{
+                          top: shareMenuPosition.top,
+                          left: shareMenuPosition.left,
+                        }}
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              shareToKakaoTalk();
+                              setIsShareMenuOpen(false);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-yellow-50 transition-colors"
+                          >
+                            <SiKakaotalk
+                              className="mr-2 text-yellow-400"
+                              size={16}
+                            />
+                            카카오톡으로 공유
+                          </button>
+                          <button
+                            onClick={() => {
+                              shareToInstagram();
+                              setIsShareMenuOpen(false);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition-colors"
+                          >
+                            <FaInstagram
+                              className="mr-2 text-pink-500"
+                              size={16}
+                            />
+                            인스타그램으로 공유
+                          </button>
+                          <button
+                            onClick={() => {
+                              shareToFacebook();
+                              setIsShareMenuOpen(false);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                          >
+                            <FaFacebook
+                              className="mr-2 text-blue-600"
+                              size={16}
+                            />
+                            페이스북으로 공유
+                          </button>
+                          <button
+                            onClick={() => {
+                              shareToTwitter();
+                              setIsShareMenuOpen(false);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors"
+                          >
+                            <FaTwitter
+                              className="mr-2 text-blue-400"
+                              size={16}
+                            />
+                            트위터로 공유
+                          </button>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button
+                            onClick={() => {
+                              handleSharePost();
+                              setIsShareMenuOpen(false);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          >
+                            <FiShare2
+                              className="mr-2 text-gray-500"
+                              size={16}
+                            />
+                            링크 복사
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <button className="p-2 text-gray-400 hover:text-green-500 transition-colors rounded-full hover:bg-green-50">
                     <FiBookmark size={18} />
                   </button>

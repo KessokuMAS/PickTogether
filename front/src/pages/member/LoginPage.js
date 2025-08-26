@@ -68,7 +68,7 @@ const LoginPage = () => {
             to="/"
             className="flex items-center gap-3 text-gray-900 hover:text-blue-600 transition-colors"
           >
-            <img src="/logo5.png" alt="PickTogether" className="h-28 w-auto" />
+            <img src="/logo3.png" alt="PickTogether" className="h-28 w-auto" />
           </Link>
         </div>
       </div>

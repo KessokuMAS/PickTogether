@@ -69,28 +69,24 @@ public class CustomSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll() // 이미지 파일 접근 허용
-                .requestMatchers("/api/member/login").permitAll() // 로그인
-                .requestMatchers("/api/member/register").permitAll() // 회원가입
-                .requestMatchers("/api/member/kakao").permitAll() // 카카오 로그인
-                .requestMatchers("/api/member/google").permitAll() // 구글 로그인
-                .requestMatchers("/api/member/naver").permitAll() // 네이버 로그인
-                .requestMatchers("/api/member/naver/token").permitAll() // 네이버 토큰 교환
-                .requestMatchers("/api/member/test").permitAll() // 테스트
-                .requestMatchers("/api/member/mypage").authenticated() // 마이페이지
-                .requestMatchers("/api/member/locations").authenticated() // 위치 정보
-                .requestMatchers("/api/member/profile").authenticated() // 회원 정보 수정
-                .requestMatchers("/api/member/password").authenticated() // 비밀번호 수정
-                .requestMatchers("/api/member/logout").authenticated() // 로그아웃
+                .requestMatchers("/api/member/mypage").authenticated()
+                .requestMatchers("/api/member/locations").authenticated()
+                .requestMatchers("/api/member/**").permitAll()
                 .requestMatchers("/api/for-one/**").permitAll()
+
                 .requestMatchers("/api/test/**").permitAll()
                 .requestMatchers("/api/products/view/**").permitAll()
                 .requestMatchers("/api/restaurants/**").permitAll()
                 .requestMatchers("/api/community/**").permitAll()
                 .requestMatchers("/api/local-specialty/**").permitAll() // 지역특산물 정보 공개 접근 허용
-                .requestMatchers("/api/funding-specialty/**").permitAll() // 지역특산품 구매 API 공개 접근 허용
+                .requestMatchers("/api/local-specialties/**").permitAll() // 새로운 지역특산물 API 접근 허용
+                .requestMatchers("/api/funding-specialty/**").permitAll() // 지역특산품 구매 API 접근 허용
+
                 .requestMatchers("/api/store/**").hasRole("BUSINESS_OWNER")
                 .requestMatchers("/api/funding/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                
+
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtCheckFilter(), UsernamePasswordAuthenticationFilter.class)

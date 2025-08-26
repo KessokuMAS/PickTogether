@@ -78,7 +78,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void createBusinessRequestApprovedNotification(String memberEmail, String businessName) {
         NotificationCreateDTO createDTO = NotificationCreateDTO.builder()
                 .memberEmail(memberEmail)
-                .title("가게요청이 승인되었습니다!")
+                .title("🎉 가게요청이 승인되었습니다!")
                 .content(String.format("'%s' 가게요청이 승인되었습니다. 이제 펀딩을 시작할 수 있습니다.", businessName))
                 .type(NotificationType.BUSINESS_REQUEST_APPROVED)
                 .relatedType("BUSINESS_REQUEST")
@@ -92,7 +92,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void createBusinessRequestRejectedNotification(String memberEmail, String businessName, String reason) {
         NotificationCreateDTO createDTO = NotificationCreateDTO.builder()
                 .memberEmail(memberEmail)
-                .title("가게요청이 거부되었습니다")
+                .title("❌ 가게요청이 거부되었습니다")
                 .content(String.format("'%s' 가게요청이 거부되었습니다. 사유: %s", businessName, reason))
                 .type(NotificationType.BUSINESS_REQUEST_REJECTED)
                 .relatedType("BUSINESS_REQUEST")

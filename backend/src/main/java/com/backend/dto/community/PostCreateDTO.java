@@ -17,6 +17,4 @@ public class PostCreateDTO {
     private String category;
     private String author;
     private MultipartFile imageFile;
-    private String address;
-    private String restaurantName;
 } 
