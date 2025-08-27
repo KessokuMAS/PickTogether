@@ -21,6 +21,29 @@ const ChatBot = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // URL을 감지해서 링크로 변환하는 함수
+  const convertUrlsToLinks = (text) => {
+    const urlRegex = /(https?:\/\/[^\s]+|localhost:[0-9]+\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const messagesEndRef = useRef(null);
 
   // ✅ 새 메시지 올 때마다 자동 스크롤
@@ -33,7 +56,15 @@ const ChatBot = () => {
     setLoading(true);
     try {
       const res = await chatbotApi.post("/chat", { message });
-      const botMessage = { sender: "bot", text: res.data.response };
+
+      // 식당 아이템 정보가 있는지 확인
+      const botMessage = {
+        sender: "bot",
+        text: res.data.response,
+        restaurant_items: res.data.restaurant_items || null,
+        buttons: res.data.buttons || null,
+      };
+
       setMessages((prev) => [
         ...prev,
         { sender: "user", text: message },
@@ -169,7 +200,7 @@ const ChatBot = () => {
 
       {/* 챗봇 창 */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 w-[500px] h-[500px] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden z-50">
+        <div className="fixed bottom-20 right-6 w-[500px] h-[600px] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden z-50">
           {/* 헤더 */}
           <div className="bg-blue-500 text-white px-4 py-2 font-bold flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -217,11 +248,59 @@ const ChatBot = () => {
                         : "bg-gray-200 text-gray-900"
                     }`}
                   >
-                    {msg.text}
+                    <div style={{ whiteSpace: "pre-line" }}>
+                      {msg.sender === "bot"
+                        ? convertUrlsToLinks(msg.text)
+                        : msg.text}
+                    </div>
 
                     {/* 커스텀 컴포넌트 (버튼 등) */}
                     {msg.customComponent && (
                       <div className="mt-2">{msg.customComponent}</div>
+                    )}
+
+                    {/* 식당 아이템들 (텍스트 + 버튼) */}
+                    {msg.restaurant_items && (
+                      <div className="mt-3 space-y-3">
+                        {msg.restaurant_items.map((item, i) => (
+                          <div
+                            key={i}
+                            className="border-l-4 border-blue-200 pl-3"
+                          >
+                            <div
+                              style={{ whiteSpace: "pre-line" }}
+                              className="text-sm mb-2"
+                            >
+                              {item.text}
+                            </div>
+                            <a
+                              href={item.button.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                            >
+                              {item.button.label}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 기존 버튼들 */}
+                    {msg.buttons && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {msg.buttons.map((button, i) => (
+                          <a
+                            key={i}
+                            href={button.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                          >
+                            {button.label}
+                          </a>
+                        ))}
+                      </div>
                     )}
 
                     {/* Quick Replies */}

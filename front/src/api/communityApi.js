@@ -218,7 +218,8 @@ export const communityApi = {
   },
 
   addComment: async (postId, { content, author, authorEmail }) => {
-    const url = `${API_SERVER_HOST}${API_BASE_URL}/posts/${postId}/comments`;
+    // jwtAxios는 이미 baseURL이 설정되어 있으므로 상대 경로만 사용
+    const url = `${API_BASE_URL}/posts/${postId}/comments`;
     try {
       const res = await jwtAxios.post(url, { content, author, authorEmail });
       return res.data;
@@ -234,13 +235,14 @@ export const communityApi = {
   },
 
   deleteComment: async (postId, commentId, authorEmail) => {
-    const url = `${API_SERVER_HOST}${API_BASE_URL}/posts/${postId}/comments/${commentId}`;
+    // jwtAxios는 이미 baseURL이 설정되어 있으므로 상대 경로만 사용
+    const url = `${API_BASE_URL}/posts/${postId}/comments/${commentId}`;
     try {
-      // 헤더에 한글 금지 → 쿼리/바디로 전달
+      // X-Author-Email 헤더로 authorEmail 전달
       await jwtAxios.delete(url, {
-        params: { authorEmail: authorEmail || "" },
-        // axios는 delete에도 data를 보낼 수 있음 (백엔드에서도 optional body 처리)
-        data: { authorEmail: authorEmail || "" },
+        headers: {
+          "X-Author-Email": authorEmail || "",
+        },
       });
       return true;
     } catch (error) {
@@ -248,6 +250,31 @@ export const communityApi = {
         status: error?.response?.status,
         data: error?.response?.data,
         url,
+      });
+      throw error;
+    }
+  },
+
+  // 댓글 수정
+  updateComment: async (postId, commentId, { content, authorEmail }) => {
+    const url = `${API_BASE_URL}/posts/${postId}/comments/${commentId}`;
+    try {
+      const res = await jwtAxios.put(
+        url,
+        { content },
+        {
+          headers: {
+            "X-Author-Email": authorEmail || "",
+          },
+        }
+      );
+      return res.data;
+    } catch (error) {
+      console.error("댓글 수정 실패", {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        url,
+        body: { content },
       });
       throw error;
     }

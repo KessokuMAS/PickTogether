@@ -33,15 +33,6 @@ const API_BASE =
   process.env.REACT_APP_API_BASE ||
   "http://localhost:8080";
 
-// NearbyKakaoResturants.js와 동일한 getImageUrl 함수
-const getImageUrl = (imageUrl) => {
-  if (!imageUrl) return null;
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-  return `http://localhost:8080/${imageUrl}`;
-};
-
 // Animation variants
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -64,8 +55,7 @@ const cartItemVariants = {
 
 // Bar Progress Component
 const BarProgress = ({ value = 0, maxValue = 100 }) => {
-  const raw = Math.max(0, Math.round(value)); // 실제 값 (텍스트 출력용)
-  const pct = Math.min(100, raw); // 게이지용 (100%까지만 표시, 넘어가면 100%로 고정)
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
   const barColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
 
   return (
@@ -80,7 +70,7 @@ const BarProgress = ({ value = 0, maxValue = 100 }) => {
         />
       </div>
       <div className="flex justify-between items-center text-xs font-semibold text-gray-700">
-        <span>{raw}% 달성</span>
+        <span>{pct}% 달성</span>
         <span>목표 {maxValue.toLocaleString()}원</span>
       </div>
     </div>
@@ -185,66 +175,14 @@ const RestaurantDetailPage = () => {
     }
   };
 
-  // Fetch restaurant details (NearbyKakaoResturants.js와 동일한 방식)
+  // Fetch restaurant details
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-
-        // NearbyKakaoResturants.js와 동일한 API 사용
-        const nearbyResponse = await fetch(
-          `${API_BASE}/api/restaurants/nearby?lat=37.5027&lng=127.0352&radius=10000&page=0&size=1000`
-        );
-
-        if (nearbyResponse.ok) {
-          const nearbyData = await nearbyResponse.json();
-          const restaurant = nearbyData.content?.find(
-            (store) => store.restaurantId == id
-          );
-          if (restaurant) {
-            setData(restaurant);
-            console.log(
-              "Nearby API에서 찾은 레스토랑 (totalFundingAmount 포함):",
-              restaurant
-            );
-          } else {
-            // nearby API에서 찾지 못한 경우 restaurant API로 fallback
-            const restaurantResponse = await fetch(
-              `${API_BASE}/api/restaurants/${id}`
-            );
-            if (restaurantResponse.ok) {
-              const restaurantData = await restaurantResponse.json();
-              setData(restaurantData);
-              console.log(
-                "Restaurant API에서 찾은 레스토랑 (phone 포함):",
-                restaurantData
-              );
-            } else {
-              // 기존 API로 fallback
-              const res = await fetchRestaurantDetail(id);
-              setData(res);
-            }
-          }
-        } else {
-          // nearby API가 실패한 경우 restaurant API로 fallback
-          const restaurantResponse = await fetch(
-            `${API_BASE}/api/restaurants/${id}`
-          );
-          if (restaurantResponse.ok) {
-            const restaurantData = await restaurantResponse.json();
-            setData(restaurantData);
-            console.log(
-              "Restaurant API에서 찾은 레스토랑 (phone 포함):",
-              restaurantData
-            );
-          } else {
-            // 기존 API로 fallback
-            const res = await fetchRestaurantDetail(id);
-            setData(res);
-          }
-        }
+        const res = await fetchRestaurantDetail(id);
+        setData(res);
       } catch (e) {
-        console.error("API 호출 에러:", e);
         setError("상세 정보를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
@@ -255,27 +193,28 @@ const RestaurantDetailPage = () => {
   // Fallback index for placeholder images
   const fallbackIdx = useMemo(() => ((Number(id) || 0) % 45) + 1, [id]);
 
-  // Image source with fallback (NearbyKakaoResturants.js와 동일한 방식)
+  // Image source with fallback
   const imgSrc = useMemo(() => {
-    // NearbyKakaoResturants.js의 getImageUrl 함수 사용
-    if (data?.imageUrl) {
-      const processedUrl = getImageUrl(data.imageUrl);
-      if (processedUrl) return processedUrl;
-    }
+    const fallback = `/${fallbackIdx}.png`;
+    const url = data?.imageUrl;
+    if (!url) return fallback;
+    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (url.startsWith("/")) return `${API_BASE}${url}`;
+    return url;
+  }, [data, fallbackIdx]);
 
-    // 기본 이미지 (restaurantId.jpg) - NearbyKakaoResturants.js와 동일
-    return `/${data?.restaurantId || id}.jpg`;
-  }, [data, id]);
-
-  // Funding period calculation (NearbyKakaoResturants.js와 동일한 로직)
+  // Funding period calculation
   const fundingPeriod = useMemo(() => {
     const now = new Date();
-    const end = data?.fundingEndDate
-      ? new Date(data.fundingEndDate)
-      : new Date(Date.now() + 14 * 86400000);
-    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
+    const addDays = 7 + ((Number(id) || 0) % 8);
+    const end = new Date(now);
+    end.setDate(end.getDate() + addDays);
+    const daysLeft = Math.max(
+      0,
+      Math.ceil((end.getTime() - now.getTime()) / 86400000)
+    );
     return { start: now, end, daysLeft };
-  }, [data?.fundingEndDate]);
+  }, [id]);
 
   const formatDate = (d) =>
     d
@@ -290,28 +229,31 @@ const RestaurantDetailPage = () => {
   // Fallback menu items
   const fallbackMenuItems = useMemo(() => {
     const base = Number(id) || 1;
-    const pick = (offset) => `/${((base + offset) % 45) + 1}.jpg`;
+    const pick = (offset) => `/${((base + offset) % 45) + 1}.png`;
     return [
       {
         id: base * 10 + 1,
-        name: "대표 메뉴 A",
+        name: "묵은지두루치기",
         description: "신선한 재료로 만든 인기 메뉴",
+        originalPrice: 15000,
         price: 12000,
-        imageUrl: pick(1),
+        imageUrl: "/묵은지두루치기.jpg",
       },
       {
         id: base * 10 + 2,
-        name: "대표 메뉴 B",
-        description: "담백하고 건강한 한 끼",
+        name: "생삼겹살",
+        description: "그 무엇보다 두껍다",
+        originalPrice: 14000,
         price: 9800,
-        imageUrl: pick(2),
+        imageUrl: "/생삽겹살.jpg",
       },
       {
         id: base * 10 + 3,
-        name: "세트 메뉴",
-        description: "가성비 좋은 구성",
+        name: "철판쭈꾸미볶음",
+        description: "살아서 움직일 수도 있어요",
+        originalPrice: 18000,
         price: 15000,
-        imageUrl: pick(2),
+        imageUrl: "/철판쭈꾸미볶음.jpg",
       },
     ];
   }, [id]);
@@ -428,10 +370,7 @@ const RestaurantDetailPage = () => {
               to="/main"
               className="inline-flex items-center gap-2 text-gray-700 hover:text-orange-600 text-sm font-semibold mb-8 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-orange-400"
               aria-label="메인 페이지로 돌아가기"
-            >
-              <IoRestaurantOutline className="text-lg" />
-              뒤로
-            </Link>
+            ></Link>
           </motion.div>
 
           {loading ? (
@@ -465,20 +404,21 @@ const RestaurantDetailPage = () => {
               animate="visible"
             >
               {/* Top Section: Image (Left) and Details (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8">
                 {/* Hero Image */}
                 <motion.div
-                  className="relative w-full min-h-[360px] rounded-2xl overflow-hidden bg-gray-100 group shadow-md"
+                  className="relative w-full max-h-[670px] rounded-2xl overflow-hidden bg-gray-100 group shadow-md"
                   variants={itemVariants}
                 >
                   <img
-                    src={imgSrc}
+                    src="/gif.gif"
                     alt={data.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => {
-                      e.currentTarget.src = `/${fallbackIdx}.jpg`;
+                      e.currentTarget.src = `/${fallbackIdx}.png`;
                     }}
                   />
+
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                   {/* 찜 버튼 */}
@@ -513,41 +453,27 @@ const RestaurantDetailPage = () => {
                 >
                   <div className="space-y-6">
                     {/* Restaurant Info */}
-                    <div>
-                      <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
-                        {data.name}
-                      </h1>
-                      {data.categoryName && (
-                        <span className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-full bg-orange-100 text-orange-600 mb-4 transition-all duration-300 hover:bg-orange-200">
-                          {data.categoryName}
-                        </span>
-                      )}
+                    <div className="flex justify-center">
+                      {/* 왼쪽: 이름 + 카테고리 */}
+                      <div>
+                        <img src="/우렁식탁.jfif" className="w-[180px]"></img>
+                      </div>
+
+                      {/* 오른쪽: 이미지 */}
+                      {/* <img
+                        className="w-[200px] h-[150px] ml-10"
+                        src="/음식점1.jpg"
+                        alt="음식점"
+                      /> */}
                     </div>
+
                     <div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
-                        {(() => {
-                          // NearbyKakaoResturants.js와 동일한 로직
-                          const actualFundingAmount =
-                            (data.fundingAmount || 0) +
-                            (data.totalFundingAmount || 0);
-                          return `${actualFundingAmount.toLocaleString()}원 펀딩`;
-                        })()}
+                        {Number(data.fundingAmount ?? 0).toLocaleString()}원
+                        펀딩
                       </div>
                       <BarProgress
-                        value={
-                          data.fundingGoalAmount > 0
-                            ? (() => {
-                                // NearbyKakaoResturants.js와 동일한 로직
-                                const actualFundingAmount =
-                                  (data.fundingAmount || 0) +
-                                  (data.totalFundingAmount || 0);
-                                return Math.round(
-                                  (actualFundingAmount * 100) /
-                                    data.fundingGoalAmount
-                                );
-                              })()
-                            : 0
-                        }
+                        value={data.fundingPercent ?? 0}
                         maxValue={data.fundingGoalAmount ?? 0}
                       />
                       <div className="mt-3 text-sm text-gray-600 flex items-center gap-3">
@@ -586,10 +512,9 @@ const RestaurantDetailPage = () => {
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                          aria-label="카카오맵으로 길찾기"
+                          aria-label="길찾기"
                         >
-                          <TbCurrentLocation className="text-base" />{" "}
-                          카카오맵으로 길찾기
+                          <TbCurrentLocation className="text-base" /> 길찾기
                         </a>
                       )}
                     </div>
@@ -655,7 +580,7 @@ const RestaurantDetailPage = () => {
                                   onError={(e) => {
                                     e.currentTarget.src = `/${
                                       ((fallbackIdx + index) % 45) + 1
-                                    }.jpg`;
+                                    }.png`;
                                   }}
                                 />
                                 <div className="flex-1">
@@ -773,7 +698,7 @@ const RestaurantDetailPage = () => {
                             onError={(e) => {
                               e.currentTarget.src = `/${
                                 ((fallbackIdx + index) % 45) + 1
-                              }.jpg`;
+                              }.png`;
                             }}
                           />
                           <div className="absolute inset-0 bg-orange-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
@@ -801,9 +726,22 @@ const RestaurantDetailPage = () => {
                             <h3 className="font-semibold text-gray-900 text-lg truncate">
                               {menu.name}
                             </h3>
-                            <span className="text-orange-600 font-semibold text-sm">
-                              {Number(menu.price).toLocaleString()}원
-                            </span>
+                            <div className="flex flex-col items-end">
+                              {/* 원래 가격 */}
+                              {menu.originalPrice &&
+                                menu.originalPrice > menu.price && (
+                                  <span className="text-gray-400 text-xs line-through">
+                                    {Number(
+                                      menu.originalPrice
+                                    ).toLocaleString()}
+                                    원
+                                  </span>
+                                )}
+                              {/* 할인된 가격 */}
+                              <span className="text-red-600 font-bold text-base">
+                                {Number(menu.price).toLocaleString()}원
+                              </span>
+                            </div>
                           </div>
                           {menu.description && (
                             <p className="text-sm text-gray-600 mt-2 line-clamp-2">

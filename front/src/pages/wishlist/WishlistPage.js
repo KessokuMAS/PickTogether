@@ -405,7 +405,7 @@ const WishlistPage = () => {
                       <img
                         src={displayImage}
                         alt={`${name} 이미지`}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                       />
                       {daysLeft === 0 && percent >= 100 && (
                         <div className="absolute top-2 right-2 bg-green-600 text-white text-[14px] font-semibold px-2 py-1 rounded shadow">
@@ -474,7 +474,7 @@ const WishlistPage = () => {
                     {/* 클릭 영역 */}
                     <button
                       onClick={() => navigate(`/restaurant/${restaurantId}`)}
-                      className="absolute inset-0 w-full h-full opacity-0 hover:opacity-100 transition-opacity duration-300 bg-orange-500 bg-opacity-10 flex items-center justify-center"
+                      className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity duration-300 bg-orange-500 bg-opacity-10 px-4 py-2 rounded-lg"
                       aria-label={`${name} 상세보기`}
                     >
                       <span className="bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold text-sm">

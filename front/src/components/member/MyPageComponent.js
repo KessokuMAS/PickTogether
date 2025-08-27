@@ -49,6 +49,7 @@ export default function MyPageComponent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState("funding"); // "funding" | "specialty"
   const [isLoading, setIsLoading] = useState(true);
+  const [restaurantInfo, setRestaurantInfo] = useState({}); // 레스토랑 정보 저장
 
   useEffect(() => {
     const run = async () => {
@@ -73,12 +74,45 @@ export default function MyPageComponent() {
     }
   }, [member?.email]);
 
+  // 레스토랑 정보 가져오기 (달성률 계산용)
+  const loadRestaurantInfo = async (restaurantId) => {
+    try {
+      // 환경변수나 설정에서 API URL을 가져오도록 수정
+      const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:8080";
+      const response = await fetch(
+        `${baseUrl}/api/restaurants/${restaurantId}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`레스토랑 ${restaurantId} 정보:`, data); // 디버깅용
+        return data;
+      }
+    } catch (error) {
+      console.error("레스토랑 정보 로드 실패:", error);
+    }
+    return null;
+  };
+
   const loadFundings = async () => {
     const memberCookie = getCookie("member");
     if (memberCookie?.member?.email) {
       try {
         const fundingData = await getMemberFundings(memberCookie.member.email);
         setFundings(fundingData);
+
+        // 각 펀딩에 대한 레스토랑 정보 로드
+        const restaurantInfoMap = {};
+        for (const funding of fundingData) {
+          if (funding.restaurantId) {
+            const restaurantData = await loadRestaurantInfo(
+              funding.restaurantId
+            );
+            if (restaurantData) {
+              restaurantInfoMap[funding.restaurantId] = restaurantData;
+            }
+          }
+        }
+        setRestaurantInfo(restaurantInfoMap);
       } catch (fundingError) {
         console.error("결제 내역 로드 실패:", fundingError);
         // 펀딩 로드 실패는 전체 마이페이지에 영향을 주지 않도록 함
@@ -476,7 +510,11 @@ export default function MyPageComponent() {
                     ) : (
                       <div className="space-y-4">
                         {fundings.map((funding) => (
-                          <FundingRow key={funding.id} funding={funding} />
+                          <FundingRow
+                            key={funding.id}
+                            funding={funding}
+                            restaurantInfo={restaurantInfo}
+                          />
                         ))}
                       </div>
                     )
@@ -526,7 +564,7 @@ const Row = ({ label, value }) => (
 );
 
 // FundingRow 컴포넌트
-function FundingRow({ funding }) {
+function FundingRow({ funding, restaurantInfo }) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [qrLoading, setQrLoading] = useState(false);
   const [showLargeQR, setShowLargeQR] = useState(false);
@@ -756,115 +794,153 @@ function FundingRow({ funding }) {
           </div>
         )}
 
-        {/* QR 코드 영역 - 결제 완료된 경우에만 표시 */}
-        {funding.status === "COMPLETED" && (
-          <div
-            className={`rounded-lg p-4 border ${
-              isUsed
-                ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
-                : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100"
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
+        {/* QR 코드 영역 - 결제 완료되고 달성률 100%인 경우에만 표시 */}
+        {funding.status === "COMPLETED" &&
+          (() => {
+            // 레스토랑 정보에서 달성률 계산
+            const restaurant = restaurantInfo[funding.restaurantId];
+            console.log(`펀딩 ${funding.id}의 레스토랑 정보:`, restaurant); // 디버깅용
+
+            if (!restaurant) {
+              console.log(`레스토랑 정보 없음: ${funding.restaurantId}`);
+              return null;
+            }
+
+            // 달성률 계산 로직 수정
+            const actualFundingAmount = restaurant.fundingAmount || 0;
+            const goalAmount = restaurant.fundingGoalAmount || 0;
+
+            console.log(
+              `펀딩 목표: ${goalAmount}, 현재: ${actualFundingAmount}`
+            ); // 디버깅용
+
+            const achievementRate =
+              goalAmount > 0
+                ? Math.round((actualFundingAmount * 100) / goalAmount)
+                : 0;
+
+            console.log(`달성률: ${achievementRate}%`); // 디버깅용
+
+            // 달성률 100% 이상인 경우에만 QR 코드 표시
+            if (achievementRate < 100) {
+              console.log(`달성률 ${achievementRate}%로 QR 코드 표시 불가`);
+              return null;
+            }
+
+            console.log(`달성률 ${achievementRate}%로 QR 코드 표시 가능`);
+
+            return (
               <div
-                className={`font-semibold flex items-center gap-2 ${
-                  isUsed ? "text-green-800" : "text-blue-800"
+                className={`rounded-lg p-4 border ${
+                  isUsed
+                    ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100"
+                    : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100"
                 }`}
               >
-                <svg
-                  className={`w-5 h-5 ${
-                    isUsed ? "text-green-600" : "text-blue-600"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
-                  />
-                </svg>
-                {isUsed ? "사용완료된 QR 코드" : "사용 QR 코드"}
-              </div>
-              {qrCodeUrl && (
-                <button
-                  onClick={downloadQRCode}
-                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex items-center justify-between mb-3">
+                  <div
+                    className={`font-semibold flex items-center gap-2 ${
+                      isUsed ? "text-green-800" : "text-blue-800"
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  다운로드
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                {qrLoading ? (
-                  <div className="w-32 h-32 bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
-                    <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : qrCodeUrl ? (
-                  <div className="relative">
-                    <div
-                      onClick={() => setShowLargeQR(true)}
-                      className="cursor-pointer hover:scale-105 transition-transform"
+                    <svg
+                      className={`w-5 h-5 ${
+                        isUsed ? "text-green-600" : "text-blue-600"
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <img
-                        src={qrCodeUrl}
-                        alt="QR Code"
-                        className="w-32 h-32 rounded-lg border-2 border-blue-200 hover:border-blue-400"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a2 2 0 002-2V5z"
                       />
-                      <div className="text-center mt-2 text-xs text-blue-600">
-                        클릭하여 확대보기
+                    </svg>
+                    {isUsed ? "사용완료된 QR 코드" : "사용 QR 코드"}
+                  </div>
+                  {qrCodeUrl && (
+                    <button
+                      onClick={downloadQRCode}
+                      className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      다운로드
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    {qrLoading ? (
+                      <div className="w-32 h-32 bg-gray-200 rounded-lg animate-pulse flex items-center justify-center">
+                        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                    </div>
-                    {/* 사용완료 표시 */}
-                    {isUsed && (
-                      <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
-                        사용완료
+                    ) : qrCodeUrl ? (
+                      <div className="relative">
+                        <div
+                          onClick={() => setShowLargeQR(true)}
+                          className="cursor-pointer hover:scale-105 transition-transform"
+                        >
+                          <img
+                            src={qrCodeUrl}
+                            alt="QR Code"
+                            className="w-32 h-32 rounded-lg border-2 border-blue-200 hover:border-blue-400"
+                          />
+                          <div className="text-center mt-2 text-xs text-blue-600">
+                            클릭하여 확대보기
+                          </div>
+                        </div>
+                        {/* 사용완료 표시 */}
+                        {isUsed && (
+                          <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
+                            사용완료
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <span className="text-xs text-gray-500">
+                          QR 생성 중
+                        </span>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-xs text-gray-500">QR 생성 중</span>
-                  </div>
-                )}
-              </div>
 
-              <div
-                className={`flex-1 text-sm ${
-                  isUsed ? "text-green-700" : "text-blue-700"
-                }`}
-              >
-                <p className="font-medium mb-1">
-                  {isUsed
-                    ? "QR 코드가 사용완료되었습니다"
-                    : "레스토랑에서 이 QR 코드를 스캔하세요"}
-                </p>
-                <p className="text-xs opacity-80">
-                  • 펀딩 ID: {funding.id}
-                  <br />• 레스토랑: {funding.restaurantName}
-                  <br />• 결제 금액: {funding.totalAmount?.toLocaleString()}원
-                </p>
+                  <div
+                    className={`flex-1 text-sm ${
+                      isUsed ? "text-green-700" : "text-blue-700"
+                    }`}
+                  >
+                    <p className="font-medium mb-1">
+                      {isUsed
+                        ? "QR 코드가 사용완료되었습니다"
+                        : "레스토랑에서 이 QR 코드를 스캔하세요"}
+                    </p>
+                    <p className="text-xs opacity-80">
+                      • 펀딩 ID: {funding.id}
+                      <br />• 레스토랑: {funding.restaurantName}
+                      <br />• 결제 금액: {funding.totalAmount?.toLocaleString()}
+                      원
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            );
+          })()}
 
         {/* 결제 정보 요약 */}
         <div className="border-t border-slate-200 pt-3">

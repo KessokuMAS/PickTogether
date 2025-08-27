@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class FundingDTO {
     
     private Long id;
+    private Long restaurantId; // 레스토랑 ID 추가
     private String restaurantName;
     private String menuInfo;
     private Long totalAmount;

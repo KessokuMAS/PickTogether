@@ -92,6 +92,7 @@ public class FundingServiceImpl implements FundingService {
     private FundingDTO convertToDTO(Funding funding) {
         return FundingDTO.builder()
                 .id(funding.getId())
+                .restaurantId(funding.getRestaurant().getId()) // 레스토랑 ID 추가
                 .restaurantName(funding.getRestaurantName())
                 .menuInfo(funding.getMenuInfo())
                 .totalAmount(funding.getTotalAmount())

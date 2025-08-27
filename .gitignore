@@ -95,6 +95,7 @@ jspm_packages/
 !backend/
 !front/
 !csv/
+!python/
 
 # backend 폴더 내에서 제외할 것들
 backend/.gradle/
@@ -119,6 +120,9 @@ front/coverage/
 # csv 폴더 내에서 제외할 것들
 csv/node_modules/
 csv/package-lock.json
+
+# season_menu 폴더 내에서 제외할 것들
+python/.venv/
 
 # Gradle wrapper (keep this)
 !backend/gradle/wrapper/gradle-wrapper.jar

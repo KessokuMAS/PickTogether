@@ -43,6 +43,10 @@ const CommunityPostDetailPage = () => {
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  // 댓글 수정 관련 상태
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [isUpdatingComment, setIsUpdatingComment] = useState(false);
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const [shareMenuPosition, setShareMenuPosition] = useState({
     top: 0,
@@ -77,8 +81,18 @@ const CommunityPostDetailPage = () => {
     setShareMenuPosition({ top, left });
   }, []);
 
-  const getCurrentUserEmail = () =>
-    currentUser?.email || currentUser?.username || "";
+  const getCurrentUserEmail = () => {
+    // userInfo에서 직접 이메일 가져오기 (우선순위 1)
+    if (userInfo?.email) {
+      return userInfo.email;
+    }
+    // currentUser에서 이메일 가져오기 (우선순위 2)
+    if (currentUser?.email) {
+      return currentUser.email;
+    }
+    // fallback: 사용자명이나 빈 문자열
+    return currentUser?.username || "";
+  };
 
   // 통합된 useEffect: 게시글 로드, 댓글 로드, 조회수 증가를 한 번에 처리
   useEffect(() => {
@@ -120,8 +134,16 @@ const CommunityPostDetailPage = () => {
       // 그 다음 데이터 로드
       await loadData();
 
-      // 사용자 정보 설정
-      setCurrentUser({ id: 1, username: "테스트사용자" });
+      // 사용자 정보 설정 - 실제 로그인된 사용자 정보 사용
+      if (userInfo) {
+        setCurrentUser({
+          id: userInfo.id || 1,
+          username: userInfo.nickname || userInfo.username || "익명사용자",
+          email: userInfo.email || "",
+        });
+      } else {
+        setCurrentUser({ id: 1, username: "익명사용자", email: "" });
+      }
     };
 
     initializePage();
@@ -359,6 +381,46 @@ const CommunityPostDetailPage = () => {
     } catch (error) {
       console.error("댓글 삭제 실패:", error);
       alert("댓글 삭제에 실패했습니다.");
+    }
+  };
+
+  // 댓글 수정 시작
+  const handleStartEditComment = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingCommentContent(comment.content);
+  };
+
+  // 댓글 수정 취소
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentContent("");
+  };
+
+  // 댓글 수정 제출
+  const handleUpdateComment = async (commentId) => {
+    if (!editingCommentContent.trim()) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    try {
+      setIsUpdatingComment(true);
+      const updated = await communityApi.updateComment(postId, commentId, {
+        content: editingCommentContent,
+        authorEmail: getCurrentUserEmail(),
+      });
+
+      setComments((prev) =>
+        prev.map((comment) => (comment.id === commentId ? updated : comment))
+      );
+
+      setEditingCommentId(null);
+      setEditingCommentContent("");
+    } catch (error) {
+      console.error("댓글 수정 실패:", error);
+      alert("댓글 수정에 실패했습니다.");
+    } finally {
+      setIsUpdatingComment(false);
     }
   };
 
@@ -913,33 +975,34 @@ const CommunityPostDetailPage = () => {
                               {formatDate(comment.createdAt)}
                             </p>
                           </div>
-                          {currentUser && (
-                            <div className="relative inline-block text-left">
-                              <button
-                                type="button"
-                                className="p-1 rounded hover:bg-gray-100 text-gray-400"
-                                onClick={(e) => {
-                                  const menu = e.currentTarget.nextSibling;
-                                  if (menu) menu.classList.toggle("hidden");
-                                }}
-                              >
-                                <FiMoreVertical size={16} />
-                              </button>
-                              <div className="hidden absolute right-0 mt-2 w-28 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                                <div className="py-1">
-                                  {/* 수정 */}
-                                  <button
-                                    className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-                                    onClick={() =>
-                                      alert("댓글 수정 기능은 곧 연결됩니다.")
-                                    }
-                                  >
-                                    수정
-                                  </button>
-                                  {/* 삭제: 작성자만 */}
-                                  {(comment.authorId === currentUser.id ||
-                                    comment.authorEmail ===
-                                      getCurrentUserEmail()) && (
+                          {/* 작성자만 수정/삭제 메뉴 표시 */}
+                          {currentUser &&
+                            (comment.authorId === currentUser.id ||
+                              comment.authorEmail ===
+                                getCurrentUserEmail()) && (
+                              <div className="relative inline-block text-left">
+                                <button
+                                  type="button"
+                                  className="p-1 rounded hover:bg-gray-100 text-gray-400"
+                                  onClick={(e) => {
+                                    const menu = e.currentTarget.nextSibling;
+                                    if (menu) menu.classList.toggle("hidden");
+                                  }}
+                                >
+                                  <FiMoreVertical size={16} />
+                                </button>
+                                <div className="hidden absolute right-0 mt-2 w-28 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                                  <div className="py-1">
+                                    {/* 수정 */}
+                                    <button
+                                      className="block w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                                      onClick={() =>
+                                        handleStartEditComment(comment)
+                                      }
+                                    >
+                                      수정
+                                    </button>
+                                    {/* 삭제 */}
                                     <button
                                       className="block w-full text-left px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
                                       onClick={() =>
@@ -948,17 +1011,45 @@ const CommunityPostDetailPage = () => {
                                     >
                                       삭제
                                     </button>
-                                  )}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          )}
+                            )}
                         </div>
 
                         {/* 본문 */}
-                        <p className="text-gray-800 text-sm">
-                          {comment.content}
-                        </p>
+                        {editingCommentId === comment.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingCommentContent}
+                              onChange={(e) =>
+                                setEditingCommentContent(e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm resize-none"
+                              rows="2"
+                              placeholder="댓글을 수정하세요..."
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleUpdateComment(comment.id)}
+                                disabled={isUpdatingComment}
+                                className="px-3 py-1.5 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+                              >
+                                {isUpdatingComment ? "수정 중..." : "수정 완료"}
+                              </button>
+                              <button
+                                onClick={handleCancelEditComment}
+                                className="px-3 py-1.5 bg-gray-400 text-white text-xs rounded-lg hover:bg-gray-500 transition-colors"
+                              >
+                                취소
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-800 text-sm">
+                            {comment.content}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
