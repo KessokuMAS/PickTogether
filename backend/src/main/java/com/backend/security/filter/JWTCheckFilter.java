@@ -37,6 +37,8 @@ protected boolean shouldNotFilter(HttpServletRequest request) {
     String[] PUBLIC_PREFIXES = {
         "/api/member/login",
         "/api/member/register",
+        "/api/member/check-email",
+        "/api/member/delete-account",
         "/api/member/kakao",
         "/api/member/google",
         "/api/member/naver",

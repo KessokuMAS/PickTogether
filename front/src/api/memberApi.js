@@ -88,6 +88,15 @@ export const updateMemberPassword = async (passwordData) => {
   return res.data;
 };
 
+// 회원 탈퇴 함수 추가
+export const deleteAccount = async (email, confirmEmail) => {
+  const res = await apiClient.post("/member/delete-account", {
+    email,
+    confirmEmail,
+  });
+  return res.data;
+};
+
 export const logout = async () => {
   try {
     const res = await apiClient.post("/member/logout");
@@ -132,6 +141,7 @@ export const memberApi = {
   getMyPageInfo,
   updateMemberProfile,
   updateMemberPassword,
+  deleteAccount,
   createMemberLocation,
   listMemberLocations,
   updateMemberLocation,

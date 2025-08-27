@@ -278,14 +278,21 @@ export default function MyPageComponent() {
                 </div>
 
                 {/* 기능 버튼들 */}
-                <div className="mt-6 space-y-2 flex flex-col items-center">
+                <div className="mt-6 space-y-3 flex flex-col items-center">
                   <a
                     href="/mypage/edit"
-                    className="w-1/2 px-1.5 py-2 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2"
+                    className="w-3/4 px-8 py-4 bg-white text-slate-700 rounded-lg border-2 border-slate-300 hover:bg-slate-50 transition-colors font-medium text-center block flex items-center justify-center gap-2 h-12"
                   >
                     <FiSettings size={16} />
                     회원 정보 수정
                   </a>
+                  <button
+                    onClick={() => navigate("/member/delete-account")}
+                    className="w-3/4 px-8 py-4 bg-white text-red-600 rounded-lg border-2 border-red-500 hover:bg-red-50 transition-colors font-medium text-center flex items-center justify-center gap-2 h-12"
+                  >
+                    <FiTrash2 size={16} className="text-red-500" />
+                    회원 탈퇴
+                  </button>
                 </div>
               </div>
 

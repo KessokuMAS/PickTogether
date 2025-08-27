@@ -144,28 +144,28 @@ const LocalSpecialtyPage = () => {
 
     // Apply sorting
     if (sort === "fundingHigh") {
-      filtered.sort(
-        (a, b) =>
-          (b.fundingAmount + b.totalFundingAmount || 0) -
-          (a.fundingAmount + a.totalFundingAmount || 0)
-      );
+      filtered.sort((a, b) => {
+        const aAmount = (a.fundingAmount || 0) + (a.totalFundingAmount || 0);
+        const bAmount = (b.fundingAmount || 0) + (b.totalFundingAmount || 0);
+        return bAmount - aAmount;
+      });
     } else if (sort === "fundingLow") {
-      filtered.sort(
-        (a, b) =>
-          (a.fundingAmount + a.totalFundingAmount || 0) -
-          (b.fundingAmount + b.totalFundingAmount || 0)
-      );
+      filtered.sort((a, b) => {
+        const aAmount = (a.fundingAmount || 0) + (a.totalFundingAmount || 0);
+        const bAmount = (b.fundingAmount || 0) + (b.totalFundingAmount || 0);
+        return aAmount - bAmount;
+      });
     } else if (sort === "percentHigh") {
       filtered.sort((a, b) => {
+        const aAmount = (a.fundingAmount || 0) + (a.totalFundingAmount || 0);
+        const bAmount = (b.fundingAmount || 0) + (b.totalFundingAmount || 0);
         const aPercent =
           a.fundingGoalAmount > 0
-            ? ((a.fundingAmount + a.totalFundingAmount) * 100) /
-              a.fundingGoalAmount
+            ? Math.round((aAmount * 100) / a.fundingGoalAmount)
             : 0;
         const bPercent =
           b.fundingGoalAmount > 0
-            ? ((b.fundingAmount + b.totalFundingAmount) * 100) /
-              b.fundingGoalAmount
+            ? Math.round((bAmount * 100) / b.fundingGoalAmount)
             : 0;
         return bPercent - aPercent;
       });
@@ -286,7 +286,7 @@ const LocalSpecialtyPage = () => {
 
     return (
       <motion.div
-        className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl hover:ring-2 hover:ring-orange-300 transition-all duration-300 group flex flex-col"
+        className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl hover:ring-2 hover:ring-orange-300 transition-all duration-300 group flex flex-col min-w-0"
         variants={itemVariants}
       >
         <div className="relative h-52 overflow-hidden">
@@ -311,11 +311,11 @@ const LocalSpecialtyPage = () => {
           </div>
         </div>
         <div className="p-5 flex-1 flex flex-col justify-between">
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xl font-semibold text-gray-800 truncate flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-800 truncate flex-1 flex items-center gap-2">
                 <IoRestaurantOutline className="text-orange-600 text-lg" />
-                {cntntsSj}
+                <span className="truncate">{cntntsSj}</span>
               </h3>
               <CircularProgress value={actualPercent} size={44} stroke={4} />
             </div>
@@ -324,11 +324,13 @@ const LocalSpecialtyPage = () => {
             </p>
             <p className="text-sm text-gray-500 flex items-center gap-2 mt-2">
               <TbCurrentLocation className="text-orange-600 text-lg" />
-              {sidoNm} {sigunguNm && `> ${sigunguNm}`}
+              <span className="truncate">
+                {sidoNm} {sigunguNm && `> ${sigunguNm}`}
+              </span>
             </p>
           </div>
           <div className="mt-4 pt-3 border-t border-gray-200">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs gap-3">
               <span
                 className={`flex items-center gap-2 ${
                   daysLeft <= 5 ? "text-red-600 font-semibold" : "text-gray-600"
@@ -337,12 +339,12 @@ const LocalSpecialtyPage = () => {
                 <FaFire
                   className={`${
                     daysLeft <= 5 ? "text-red-600" : "text-gray-600"
-                  } text-lg`}
+                  } text-base`}
                 />
-                {daysLeft}일 남음
+                <span className="whitespace-nowrap">{daysLeft}일 남음</span>
               </span>
-              <span className="text-green-600 font-semibold">
-                {actualFundingAmount.toLocaleString()}원
+              <span className="text-green-600 font-semibold whitespace-nowrap text-xs">
+                {actualFundingAmount.toLocaleString()}원 펀딩
               </span>
             </div>
           </div>
@@ -475,7 +477,7 @@ const LocalSpecialtyPage = () => {
     return (
       <>
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -571,25 +573,39 @@ const LocalSpecialtyPage = () => {
                           alt={`${specialty.cntntsSj} 배너`}
                           className="w-full h-[300px] object-cover brightness-90 transition-all duration-300"
                         />
-                        {((specialty.fundingAmount +
-                          specialty.totalFundingAmount) *
-                          100) /
-                          specialty.fundingGoalAmount >=
-                          80 && (
-                          <span className="absolute top-4 right-4 bg-orange-400 text-gray-900 text-sm font-bold px-3 py-1.5 rounded-full z-10 shadow-md">
-                            🔥 Hot!
-                          </span>
-                        )}
+                        {(() => {
+                          const actualAmount =
+                            (specialty.fundingAmount || 0) +
+                            (specialty.totalFundingAmount || 0);
+                          const percent =
+                            specialty.fundingGoalAmount > 0
+                              ? Math.round(
+                                  (actualAmount * 100) /
+                                    specialty.fundingGoalAmount
+                                )
+                              : 0;
+                          return percent >= 80 ? (
+                            <span className="absolute top-4 right-4 bg-orange-400 text-gray-900 text-sm font-bold px-3 py-1.5 rounded-full z-10 shadow-md">
+                              🔥 Hot!
+                            </span>
+                          ) : null;
+                        })()}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-5">
                           <p className="text-white text-lg font-semibold">
                             {specialty.cntntsSj} -{" "}
-                            {Math.round(
-                              ((specialty.fundingAmount +
-                                specialty.totalFundingAmount) *
-                                100) /
-                                specialty.fundingGoalAmount
-                            )}
-                            % 달성
+                            {(() => {
+                              const actualAmount =
+                                (specialty.fundingAmount || 0) +
+                                (specialty.totalFundingAmount || 0);
+                              const percent =
+                                specialty.fundingGoalAmount > 0
+                                  ? Math.round(
+                                      (actualAmount * 100) /
+                                        specialty.fundingGoalAmount
+                                    )
+                                  : 0;
+                              return `${percent}% 달성`;
+                            })()}
                           </p>
                           <button
                             onClick={() =>
@@ -716,13 +732,13 @@ const LocalSpecialtyPage = () => {
                 </h3>
                 <div className="relative rounded-lg overflow-hidden shadow-md">
                   <img
-                    src="../../../fruit1.png"
+                    src="/fruit1.png"
                     alt="추천 펀딩"
                     className="w-full h-40 object-cover brightness-90"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
                     <p className="text-white text-sm font-semibold">
-                      오늘의 특가 펀딩!
+                      오늘의 추천 특산물!
                     </p>
                     <button
                       className="mt-2 px-4 py-1.5 bg-orange-600 text-white text-sm font-medium rounded-full hover:bg-orange-700 transition shadow-md"

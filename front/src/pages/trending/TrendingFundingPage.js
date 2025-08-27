@@ -116,8 +116,9 @@ const FundingCard = ({ funding }) => {
 
   return (
     <motion.div
-      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:ring-2 hover:ring-yellow-400 transition-all duration-300 group flex flex-col border border-gray-100"
+      className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl hover:ring-2 hover:ring-yellow-400 transition-all duration-300 group flex flex-col border border-gray-100 cursor-pointer"
       variants={itemVariants}
+      onClick={() => navigate(`/restaurant/${restaurantId}`)}
     >
       <div className="relative h-48 overflow-hidden">
         {percent >= 80 && (
@@ -132,7 +133,10 @@ const FundingCard = ({ funding }) => {
         />
         <div className="absolute inset-0 bg-yellow-600 bg-opacity-0 group-hover:bg-opacity-15 flex items-center justify-center transition-all duration-300">
           <button
-            onClick={() => navigate(`/restaurant/${restaurantId}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/restaurant/${restaurantId}`);
+            }}
             className="px-4 py-1.5 bg-yellow-600 text-white text-sm font-semibold rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-yellow-700 shadow-md"
           >
             펀딩 참여
@@ -213,55 +217,6 @@ const FilterComponent = ({
         <IoChevronDown className="text-yellow-600 text-xs" />
       </div>
     </div>
-    <div className="relative flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
-      <select
-        value={selectedSido}
-        onChange={(e) => {
-          setSelectedSido(e.target.value);
-          setSelectedSigungu("");
-        }}
-        className="w-full sm:w-36 pl-2 pr-6 py-1 border border-gray-200 rounded-md text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-all duration-300 appearance-none cursor-pointer"
-      >
-        <option value="">전체 시도</option>
-        {sidoList.map((sido) => (
-          <option key={sido} value={sido}>
-            {sido}
-          </option>
-        ))}
-      </select>
-      <div className="absolute right-2 pointer-events-none">
-        <IoChevronDown className="text-yellow-600 text-xs" />
-      </div>
-    </div>
-    <div className="relative flex items-center gap-1.5 bg-white p-1.5 rounded-md shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200">
-      <select
-        value={selectedSigungu}
-        onChange={(e) => setSelectedSigungu(e.target.value)}
-        className="w-full sm:w-36 pl-2 pr-6 py-1 border border-gray-200 rounded-md text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:bg-white transition-all duration-300 appearance-none cursor-pointer"
-        disabled={!selectedSido}
-      >
-        <option value="">전체 시군구</option>
-        {sigunguList.map((sigungu) => (
-          <option key={sigungu} value={sigungu}>
-            {sigungu}
-          </option>
-        ))}
-      </select>
-      <div className="absolute right-2 pointer-events-none">
-        <IoChevronDown className="text-yellow-600 text-xs" />
-      </div>
-    </div>
-    {(selectedSido || selectedSigungu) && (
-      <button
-        onClick={() => {
-          setSelectedSido("");
-          setSelectedSigungu("");
-        }}
-        className="px-3 py-1.5 bg-yellow-500 text-white text-xs font-semibold rounded-md hover:bg-yellow-600 transition shadow-sm"
-      >
-        필터 초기화
-      </button>
-    )}
   </motion.div>
 );
 
@@ -649,11 +604,11 @@ const TrendingFundingPage = () => {
               variants={itemVariants}
             >
               <span className="flex items-center gap-1.5">
-                <FiTrendingUp className="text-xl flex-shrink-0" />
-                <span className="truncate">인기 펀딩 맛집</span>
-              </span>
-              <span className="text-gray-600 text-[14px] truncate">
-                달성률이 높은 펀딩을 확인해보세요 !
+                <div className="flex items-center gap-1.5 mb-1">
+                  <FiTrendingUp className="text-xl flex-shrink-0" />
+                  <span className="truncate">인기 펀딩 맛집</span>
+                  <div className="h-3" /> {/* 인기펀딩 맛집 아래에 간격 추가 */}
+                </div>
               </span>
             </motion.h2>
 
@@ -764,32 +719,7 @@ const TrendingFundingPage = () => {
               initial="hidden"
               animate="visible"
             >
-              <motion.h3
-                className="text-lg font-semibold text-yellow-800 mb-3 truncate"
-                variants={itemVariants}
-              >
-                인기 지역
-              </motion.h3>
-              <motion.ul className="space-y-2" variants={containerVariants}>
-                {sidoList.slice(0, 3).map((sido) => (
-                  <motion.li key={sido} variants={itemVariants}>
-                    <button
-                      className="w-full text-left px-3 py-2 text-xs font-medium text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 rounded-md transition flex items-center gap-2"
-                      onClick={() => {
-                        setSelectedSido(sido);
-                        setSelectedSigungu("");
-                      }}
-                    >
-                      <TbCurrentLocation className="text-yellow-600 text-base flex-shrink-0" />
-                      <span className="truncate">{sido}</span>
-                    </button>
-                  </motion.li>
-                ))}
-              </motion.ul>
-              <motion.div
-                className="mt-5 pt-3 border-t border-gray-200"
-                variants={itemVariants}
-              >
+              <motion.div variants={itemVariants}>
                 <h3 className="text-lg font-semibold text-yellow-800 mb-3 truncate">
                   오늘의 핫딜
                 </h3>

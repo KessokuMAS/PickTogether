@@ -71,15 +71,6 @@ const AnimatedLogo = () => {
 // Menu Items
 const menuItems = [
   {
-    to: "/for-one",
-    icon: FiShoppingCart,
-    label: "한 그릇",
-    color: "text-teal-600",
-    hoverColor: "hover:text-teal-700",
-    hoverBg: "hover:bg-teal-50",
-    underlineColor: "bg-teal-600",
-  },
-  {
     to: "/local-specialty",
     icon: FiHeart,
     label: "지역특산품",
@@ -96,6 +87,16 @@ const menuItems = [
     hoverColor: "hover:text-yellow-600",
     hoverBg: "hover:bg-yellow-50",
     underlineColor: "bg-yellow-500",
+  },
+
+  {
+    to: "/for-one",
+    icon: FiShoppingCart,
+    label: "한 그릇",
+    color: "text-teal-600",
+    hoverColor: "hover:text-teal-700",
+    hoverBg: "hover:bg-teal-50",
+    underlineColor: "bg-teal-600",
   },
   {
     to: "/ai-recommend",

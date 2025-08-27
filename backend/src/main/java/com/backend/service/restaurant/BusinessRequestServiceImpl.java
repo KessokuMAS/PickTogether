@@ -116,46 +116,74 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
 
     @Override
     public BusinessRequestDTO reviewBusinessRequest(BusinessRequestReviewDTO reviewDTO) {
-        BusinessRequest request = businessRequestRepository.findById(reviewDTO.getId())
-                .orElseThrow(() -> new RuntimeException("비즈니스 요청을 찾을 수 없습니다."));
-        
-        request.setStatus(reviewDTO.getStatus());
-        request.setReviewComment(reviewDTO.getReviewComment());
-        request.setReviewedAt(LocalDateTime.now());
-        
-        BusinessRequest updatedRequest = businessRequestRepository.save(request);
-        
-        // 승인된 경우 restaurant과 restaurant_image 테이블에 데이터 저장
-        if (reviewDTO.getStatus() == BusinessRequestStatus.APPROVED) {
-            createRestaurantFromBusinessRequest(updatedRequest);
+        try {
+            log.info("비즈니스 요청 검토 시작: ID={}, Status={}", reviewDTO.getId(), reviewDTO.getStatus());
             
-            // 승인 알림 생성
-            try {
-                notificationService.createBusinessRequestApprovedNotification(
-                    updatedRequest.getRequesterEmail(), 
-                    updatedRequest.getName()
-                );
-                log.info("가게요청 승인 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
-            } catch (Exception e) {
-                log.error("가게요청 승인 알림 생성 실패: {}", e.getMessage(), e);
-                // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+            // 입력 데이터 검증
+            if (reviewDTO.getId() == null) {
+                throw new IllegalArgumentException("비즈니스 요청 ID가 필요합니다.");
             }
-        } else if (reviewDTO.getStatus() == BusinessRequestStatus.REJECTED) {
-            // 거부 알림 생성
-            try {
-                notificationService.createBusinessRequestRejectedNotification(
-                    updatedRequest.getRequesterEmail(), 
-                    updatedRequest.getName(),
-                    reviewDTO.getReviewComment() != null ? reviewDTO.getReviewComment() : "사유 없음"
-                );
-                log.info("가게요청 거부 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
-            } catch (Exception e) {
-                log.error("가게요청 거부 알림 생성 실패: {}", e.getMessage(), e);
-                // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+            if (reviewDTO.getStatus() == null) {
+                throw new IllegalArgumentException("검토 상태가 필요합니다.");
             }
+            
+            BusinessRequest request = businessRequestRepository.findById(reviewDTO.getId())
+                    .orElseThrow(() -> new RuntimeException("비즈니스 요청을 찾을 수 없습니다. ID: " + reviewDTO.getId()));
+            
+            log.info("비즈니스 요청 조회 완료: {}", request.getName());
+            
+            // 상태 업데이트
+            request.setStatus(reviewDTO.getStatus());
+            request.setReviewComment(reviewDTO.getReviewComment());
+            request.setReviewedAt(LocalDateTime.now());
+            
+            BusinessRequest updatedRequest = businessRequestRepository.save(request);
+            log.info("비즈니스 요청 상태 업데이트 완료: {} -> {}", request.getStatus(), updatedRequest.getStatus());
+            
+            // 승인된 경우 restaurant과 restaurant_image 테이블에 데이터 저장
+            if (reviewDTO.getStatus() == BusinessRequestStatus.APPROVED) {
+                try {
+                    createRestaurantFromBusinessRequest(updatedRequest);
+                    log.info("Restaurant 생성 완료: {}", updatedRequest.getName());
+                } catch (Exception e) {
+                    log.error("Restaurant 생성 실패: {}", e.getMessage(), e);
+                    // Restaurant 생성 실패 시에도 비즈니스 요청 상태는 업데이트된 상태로 유지
+                    // 필요시 상태를 ROLLBACK할 수 있음
+                }
+                
+                // 승인 알림 생성
+                try {
+                    notificationService.createBusinessRequestApprovedNotification(
+                        updatedRequest.getRequesterEmail(), 
+                        updatedRequest.getName()
+                    );
+                    log.info("가게요청 승인 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
+                } catch (Exception e) {
+                    log.error("가게요청 승인 알림 생성 실패: {}", e.getMessage(), e);
+                    // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+                }
+            } else if (reviewDTO.getStatus() == BusinessRequestStatus.REJECTED) {
+                // 거부 알림 생성
+                try {
+                    notificationService.createBusinessRequestRejectedNotification(
+                        updatedRequest.getRequesterEmail(), 
+                        updatedRequest.getName(),
+                        reviewDTO.getReviewComment() != null ? reviewDTO.getReviewComment() : "사유 없음"
+                    );
+                    log.info("가게요청 거부 알림 생성 완료: {}", updatedRequest.getRequesterEmail());
+                } catch (Exception e) {
+                    log.error("가게요청 거부 알림 생성 실패: {}", e.getMessage(), e);
+                    // 알림 생성 실패는 전체 프로세스에 영향을 주지 않도록 함
+                }
+            }
+            
+            log.info("비즈니스 요청 검토 완료: ID={}, Status={}", updatedRequest.getId(), updatedRequest.getStatus());
+            return convertToDTO(updatedRequest);
+            
+        } catch (Exception e) {
+            log.error("비즈니스 요청 검토 중 오류 발생: reviewDTO={}", reviewDTO, e);
+            throw new RuntimeException("비즈니스 요청 검토에 실패했습니다: " + e.getMessage(), e);
         }
-        
-        return convertToDTO(updatedRequest);
     }
 
     @Override
@@ -228,56 +256,107 @@ public class BusinessRequestServiceImpl implements BusinessRequestService {
         if (dateString == null || dateString.trim().isEmpty()) {
             return null;
         }
+        
+        String trimmedDate = dateString.trim();
+        
         try {
-            return LocalDate.parse(dateString, DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (Exception e) {
-            log.warn("날짜 파싱 실패: {}", dateString, e);
-            return null;
+            // ISO 형식 (YYYY-MM-DD) 시도
+            return LocalDate.parse(trimmedDate, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (Exception e1) {
+            try {
+                // 다른 일반적인 형식들 시도
+                if (trimmedDate.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+                    // YYYY-M-D 형식
+                    String[] parts = trimmedDate.split("-");
+                    int year = Integer.parseInt(parts[0]);
+                    int month = Integer.parseInt(parts[1]);
+                    int day = Integer.parseInt(parts[2]);
+                    return LocalDate.of(year, month, day);
+                } else if (trimmedDate.matches("\\d{8}")) {
+                    // YYYYMMDD 형식
+                    int year = Integer.parseInt(trimmedDate.substring(0, 4));
+                    int month = Integer.parseInt(trimmedDate.substring(4, 6));
+                    int day = Integer.parseInt(trimmedDate.substring(6, 8));
+                    return LocalDate.of(year, month, day);
+                } else {
+                    log.warn("지원하지 않는 날짜 형식: {}", trimmedDate);
+                    return null;
+                }
+            } catch (Exception e2) {
+                log.warn("날짜 파싱 실패: {} (ISO 형식 실패: {}, 대체 형식 실패: {})", 
+                        trimmedDate, e1.getMessage(), e2.getMessage());
+                return null;
+            }
         }
     }
 
     // BusinessRequest를 Restaurant과 RestaurantImage로 변환하여 저장
     private void createRestaurantFromBusinessRequest(BusinessRequest businessRequest) {
         try {
+            log.info("Restaurant 생성 시작: BusinessRequest ID={}, Name={}", businessRequest.getId(), businessRequest.getName());
+            
+            // 필수 데이터 검증
+            if (businessRequest.getName() == null || businessRequest.getName().trim().isEmpty()) {
+                throw new IllegalArgumentException("가게명이 필요합니다.");
+            }
+            if (businessRequest.getCategoryName() == null || businessRequest.getCategoryName().trim().isEmpty()) {
+                throw new IllegalArgumentException("카테고리가 필요합니다.");
+            }
+            if (businessRequest.getRoadAddressName() == null || businessRequest.getRoadAddressName().trim().isEmpty()) {
+                throw new IllegalArgumentException("주소가 필요합니다.");
+            }
+            
             // Restaurant 엔티티 생성
             Restaurant restaurant = Restaurant.builder()
                     // .id(businessRequest.getId()) // ID는 자동 증가로 설정됨
-                    .name(businessRequest.getName())
-                    .categoryName(businessRequest.getCategoryName())
-                    .phone(businessRequest.getPhone())
-                    .roadAddressName(businessRequest.getRoadAddressName())
+                    .name(businessRequest.getName().trim())
+                    .categoryName(businessRequest.getCategoryName().trim())
+                    .phone(businessRequest.getPhone() != null ? businessRequest.getPhone().trim() : null)
+                    .roadAddressName(businessRequest.getRoadAddressName().trim())
                     .x(businessRequest.getX())
                     .y(businessRequest.getY())
                     .placeUrl(businessRequest.getPlaceUrl())
                     .fundingAmount(0L) // 초기 펀딩 금액은 0
-                    .fundingGoalAmount(businessRequest.getFundingGoalAmount())
+                    .fundingGoalAmount(businessRequest.getFundingGoalAmount() != null ? businessRequest.getFundingGoalAmount() : 0L)
                     .fundingStartDate(parseDate(businessRequest.getFundingStartDate()))
                     .fundingEndDate(parseDate(businessRequest.getFundingEndDate()))
                     .build();
             
+            log.info("Restaurant 엔티티 생성 완료: {}", restaurant.getName());
+            
             // Restaurant 저장
             Restaurant savedRestaurant = restaurantRepository.save(restaurant);
+            log.info("Restaurant 저장 완료: ID={}", savedRestaurant.getId());
             
             // 이미지가 있는 경우 가게용 경로로 복사하고 RestaurantImage 엔티티 생성
-            if (businessRequest.getImageUrl() != null && !businessRequest.getImageUrl().isEmpty()) {
-                String restaurantImageUrl = copyImageToRestaurantFolder(businessRequest.getImageUrl());
-                
-                RestaurantImage restaurantImage = RestaurantImage.builder()
-                        .restaurant(savedRestaurant)
-                        .imageUrl(restaurantImageUrl)
-                        .isMain(true) // 메인 이미지로 설정
-                        .sortOrder(0) // 첫 번째 이미지
-                        .build();
-                
-                restaurantImageRepository.save(restaurantImage);
+            if (businessRequest.getImageUrl() != null && !businessRequest.getImageUrl().trim().isEmpty()) {
+                try {
+                    String restaurantImageUrl = copyImageToRestaurantFolder(businessRequest.getImageUrl());
+                    
+                    RestaurantImage restaurantImage = RestaurantImage.builder()
+                            .restaurant(savedRestaurant)
+                            .imageUrl(restaurantImageUrl)
+                            .isMain(true) // 메인 이미지로 설정
+                            .sortOrder(0) // 첫 번째 이미지
+                            .build();
+                    
+                    restaurantImageRepository.save(restaurantImage);
+                    log.info("RestaurantImage 저장 완료: {}", restaurantImageUrl);
+                } catch (Exception e) {
+                    log.error("이미지 처리 중 오류 발생: {}", e.getMessage(), e);
+                    // 이미지 처리 실패는 Restaurant 생성에 영향을 주지 않도록 함
+                }
+            } else {
+                log.info("이미지가 없어 RestaurantImage 생성을 건너뜁니다.");
             }
             
             log.info("BusinessRequest ID: {} 승인 완료. Restaurant ID: {} 생성됨", 
                     businessRequest.getId(), savedRestaurant.getId());
                     
         } catch (Exception e) {
-            log.error("Restaurant 생성 중 오류 발생: BusinessRequest ID: {}", businessRequest.getId(), e);
-            throw new RuntimeException("Restaurant 생성에 실패했습니다.", e);
+            log.error("Restaurant 생성 중 오류 발생: BusinessRequest ID: {}, Name: {}", 
+                    businessRequest.getId(), businessRequest.getName(), e);
+            throw new RuntimeException("Restaurant 생성에 실패했습니다: " + e.getMessage(), e);
         }
     }
 
