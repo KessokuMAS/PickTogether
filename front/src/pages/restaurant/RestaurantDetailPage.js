@@ -19,15 +19,28 @@ import {
   FiPlus,
   FiCheck,
   FiMinus,
+  FiHeart,
 } from "react-icons/fi";
 import { IoRestaurantOutline } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
+import { FaHeart } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
+import { getCookie } from "../../utils/cookieUtil";
 
 // API Base URL
 const API_BASE =
   import.meta?.env?.VITE_API_BASE ||
   process.env.REACT_APP_API_BASE ||
   "http://localhost:8080";
+
+// NearbyKakaoResturants.js와 동일한 getImageUrl 함수
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+  return `http://localhost:8080/${imageUrl}`;
+};
 
 // Animation variants
 const containerVariants = {
@@ -84,37 +97,154 @@ const RestaurantDetailPage = () => {
   const [selectedMenus, setSelectedMenus] = useState([]);
   const [isAddingToCart, setIsAddingToCart] = useState({});
   const [addedToCart, setAddedToCart] = useState({});
-  const [totalFundingAmount, setTotalFundingAmount] = useState(0);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
-  // Fetch restaurant details
+  const { isLoggedIn } = useAuth();
+
+  // 찜 상태 확인
+  const checkWishlistStatus = useCallback(async () => {
+    if (!isLoggedIn || !id) return;
+
+    try {
+      const memberData = getCookie("member");
+      if (!memberData?.accessToken) return;
+
+      const response = await fetch(
+        `http://localhost:8080/api/wishlist/check/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${memberData.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("찜 상태 확인 응답:", result);
+        setIsWishlisted(result.isWishlisted);
+      }
+    } catch (error) {
+      console.error("찜 상태 확인 실패:", error);
+    }
+  }, [isLoggedIn, id]);
+
+  // 찜 상태 확인 useEffect
+  useEffect(() => {
+    checkWishlistStatus();
+  }, [checkWishlistStatus]);
+
+  // 찜 토글 함수
+  const toggleWishlist = async () => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (isWishlistLoading) return;
+
+    try {
+      setIsWishlistLoading(true);
+      const memberData = getCookie("member");
+      if (!memberData?.accessToken) {
+        alert("로그인이 필요합니다.");
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/api/wishlist/toggle`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${memberData.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            restaurantId: parseInt(id),
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("찜 토글 응답:", result);
+        setIsWishlisted(result.isWishlisted);
+
+        // 찜 추가/제거 시 모두 알림창 표시하지 않음 (시각적 피드백만)
+      } else {
+        const errorData = await response.json();
+        console.error("찜 토글 오류 응답:", errorData);
+        alert(errorData.message || "찜 처리에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("찜 토글 실패:", error);
+      alert("찜 처리에 실패했습니다.");
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
+  // Fetch restaurant details (NearbyKakaoResturants.js와 동일한 방식)
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
+
         // NearbyKakaoResturants.js와 동일한 API 사용
-        const response = await fetch(
+        const nearbyResponse = await fetch(
           `${API_BASE}/api/restaurants/nearby?lat=37.5027&lng=127.0352&radius=10000&page=0&size=1000`
         );
-        if (response.ok) {
-          const nearbyData = await response.json();
-          // 해당 ID의 레스토랑 찾기
+
+        if (nearbyResponse.ok) {
+          const nearbyData = await nearbyResponse.json();
           const restaurant = nearbyData.content?.find(
             (store) => store.restaurantId == id
           );
           if (restaurant) {
             setData(restaurant);
-            console.log("Nearby API에서 찾은 레스토랑:", restaurant);
+            console.log(
+              "Nearby API에서 찾은 레스토랑 (totalFundingAmount 포함):",
+              restaurant
+            );
+          } else {
+            // nearby API에서 찾지 못한 경우 restaurant API로 fallback
+            const restaurantResponse = await fetch(
+              `${API_BASE}/api/restaurants/${id}`
+            );
+            if (restaurantResponse.ok) {
+              const restaurantData = await restaurantResponse.json();
+              setData(restaurantData);
+              console.log(
+                "Restaurant API에서 찾은 레스토랑 (phone 포함):",
+                restaurantData
+              );
+            } else {
+              // 기존 API로 fallback
+              const res = await fetchRestaurantDetail(id);
+              setData(res);
+            }
+          }
+        } else {
+          // nearby API가 실패한 경우 restaurant API로 fallback
+          const restaurantResponse = await fetch(
+            `${API_BASE}/api/restaurants/${id}`
+          );
+          if (restaurantResponse.ok) {
+            const restaurantData = await restaurantResponse.json();
+            setData(restaurantData);
+            console.log(
+              "Restaurant API에서 찾은 레스토랑 (phone 포함):",
+              restaurantData
+            );
           } else {
             // 기존 API로 fallback
             const res = await fetchRestaurantDetail(id);
             setData(res);
           }
-        } else {
-          // 기존 API로 fallback
-          const res = await fetchRestaurantDetail(id);
-          setData(res);
         }
       } catch (e) {
+        console.error("API 호출 에러:", e);
         setError("상세 정보를 불러오지 못했습니다.");
       } finally {
         setLoading(false);
@@ -122,52 +252,30 @@ const RestaurantDetailPage = () => {
     })();
   }, [id]);
 
-  // Fetch funding total amount from funding table
-  useEffect(() => {
-    if (!id) return;
-
-    // NearbyKakaoResturants.js와 동일한 방식으로 totalFundingAmount 사용
-    if (data) {
-      console.log("Restaurant API 응답 데이터:", data);
-      console.log("사용 가능한 필드들:", Object.keys(data));
-
-      // totalFundingAmount가 있는지 확인 (NearbyKakaoResturants.js와 동일)
-      if (data.totalFundingAmount !== undefined) {
-        setTotalFundingAmount(data.totalFundingAmount || 0);
-        console.log("totalFundingAmount 사용:", data.totalFundingAmount);
-      } else {
-        // totalFundingAmount가 없다면 fundingAmount만 사용
-        console.log("totalFundingAmount 필드가 없음, fundingAmount만 사용");
-        setTotalFundingAmount(0);
-      }
-    }
-  }, [id, data]);
-
   // Fallback index for placeholder images
   const fallbackIdx = useMemo(() => ((Number(id) || 0) % 45) + 1, [id]);
 
-  // Image source with fallback
+  // Image source with fallback (NearbyKakaoResturants.js와 동일한 방식)
   const imgSrc = useMemo(() => {
-    const fallback = `/${fallbackIdx}.png`;
-    const url = data?.imageUrl;
-    if (!url) return fallback;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    if (url.startsWith("/")) return `${API_BASE}${url}`;
-    return url;
-  }, [data, fallbackIdx]);
+    // NearbyKakaoResturants.js의 getImageUrl 함수 사용
+    if (data?.imageUrl) {
+      const processedUrl = getImageUrl(data.imageUrl);
+      if (processedUrl) return processedUrl;
+    }
 
-  // Funding period calculation
+    // 기본 이미지 (restaurantId.jpg) - NearbyKakaoResturants.js와 동일
+    return `/${data?.restaurantId || id}.jpg`;
+  }, [data, id]);
+
+  // Funding period calculation (NearbyKakaoResturants.js와 동일한 로직)
   const fundingPeriod = useMemo(() => {
     const now = new Date();
-    const addDays = 7 + ((Number(id) || 0) % 8);
-    const end = new Date(now);
-    end.setDate(end.getDate() + addDays);
-    const daysLeft = Math.max(
-      0,
-      Math.ceil((end.getTime() - now.getTime()) / 86400000)
-    );
+    const end = data?.fundingEndDate
+      ? new Date(data.fundingEndDate)
+      : new Date(Date.now() + 14 * 86400000);
+    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
     return { start: now, end, daysLeft };
-  }, [id]);
+  }, [data?.fundingEndDate]);
 
   const formatDate = (d) =>
     d
@@ -182,7 +290,7 @@ const RestaurantDetailPage = () => {
   // Fallback menu items
   const fallbackMenuItems = useMemo(() => {
     const base = Number(id) || 1;
-    const pick = (offset) => `/${((base + offset) % 45) + 1}.png`;
+    const pick = (offset) => `/${((base + offset) % 45) + 1}.jpg`;
     return [
       {
         id: base * 10 + 1,
@@ -203,7 +311,7 @@ const RestaurantDetailPage = () => {
         name: "세트 메뉴",
         description: "가성비 좋은 구성",
         price: 15000,
-        imageUrl: pick(3),
+        imageUrl: pick(2),
       },
     ];
   }, [id]);
@@ -290,10 +398,17 @@ const RestaurantDetailPage = () => {
 
   // Handle funding button click
   const handleFundingClick = () => {
+    // 로그인 상태 확인 (useAuth 사용)
+    if (!isLoggedIn) {
+      alert("로그인해주세요");
+      return;
+    }
+
     if (selectedMenus.length === 0) {
       alert("메뉴를 선택해주세요");
       return;
     }
+
     const params = new URLSearchParams({
       restaurantId: String(id || ""),
       restaurantName: data?.name || "",
@@ -361,10 +476,26 @@ const RestaurantDetailPage = () => {
                     alt={data.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => {
-                      e.currentTarget.src = `/${fallbackIdx}.png`;
+                      e.currentTarget.src = `/${fallbackIdx}.jpg`;
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                  {/* 찜 버튼 */}
+                  <button
+                    onClick={toggleWishlist}
+                    disabled={isWishlistLoading}
+                    className="absolute top-4 left-4 px-4 py-2 bg-white/90 backdrop-blur-sm text-orange-600 text-sm font-semibold rounded-full flex items-center gap-2 hover:bg-white hover:shadow-lg transition-all duration-300 shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50"
+                    aria-label={isWishlisted ? "찜 해제" : "찜 추가"}
+                  >
+                    {isWishlisted ? (
+                      <FaHeart className="text-sm text-red-500" />
+                    ) : (
+                      <FiHeart className="text-sm" />
+                    )}
+                    {isWishlisted ? "찜 완료" : "찜"}
+                  </button>
+
                   <button
                     onClick={handleShare}
                     className="absolute top-4 right-4 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-full flex items-center gap-2 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
@@ -394,22 +525,27 @@ const RestaurantDetailPage = () => {
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
-                        {(
-                          Number(data.fundingAmount ?? 0) +
-                          Number(totalFundingAmount)
-                        ).toLocaleString()}
-                        원 펀딩
-                        {/* 디버깅 정보 */}
+                        {(() => {
+                          // NearbyKakaoResturants.js와 동일한 로직
+                          const actualFundingAmount =
+                            (data.fundingAmount || 0) +
+                            (data.totalFundingAmount || 0);
+                          return `${actualFundingAmount.toLocaleString()}원 펀딩`;
+                        })()}
                       </div>
                       <BarProgress
                         value={
                           data.fundingGoalAmount > 0
-                            ? Math.round(
-                                ((Number(data.fundingAmount ?? 0) +
-                                  Number(totalFundingAmount)) *
-                                  100) /
-                                  Number(data.fundingGoalAmount)
-                              )
+                            ? (() => {
+                                // NearbyKakaoResturants.js와 동일한 로직
+                                const actualFundingAmount =
+                                  (data.fundingAmount || 0) +
+                                  (data.totalFundingAmount || 0);
+                                return Math.round(
+                                  (actualFundingAmount * 100) /
+                                    data.fundingGoalAmount
+                                );
+                              })()
                             : 0
                         }
                         maxValue={data.fundingGoalAmount ?? 0}
@@ -450,9 +586,10 @@ const RestaurantDetailPage = () => {
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                          aria-label="길찾기"
+                          aria-label="카카오맵으로 길찾기"
                         >
-                          <TbCurrentLocation className="text-base" /> 길찾기
+                          <TbCurrentLocation className="text-base" />{" "}
+                          카카오맵으로 길찾기
                         </a>
                       )}
                     </div>
@@ -518,7 +655,7 @@ const RestaurantDetailPage = () => {
                                   onError={(e) => {
                                     e.currentTarget.src = `/${
                                       ((fallbackIdx + index) % 45) + 1
-                                    }.png`;
+                                    }.jpg`;
                                   }}
                                 />
                                 <div className="flex-1">
@@ -572,18 +709,30 @@ const RestaurantDetailPage = () => {
                       <div className="mt-4">
                         <button
                           onClick={handleFundingClick}
-                          className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-orange-400"
-                          disabled={selectedMenus.length === 0}
-                          aria-label={
-                            selectedMenus.length > 0
-                              ? `펀딩 참여 (${selectedMenus.length} items)`
-                              : "펀딩 참여"
-                          }
+                          className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-md focus:outline-none focus:ring-2 focus:ring-orange-400 ${(() => {
+                            if (!isLoggedIn) {
+                              return "bg-gray-400 text-gray-600 cursor-not-allowed hover:bg-gray-400";
+                            }
+                            if (selectedMenus.length === 0) {
+                              return "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300";
+                            }
+                            return "bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 hover:shadow-lg";
+                          })()}`}
+                          disabled={selectedMenus.length === 0 || !isLoggedIn}
+                          aria-label={(() => {
+                            if (!isLoggedIn) return "로그인이 필요합니다";
+                            if (selectedMenus.length > 0)
+                              return `펀딩 참여 (${selectedMenus.length} items)`;
+                            return "펀딩 참여";
+                          })()}
                         >
                           <FiShoppingCart className="text-base" />
-                          {selectedMenus.length > 0
-                            ? `펀딩 참여 (${selectedMenus.length})`
-                            : "펀딩 참여"}
+                          {(() => {
+                            if (!isLoggedIn) return "로그인 필요";
+                            if (selectedMenus.length > 0)
+                              return `펀딩 참여 (${selectedMenus.length})`;
+                            return "펀딩 참여";
+                          })()}
                         </button>
                       </div>
                     </motion.div>
@@ -624,7 +773,7 @@ const RestaurantDetailPage = () => {
                             onError={(e) => {
                               e.currentTarget.src = `/${
                                 ((fallbackIdx + index) % 45) + 1
-                              }.png`;
+                              }.jpg`;
                             }}
                           />
                           <div className="absolute inset-0 bg-orange-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />

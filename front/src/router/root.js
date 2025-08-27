@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import LoadingSpinner from "../components/member/LoadingSpinner";
+import ScrollToTop from "../components/common/ScrollToTop";
 import LocationPage from "../pages/location/LocationPage";
 import MemberLayout from "../layouts/MemberLayout";
 import SearchResultPage from "../pages/search/SearchResultPage";
@@ -44,6 +45,7 @@ const LocalSpecialtyPage = lazy(() =>
 const LocalSpecialtyDetailPage = lazy(() =>
   import("../pages/localSpecialty/LocalSpecialtyDetailPage")
 );
+const WishlistPage = lazy(() => import("../pages/wishlist/WishlistPage"));
 const AiRecommendPage = lazy(() => import("../pages/ai/AiRecommendPage"));
 
 // 마이페이지 관련 페이지들
@@ -60,6 +62,9 @@ const BusinessLocationPage = lazy(() =>
   import("../pages/business/BusinessLocationPage")
 );
 const ProfileEditPage = lazy(() => import("../pages/member/ProfileEditPage"));
+const DeleteAccountPage = lazy(() =>
+  import("../pages/member/DeleteAccountPage")
+);
 
 const root = createBrowserRouter([
   {
@@ -69,9 +74,12 @@ const root = createBrowserRouter([
   {
     path: "main",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <MainPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <MainPage />
+        </Suspense>
+      </>
     ),
   },
   {
@@ -84,110 +92,161 @@ const root = createBrowserRouter([
       { path: "kakao", element: <KakaoCallbackPage /> },
       { path: "naver", element: <NaverCallbackPage /> },
       { path: "google", element: <GoogleCallbackPage /> },
+      { path: "delete-account", element: <DeleteAccountPage /> },
     ],
   },
   {
     path: "/location",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <LocationPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <LocationPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/mypage",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <MyPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <MyPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/restaurant/:id",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <RestaurantDetailPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <RestaurantDetailPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/payment",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <PaymentPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <PaymentPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/qrcode/:fundingId",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <QRCodePage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <QRCodePage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/community",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <CommunityPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <CommunityPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/community/post/:postId",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <CommunityPostDetailPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <CommunityPostDetailPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/community/write",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <WritePostPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <WritePostPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/for-one",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <ForOneIndexPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <ForOneIndexPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/trending",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <TrendingFundingPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <TrendingFundingPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/local-specialty",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <LocalSpecialtyPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <LocalSpecialtyPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/local-specialty/:id",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <LocalSpecialtyDetailPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <LocalSpecialtyDetailPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/ai-recommend",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <AiRecommendPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <AiRecommendPage />
+        </Suspense>
+      </>
+    ),
+  },
+  {
+    path: "/wishlist",
+    element: (
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <WishlistPage />
+        </Suspense>
+      </>
     ),
   },
   {
@@ -197,65 +256,100 @@ const root = createBrowserRouter([
   {
     path: "/mypage/business/requests",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <BusinessRequestsPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <BusinessRequestsPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/mypage/admin/settings",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <AdminSettingsPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <AdminSettingsPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/mypage/edit",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <ProfileEditPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <ProfileEditPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/mypage/admin/business-requests",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <BusinessRequestManagementPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <BusinessRequestManagementPage />
+        </Suspense>
+      </>
+    ),
+  },
+  {
+    path: "/mypage/delete-account",
+    element: (
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <DeleteAccountPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/search",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <SearchResultPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <SearchResultPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/business-location",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <BusinessLocationPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <BusinessLocationPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/image-search",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <ImageSearchResultPage />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <ImageSearchResultPage />
+        </Suspense>
+      </>
     ),
   },
   {
     path: "/test",
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
-        <Test />
-      </Suspense>
+      <>
+        <ScrollToTop />
+        <Suspense fallback={<LoadingSpinner />}>
+          <Test />
+        </Suspense>
+      </>
     ),
   },
 ]);

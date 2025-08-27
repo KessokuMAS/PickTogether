@@ -1,5 +1,12 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { IoRestaurantOutline } from "react-icons/io5";
 import { TbCurrentLocation } from "react-icons/tb";
+import { FiHeart, FiTrash2 } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
+import { useAuth } from "../../context/AuthContext";
+import { getCookie } from "../../utils/cookieUtil";
 
 // ✅ 원형 게이지 (달성률 색상 변화)
 function CircularProgress({ value = 0, size = 50, stroke = 4 }) {
@@ -64,6 +71,8 @@ const API_BASE =
     "http://localhost:8080") + "/api/restaurants";
 
 const NearbyKakaoRestaurants = () => {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,6 +86,7 @@ const NearbyKakaoRestaurants = () => {
   const [statusFilter, setStatusFilter] = useState("전체");
   const [sortFilter, setSortFilter] = useState("거리순");
   const [categoryFilter, setCategoryFilter] = useState("전체"); // ✅ 카테고리 필터 상태
+  const [wishlist, setWishlist] = useState(new Set()); // 찜 목록 상태
 
   const observerRef = useRef();
   const loadingRef = useRef();
@@ -156,6 +166,98 @@ const NearbyKakaoRestaurants = () => {
     },
     [coords, size]
   );
+
+  // 찜 목록 로드 (백엔드 API 사용)
+  useEffect(() => {
+    const loadWishlist = async () => {
+      // 로그인 상태가 아닌 경우 찜 목록을 로드하지 않음
+      if (!isLoggedIn) {
+        console.log("로그인 상태가 아니므로 찜 목록을 로드하지 않습니다.");
+        setWishlist(new Set());
+        return;
+      }
+
+      console.log("로그인 상태 확인됨, 찜 목록 로드 시작");
+      try {
+        const memberCookie = getCookie("member");
+        console.log("쿠키에서 member 정보:", memberCookie);
+
+        if (!memberCookie || !memberCookie.accessToken) {
+          console.log("로그인 토큰이 없습니다.");
+          return;
+        }
+
+        console.log("토큰으로 찜 목록 API 호출 시작");
+        const response = await fetch("http://localhost:8080/api/wishlist", {
+          headers: {
+            Authorization: `Bearer ${memberCookie.accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("찜 목록 API 응답 상태:", response.status);
+        if (response.ok) {
+          const wishlistData = await response.json();
+          console.log("찜 목록 데이터:", wishlistData);
+          const restaurantIds = wishlistData.map((item) => item.restaurantId);
+          setWishlist(new Set(restaurantIds));
+        } else if (response.status === 403) {
+          console.log("JWT 인증 실패, 찜 기능을 비활성화합니다.");
+          // JWT 인증 실패 시 찜 기능 비활성화
+          setWishlist(new Set());
+        } else {
+          console.error(`찜 목록 조회 실패: HTTP ${response.status}`);
+          setWishlist(new Set());
+        }
+      } catch (e) {
+        console.error("찜 목록 로드 실패:", e);
+        // 에러 발생 시 찜 기능 비활성화
+        setWishlist(new Set());
+      }
+    };
+
+    loadWishlist();
+  }, [isLoggedIn]); // isLoggedIn을 의존성 배열에 추가
+
+  // 찜 추가/제거 (백엔드 API 사용)
+  const toggleWishlist = useCallback(async (restaurantId) => {
+    try {
+      const memberCookie = getCookie("member");
+      if (!memberCookie || !memberCookie.accessToken) {
+        alert("로그인이 필요합니다.");
+        return;
+      }
+
+      const response = await fetch(
+        "http://localhost:8080/api/wishlist/toggle",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${memberCookie.accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ restaurantId }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        setWishlist((prev) => {
+          const newWishlist = new Set(prev);
+          if (result.isWishlisted) {
+            newWishlist.add(restaurantId);
+          } else {
+            newWishlist.delete(restaurantId);
+          }
+          return newWishlist;
+        });
+      } else {
+        console.error("찜 토글 실패");
+      }
+    } catch (e) {
+      console.error("찜 토글 에러:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (coords) fetchNearby(0);
@@ -261,10 +363,9 @@ const NearbyKakaoRestaurants = () => {
           {/* 전체 버튼 */}
 
           {categories.map((cat) => (
-            <div className="flex flex-col items-center mt-5">
+            <div key={cat.label} className="flex flex-col items-center mt-5">
               {/* 배경 (원형 안에 이미지만) */}
               <button
-                key={cat.label}
                 onClick={() => setCategoryFilter(cat.label)}
                 className={`flex items-center justify-center w-16 h-16   rounded-full transition 
             ${
@@ -300,6 +401,12 @@ const NearbyKakaoRestaurants = () => {
           </div>
 
           <div className="flex gap-4">
+            <button
+              onClick={() => navigate("/wishlist")}
+              className="px-4 py-2 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition-all duration-300 flex items-center gap-2"
+            >
+              <FaHeart className="text-base" />찜 목록 ({wishlist.size})
+            </button>
             <select
               className="px-4 py-2 border text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-md"
               value={statusFilter}
@@ -393,6 +500,26 @@ const NearbyKakaoRestaurants = () => {
                         <div className="absolute top-2 right-2 bg-green-600 text-white text-[14px] font-semibold px-2 py-1 rounded shadow">
                           펀딩 성공
                         </div>
+                      )}
+                      {/* 찜 버튼 - 로그인 상태에 따라 조건부 렌더링 */}
+                      {isLoggedIn && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleWishlist(restaurantId);
+                          }}
+                          className="absolute top-2 left-2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-md"
+                          aria-label={
+                            wishlist.has(restaurantId) ? "찜 해제" : "찜 추가"
+                          }
+                        >
+                          {wishlist.has(restaurantId) ? (
+                            <FaHeart className="text-red-500 text-sm" />
+                          ) : (
+                            <FiHeart className="text-gray-600 text-sm" />
+                          )}
+                        </button>
                       )}
                     </div>
 

@@ -152,7 +152,7 @@ const ChatBot = () => {
       {/* 플로팅 버튼 */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 bg-blue-100 hover:bg-blue-600 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center ${
+        className={`fixed bottom-6 right-6 bg-blue-100 hover:bg-blue-600 text-white rounded-full shadow-lg w-16 h-16 flex items-center justify-center z-50 ${
           !isOpen ? "animate-bounce" : ""
         }`}
       >
@@ -169,7 +169,7 @@ const ChatBot = () => {
 
       {/* 챗봇 창 */}
       {isOpen && (
-        <div className="fixed bottom-20 right-6 w-[500px] h-[500px] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden">
+        <div className="fixed bottom-20 right-6 w-[500px] h-[500px] bg-white shadow-2xl rounded-xl flex flex-col overflow-hidden z-50">
           {/* 헤더 */}
           <div className="bg-blue-500 text-white px-4 py-2 font-bold flex items-center justify-between">
             <div className="flex items-center gap-2">

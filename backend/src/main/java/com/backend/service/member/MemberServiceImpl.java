@@ -69,8 +69,8 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public Map<String, Object> register(String email, String pw, String nickname) {
-        log.info("회원가입 시도: " + email);
+    public Map<String, Object> register(String email, String pw, String nickname, String memberType) {
+        log.info("회원가입 시도: " + email + ", 회원유형: " + memberType);
 
         // 이메일 중복 확인
         if (memberRepository.existsByEmail(email)) {
@@ -86,13 +86,30 @@ public class MemberServiceImpl implements MemberService {
                 .pw(encodedPw)
                 .nickname(nickname)
                 .socialType(null)  // 일반회원은 null
+                .deleteAccount(0)  // 명시적으로 0으로 설정
                 .build();
 
-        // 기본 역할 추가 (USER)
-        member.addRole(MemberRole.USER);
+        // 회원 유형에 따른 역할 설정
+        if ("BUSINESS_OWNER".equals(memberType)) {
+            member.addRole(MemberRole.BUSINESS_OWNER);
+            log.info("자영업자 역할로 회원가입: " + email);
+        } else {
+            // 기본 역할은 USER
+            member.addRole(MemberRole.USER);
+            log.info("일반 사용자 역할로 회원가입: " + email);
+        }
+
+        // 저장 전에 명시적으로 기본값 설정
+        if (member.getDeleteAccount() == null) {
+            member.setDeleteAccount(0);
+        }
 
         // 저장
         memberRepository.save(member);
+        
+        // 저장 후 확인
+        log.info("회원가입 완료 - 이메일: {}, 역할: {}, deleteAccount: {}", 
+                email, member.getMemberRoleList(), member.getDeleteAccount());
 
         Map<String, Object> result = new HashMap<>();
         result.put("message", "회원가입이 완료되었습니다.");
@@ -116,5 +133,31 @@ public class MemberServiceImpl implements MemberService {
                             .build();
                 })
                 .orElse(null);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return memberRepository.existsByEmail(email);
+    }
+
+    @Override
+    public boolean deleteAccount(String email, String confirmEmail) {
+        if (!email.equals(confirmEmail)) {
+            throw new RuntimeException("이메일이 일치하지 않습니다.");
+        }
+
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+
+        // null 안전한 탈퇴 여부 확인
+        if (member.isDeleted()) {
+            throw new RuntimeException("이미 탈퇴된 회원입니다.");
+        }
+
+        member.deleteAccount();
+        memberRepository.save(member);
+
+        log.info("회원 탈퇴 완료: " + email);
+        return true;
     }
 } 

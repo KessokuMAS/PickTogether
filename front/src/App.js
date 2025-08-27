@@ -1,5 +1,4 @@
 // App.js
-
 import { Suspense, useEffect } from "react";
 import { AuthProvider } from "./context/AuthContext";
 import LoadingSpinner from "./components/member/LoadingSpinner";

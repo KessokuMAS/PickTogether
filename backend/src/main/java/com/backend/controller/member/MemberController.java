@@ -65,6 +65,7 @@ public class MemberController {
             String pw = request.get("pw"); // 백엔드에서 기대하는 필드명
             String name = request.get("name"); // 프론트엔드에서 보내는 필드명
             String nickname = request.get("nickname"); // 백엔드에서 기대하는 필드명
+            String memberType = request.get("memberType"); // 회원 유형 추가
 
             // password 또는 pw 필드 중 하나를 사용
             String actualPassword = password != null ? password : pw;
@@ -77,7 +78,7 @@ public class MemberController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            Map<String, Object> result = memberService.register(email, actualPassword, actualNickname);
+            Map<String, Object> result = memberService.register(email, actualPassword, actualNickname, memberType);
             log.info("회원가입 성공: " + email);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
@@ -98,6 +99,41 @@ public class MemberController {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Member API is working!");
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/check-email")
+    public ResponseEntity<Map<String, Object>> checkEmailDuplicate(@RequestBody Map<String, String> request) {
+        try {
+            log.info("이메일 중복 확인 요청: " + request);
+            
+            String email = request.get("email");
+            if (email == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "이메일을 입력해주세요.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            // 이메일 형식 검증
+            String emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+            if (!email.matches(emailRegex)) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "올바른 이메일 형식을 입력해주세요.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            boolean isDuplicate = memberService.existsByEmail(email);
+            Map<String, Object> result = new HashMap<>();
+            result.put("duplicate", isDuplicate);
+            result.put("message", isDuplicate ? "이미 사용 중인 이메일입니다." : "사용 가능한 이메일입니다.");
+            
+            log.info("이메일 중복 확인 완료: " + email + " (중복: " + isDuplicate + ")");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("이메일 중복 확인 예외 발생: " + e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "서버 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
                     
     @GetMapping("/mypage")
@@ -123,6 +159,40 @@ public class MemberController {
         } catch (Exception e) {
             log.error("로그아웃 예외 발생: " + e.getMessage(), e);
             Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "서버 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    @PostMapping("/delete-account")
+    public ResponseEntity<Map<String, Object>> deleteAccount(@RequestBody Map<String, String> request) {
+        try {
+            log.info("회원 탈퇴 요청: " + request);
+            
+            String email = request.get("email");
+            String confirmEmail = request.get("confirmEmail");
+            
+            if (email == null || confirmEmail == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "이메일을 입력해주세요.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+
+            boolean result = memberService.deleteAccount(email, confirmEmail);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "회원 탈퇴가 완료되었습니다.");
+            response.put("success", result);
+            
+            log.info("회원 탈퇴 성공: " + email);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("회원 탈퇴 실패: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            log.error("회원 탈퇴 예외 발생: " + e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "서버 오류가 발생했습니다.");
             return ResponseEntity.internalServerError().body(errorResponse);
         }

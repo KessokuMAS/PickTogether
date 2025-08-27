@@ -815,7 +815,7 @@ const PaymentPage = () => {
                   {isProcessingPayment
                     ? "결제 진행 중..."
                     : productType === "specialty"
-                    ? "구매하기"
+                    ? "펀딩 참여하기"
                     : "펀딩 참여하기"}
                 </button>
                 <p className="mt-4 text-xs text-gray-500 text-center">

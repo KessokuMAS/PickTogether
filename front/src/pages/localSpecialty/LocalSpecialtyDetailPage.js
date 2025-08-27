@@ -642,21 +642,42 @@ const LocalSpecialtyDetailPage = () => {
                     </span>
                   </div>
 
-                  {/* 가격 정보 */}
+                  {/* 펀딩 정보 */}
                   <div>
                     <div className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
-                      {dynamicPrice.toLocaleString()}원
+                      {(() => {
+                        const actualFundingAmount =
+                          (fundingAmount || 0) +
+                          (specialty.totalFundingAmount || 0);
+                        return `${actualFundingAmount.toLocaleString()}원 펀딩`;
+                      })()}
                     </div>
                     {(fundingAmount !== undefined ||
                       fundingGoalAmount !== undefined) && (
                       <div>
                         <BarProgress
-                          value={fundingPercent || 0}
+                          value={
+                            fundingGoalAmount > 0
+                              ? Math.round(
+                                  (((fundingAmount || 0) +
+                                    (specialty.totalFundingAmount || 0)) *
+                                    100) /
+                                    fundingGoalAmount
+                                )
+                              : 0
+                          }
                           maxValue={fundingGoalAmount || 100000}
                         />
                         <div className="mt-2 text-xs text-gray-600">
                           <span>
-                            {Math.round((fundingAmount || 0) / 10000)}만원 펀딩
+                            {(() => {
+                              const actualFundingAmount =
+                                (fundingAmount || 0) +
+                                (specialty.totalFundingAmount || 0);
+                              return `${Math.round(
+                                actualFundingAmount / 10000
+                              )}만원 펀딩`;
+                            })()}
                           </span>
                           <span className="text-gray-400 mx-2">•</span>
                           <span>
@@ -691,13 +712,8 @@ const LocalSpecialtyDetailPage = () => {
                     )}
                   </div>
 
-                  {/* 가격 태그 */}
-                  <div className="flex items-center gap-2 text-xs text-gray-600">
-                    <FiTag className="text-orange-600 text-sm" />
-                    <span className="text-orange-600 font-bold text-base">
-                      {dynamicPrice.toLocaleString()}원
-                    </span>
-                  </div>
+                  {/* 펀딩 금액 태그 */}
+                  <div className="flex items-center gap-2 text-xs text-gray-600"></div>
 
                   {/* 수량 선택 */}
                   <div className="pt-3 border-t border-orange-100">
