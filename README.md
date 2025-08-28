@@ -1,338 +1,353 @@
-# PickTogether 🍽️
+# 🍽️ PickTogether - 로컬 맛집 공유 및 커뮤니티 플랫폼
 
-**로컬 맛집 공유 및 커뮤니티 플랫폼**
+**PickTogether**는 지역 특산품과 맛집을 공유하고, 사용자들이 소통할 수 있는 통합 플랫폼입니다.
+위치 기반 맛집 추천, 특산품 펀딩, 커뮤니티 기능을 통해 지역의 맛과 문화를 함께 즐길 수 있습니다.
 
-PickTogether는 지역 특산품과 맛집을 공유하고, 사용자들이 소통할 수 있는 통합 플랫폼입니다.
+---
+
+## 🏗️ 프로젝트 구조
+
+```
+PickTogether/
+├── front/        # React 프론트엔드
+├── backend/      # Spring Boot 백엔드
+└── README.md     # 프로젝트 설명서
+```
+
+---
+
+## 📄 관련 자료
+
+* [📹 시연 영상 (추가 필요)]()
+* [📑 프로젝트 PDF (추가 필요)]()
+
+---
+
+## 📅 개발 기간
+
+* **2025년 6월 30일 \~ 2025년 7월 25일**
+
+---
+
+## 👥 팀원
+
+
+<img src="https://avatars.githubusercontent.com/inhan99" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/KessokuMAS" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/chanO4135" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/bannana-key" width="100px;" alt="">
+inhan99 (고인한)
+KessokuMAS (고윤호)
+chanO4135 (김찬영)
+bannana-key (송승찬)
+팀장: 고인한
+팀원: 고윤호, 김찬영, 송승찬
+
+---
 
 ## 👥 팀원 역할 분담
 
 ### 🎨 Frontend
-- 메인 & 홈 화면 (추천, 트렌딩, 특산품, 1인 메뉴) - [이름]  
-- 맛집 상세 & 리뷰, QR 주문 - [이름]  
-- 커뮤니티 & 나눔게시판 - [이름]  
-- 마이페이지 (펀딩 내역, 위시리스트, 알림, 펀딩 달력) - [송승찬]  
-- 관리자 페이지 (요청 승인/거부, 통계, 설정) - [송승찬]  
-- 공통 컴포넌트 (레이아웃, 주소 검색, 메뉴, 위시리스트) - [송승찬]  
+
+* 메인 & 홈 화면 (추천, 트렌딩, 특산품, 1인 메뉴): **\[추가 필요]**
+* 맛집 상세 & 리뷰, QR 주문: **\[추가 필요]**
+* 커뮤니티 & 나눔게시판: **\[추가 필요]**
+* 마이페이지 (펀딩 내역, 위시리스트, 알림, 펀딩 달력): 송승찬
+* 관리자 페이지 (요청 승인/거부, 통계, 설정): 송승찬
+* 공통 컴포넌트 (레이아웃, 주소 검색, 메뉴, 위시리스트): 송승찬
 
 ### ⚙️ Backend
-- 회원 관리 (회원가입, 로그인, 소셜 로그인, JWT 인증) - [송승찬]  
-- 맛집 관리 (조회, 상세, 리뷰, 메뉴, 위치 서비스) - [이름]  
-- 특산품 관리 (조회, 주문, 펀딩 시스템) - [이름]  
-- 커뮤니티 관리 (게시글, 댓글, 나눔게시판) - [이름]  
-- 펀딩 관리 (펀딩 참여, QR 코드 발급/만료, 캘린더 연동) - [송승찬]  
-- 알림 & 비즈니스 요청 (사업자 등록, 승인/거부 알림) - [송승찬]  
-- 보안 & 설정 (Spring Security, Config, Exception Handling) - [이름]  
+
+* 회원 관리 (회원가입, 로그인, 소셜 로그인, JWT 인증): 송승찬
+* 맛집 관리 (조회, 상세, 리뷰, 메뉴, 위치 서비스): **\[추가 필요]**
+* 특산품 관리 (조회, 주문, 펀딩 시스템): **\[추가 필요]**
+* 커뮤니티 관리 (게시글, 댓글, 나눔게시판): **\[추가 필요]**
+* 펀딩 관리 (펀딩 참여, QR 코드 발급/만료, 캘린더 연동): 송승찬
+* 알림 & 비즈니스 요청 (사업자 등록, 승인/거부 알림): 송승찬
+* 보안 & 설정 (Spring Security, Config, Exception Handling): **\[추가 필요]**
 
 ### 🛠 공통 & 인프라
-- API 모듈 & HTTP 통신 (Axios, JWT 인증) - [송승찬]  
-- 소셜 로그인 연동 (카카오, 구글, 네이버) - [이름]  
-- 파일 업로드 & 이미지 관리 - [송승찬]  
-- 라우팅 & 상태 관리 (React Router, Context) - [송승찬]  
+
+* API 모듈 & HTTP 통신 (Axios, JWT 인증): 송승찬
+* 소셜 로그인 연동 (카카오, 구글, 네이버): **\[추가 필요]**
+* 파일 업로드 & 이미지 관리: 송승찬
+* 라우팅 & 상태 관리 (React Router, Context): 송승찬
 
 ### 💻 UI/UX
-- 반응형 디자인 & 모바일 최적화 - [송승찬]  
-- UI 컴포넌트 & 스타일링 (Tailwind CSS) - [송승찬]  
+
+* 반응형 디자인 & 모바일 최적화: 송승찬
+* UI 컴포넌트 & 스타일링 (Tailwind CSS): 송승찬
 
 ### ✅ 테스트 & 품질
-- 코드 리뷰 & 품질 관리 - [송승찬]  
-- 버그 수정 & 성능 최적화 - [송승찬]  
 
+* 코드 리뷰 & 품질 관리: 송승찬
+* 버그 수정 & 성능 최적화: 송승찬
 
-## 🚀 주요 기능
+---
+
+## 📁 주요 기능
 
 ### 🍜 맛집 & 특산품
-- 🍽️ **로컬 맛집 검색 및 추천** - 위치 기반 주변 맛집 찾기  
-- 🛍️ **지역 특산품 정보 제공** - 지역별 특산품 상세 정보 및 구매  
-- 📈 **트렌딩 맛집 순위** - 인기 있는 맛집 및 펀딩 프로젝트  
-- 🥘 **1인용 맛집 추천** - 한그릇 메뉴 추천 및 주문 시스템  
-- 📝 **맛집 상세 정보 및 리뷰** - 메뉴, 위치, 리뷰, QR 코드 주문  
-- 🖼️ **이미지 기반 맛집 검색** - AI 기반 이미지 검색 결과  
-- 📍 **위치 기반 맛집 검색** - GPS 기반 실시간 위치 서비스  
-- 📦 **지역 특산품 구매 시스템** - 펀딩 기반 특산품 구매 및 배송  
-- 💰 **펀딩 시스템** - 식당 및 특산품 펀딩 참여 및 관리  
 
-### 💳 결제 & 주문 시스템
-- 🔗 **QR 코드 기반 주문 처리** - 펀딩 완료 후 QR 코드 생성 및 사용  
-- ⚡ **실시간 결제 정보 관리** - 카카오페이, 토스페이, 일반결제 지원  
-- 🧾 **주문번호, 결제금액, 결제수단 추적** - 상세한 결제 내역 관리  
-- 📅 **펀딩 마감일 관리** - 달력 기반 펀딩 현황 및 QR 사용기한 관리  
+* 로컬 맛집 검색 및 추천 (GPS 기반 주변 맛집 추천)
+* 지역 특산품 정보 제공 및 구매
+* 트렌딩 맛집 순위 & 1인 메뉴 추천
+* 맛집 상세 정보 및 리뷰 (QR 코드 주문 포함)
+* 이미지 기반 & 위치 기반 검색
+* 특산품 펀딩 및 배송 시스템
 
-### 💬 커뮤니티 & 소통
-- ✍️ **맛집 리뷰 및 후기** - 사용자 리뷰 작성 및 공유  
-- 💬 **게시판 및 댓글 시스템** - 커뮤니티 게시글 작성/수정/삭제  
-- 🤝 **사용자 간 소통 공간** - 게시글 상세 보기 및 댓글 시스템  
-- 🔄 **나눔게시판** - 중고 거래 및 정보 공유 공간  
-- 🔔 **알림 시스템** - 사업자 요청 승인/거부 알림  
+### 💳 결제 & 주문
+
+* QR 코드 기반 주문 처리
+* 카카오페이, 토스페이, 일반 결제 지원
+* 펀딩 마감일 & QR 사용기한 관리
+
+### 💬 커뮤니티
+
+* 맛집 리뷰 및 후기
+* 게시판 & 댓글 기능
+* 나눔게시판 (중고 거래/정보 공유)
+* 알림 시스템 (사업자 요청 승인/거부 등)
 
 ### 🤖 AI 기능
-- 🎯 **맛집 추천 AI** - AI 기반 개인화 맛집 추천  
-- 📊 **리뷰 분석** - AI 기반 리뷰 분석 및 인사이트 제공  
-- 🖼️ **이미지 검색** - AI 기반 이미지 인식 맛집 검색  
+
+* AI 기반 맛집 추천
+* 리뷰 분석 및 인사이트 제공
+* 이미지 인식 기반 맛집 검색
 
 ### 🏢 비즈니스 서비스
-- 🏪 **레스토랑 관리 시스템** - 가게 정보 및 메뉴 관리  
-- 🗂️ **메뉴 관리 및 업데이트** - 시즌 메뉴 및 가격 관리  
-- ✅ **비즈니스 요청 및 승인 시스템** - 자영업자 가게 등록 신청 및 관리자 승인  
-- 🗺️ **비즈니스 위치 관리** - 가게 위치 정보 및 지도 연동  
-- 🍲 **1인용 메뉴 관리** - 한그릇 메뉴 등록 및 관리  
+
+* 가게 등록 & 메뉴 관리
+* 자영업자 요청 및 관리자 승인 시스템
+* 가게 위치 관리 (Kakao Map 연동)
 
 ### 🙍 회원 관리
-- ✉️ **회원가입 및 로그인** - 이메일 기반 회원가입  
-- 🌐 **소셜 로그인** - 카카오, 구글, 네이버 소셜 로그인 지원  
-- 📝 **프로필 편집** - 회원 정보 수정 및 관리  
-- 📂 **마이페이지** - 펀딩 내역, 특산품 주문, 알림 관리  
-- 🔗 **QR 코드 생성 및 관리** - 펀딩별 QR 코드 생성, 다운로드, 사용기한 관리  
-- ⭐ **위시리스트** - 찜한 맛집 및 메뉴 관리  
-- ❌ **회원 탈퇴** - 계정 삭제 및 데이터 정리  
 
-### 🔍 위치 및 검색
-- 📍 **위치 기반 서비스** - GPS 기반 주변 맛집 찾기  
-- 🖼️ **이미지 검색 결과** - AI 기반 이미지 인식 검색  
-- 🔤 **텍스트 검색 결과** - 키워드 기반 맛집 검색  
-- 💰 **펀딩 시스템** - 지역별 특산품 및 맛집 펀딩  
+* 회원가입 / 로그인 (일반 + 소셜 로그인)
+* 마이페이지 (펀딩 내역, 주문, 알림 관리)
+* 위시리스트 & 프로필 관리
+* QR 코드 발급 및 사용 관리
+
+---
+
+## 🧭 아키텍처 다이어그램 (UML)
+
+> 실 서비스 구조를 나타내는 **컴포넌트/시퀀스/배포** 다이어그램 이미지를 업로드해 링크를 넣어주세요.
+
+```md
+![UML - 시스템 아키텍처](https://your-uml-image-link.png)
+```
+
+---
+
+## 🗂️ 데이터 모델 (ERD)
+
+> 주요 엔티티와 관계를 표시한 **ERD** 이미지를 업로드해 링크를 넣어주세요.
+
+```md
+![ERD - 데이터 모델](https://your-erd-image-link.png)
+```
+
+---
 
 ## 🛠️ 기술 스택
 
 ### 🎨 Frontend
-- **React 19** - 최신 React 버전 및 Hooks 기반 개발  
-- **Tailwind CSS** - 유틸리티 기반 반응형 스타일링  
-- **React Router** - SPA 라우팅 및 네비게이션  
-- **Axios** - HTTP 클라이언트 및 API 통신  
-- **QR Code** - QR 코드 생성 및 스캔 기능  
-- **React Icons** - 아이콘 라이브러리  
-- **React Context** - 전역 상태 관리  
+
+* React 19
+* Tailwind CSS
+* React Router
+* Axios
+* React Icons, QR Code, Context API
 
 ### ⚙️ Backend
-- **Spring Boot 3.3.13** - Java 기반 RESTful API 백엔드  
-- **Spring Data JPA** - 데이터베이스 접근 및 ORM  
-- **Spring Security** - 보안 및 인증/인가  
-- **MariaDB** - 관계형 데이터베이스  
-- **JWT** - 토큰 기반 인증 및 세션 관리  
-- **Lombok** - 보일러플레이트 코드 제거  
-- **Gradle** - 빌드 자동화 및 의존성 관리  
 
+* Spring Boot 3.3.13
+* Spring Data JPA
+* Spring Security
+* MariaDB
+* JWT
+* Gradle, Lombok
 
-## 📁 프로젝트 구조
+### ☁️ 인프라 & API
 
-```
-PickTogether/
-├── front/                          # React 프론트엔드
-│   ├── src/
-│   │   ├── pages/                 # 페이지 컴포넌트
-│   │   │   ├── main/             # 메인 페이지
-│   │   │   ├── restaurant/       # 맛집 상세 페이지
-│   │   │   ├── community/        # 커뮤니티 게시판
-│   │   │   ├── board/            # 나눔게시판
-│   │   │   ├── payment/          # 결제 및 펀딩 시스템
-│   │   │   ├── member/           # 회원 관리 (로그인, 마이페이지)
-│   │   │   ├── admin/            # 관리자 기능
-│   │   │   ├── ai/               # AI 추천 및 검색
-│   │   │   ├── forone/           # 1인용 메뉴
-│   │   │   ├── localSpecialty/   # 지역 특산품
-│   │   │   ├── business/         # 사업자 서비스
-│   │   │   ├── trending/         # 트렌딩 펀딩
-│   │   │   ├── search/           # 검색 결과
-│   │   │   ├── location/         # 위치 기반 서비스
-│   │   │   └── wishlist/         # 위시리스트
-│   │   ├── components/           # 재사용 컴포넌트
-│   │   │   ├── address/          # 주소 검색 모달
-│   │   │   ├── charts/           # 차트 컴포넌트
-│   │   │   ├── chatbot/          # 챗봇 및 음성 입력
-│   │   │   ├── common/           # 공통 컴포넌트
-│   │   │   ├── forone/           # 1인용 메뉴 컴포넌트
-│   │   │   ├── list/             # 리스트 컴포넌트
-│   │   │   ├── member/           # 회원 관련 컴포넌트
-│   │   │   └── menus/            # 메뉴 컴포넌트
-│   │   ├── api/                  # API 통신 모듈
-│   │   │   ├── boardApi.js       # 게시판 API
-│   │   │   ├── businessRequestApi.js # 사업자 요청 API
-│   │   │   ├── chatBotApi.js     # 챗봇 API
-│   │   │   ├── communityApi.js   # 커뮤니티 API
-│   │   │   ├── fundingApi.js     # 펀딩 API
-│   │   │   ├── fundingSpecialtyApi.js # 특산품 펀딩 API
-│   │   │   ├── memberApi.js      # 회원 API
-│   │   │   ├── notificationApi.js # 알림 API
-│   │   │   ├── restaurantApi.js  # 맛집 API
-│   │   │   ├── searchApi.js      # 검색 API
-│   │   │   ├── specialtyApi.js   # 특산품 API
-│   │   │   └── wishlistApi.js    # 위시리스트 API
-│   │   ├── context/              # React Context
-│   │   │   └── AuthContext.js    # 인증 상태 관리
-│   │   ├── hooks/                # Custom Hooks
-│   │   │   └── useScrollToTop.js # 스크롤 관련 훅
-│   │   ├── layouts/              # 레이아웃 컴포넌트
-│   │   │   ├── MainBanner.js     # 메인 배너
-│   │   │   ├── MainLayout.js     # 메인 레이아웃
-│   │   │   ├── MemberLayout.js   # 회원 전용 레이아웃
-│   │   │   └── MyPageHeader.js   # 마이페이지 헤더
-│   │   ├── router/               # 라우팅 설정
-│   │   │   ├── mainRouter.js     # 메인 라우터
-│   │   │   └── root.js           # 루트 라우터
-│   │   ├── slices/               # Redux 상태 관리
-│   │   ├── utils/                # 유틸리티 함수
-│   │   │   ├── cookieUtil.js     # 쿠키 관리
-│   │   │   └── jwtAxios.js       # JWT 인증 Axios
-│   │   ├── App.js                # 메인 앱 컴포넌트
-│   │   ├── App.css               # 앱 스타일
-│   │   └── index.js              # 진입점
-│   ├── public/                   # 정적 파일
-│   │   ├── images/               # 이미지 파일들
-│   │   └── videos/               # 비디오 파일들
-│   ├── package.json              # 의존성 및 스크립트
-│   └── tailwind.config.js        # Tailwind CSS 설정
-├── backend/                       # Spring Boot 백엔드
-│   ├── src/main/java/com/backend/
-│   │   ├── controller/           # REST API 컨트롤러
-│   │   │   ├── advice/           # 예외 처리 어드바이스
-│   │   │   ├── community/        # 커뮤니티 API
-│   │   │   ├── formatter/        # 데이터 포맷터
-│   │   │   ├── LocalSpecialtyController.java # 지역 특산품
-│   │   │   ├── member/           # 회원 관련 API
-│   │   │   ├── notification/     # 알림 API
-│   │   │   ├── restaurant/       # 맛집 관련 API
-│   │   │   ├── specialty/        # 특산품 API
-│   │   │   └── wishlist/         # 위시리스트 API
-│   │   ├── service/              # 비즈니스 로직
-│   │   │   ├── community/        # 커뮤니티 서비스
-│   │   │   ├── member/           # 회원 서비스
-│   │   │   ├── notification/     # 알림 서비스
-│   │   │   ├── restaurant/       # 맛집 서비스
-│   │   │   ├── specialty/        # 특산품 서비스
-│   │   │   └── wishlist/         # 위시리스트 서비스
-│   │   ├── repository/           # 데이터 접근 계층
-│   │   │   ├── community/        # 커뮤니티 리포지토리
-│   │   │   ├── member/           # 회원 리포지토리
-│   │   │   ├── notification/     # 알림 리포지토리
-│   │   │   ├── restaurant/       # 맛집 리포지토리
-│   │   │   ├── specialty/        # 특산품 리포지토리
-│   │   │   └── wishlist/         # 위시리스트 리포지토리
-│   │   ├── domain/               # 엔티티 클래스
-│   │   │   ├── community/        # 커뮤니티 도메인
-│   │   │   ├── member/           # 회원 도메인
-│   │   │   ├── notification/     # 알림 도메인
-│   │   │   ├── restaurant/       # 맛집 도메인
-│   │   │   ├── specialty/        # 특산품 도메인
-│   │   │   └── wishlist/         # 위시리스트 도메인
-│   │   ├── dto/                  # 데이터 전송 객체
-│   │   │   ├── community/        # 커뮤니티 DTO
-│   │   │   ├── forone/           # 1인용 메뉴 DTO
-│   │   │   ├── member/           # 회원 DTO
-│   │   │   ├── notification/     # 알림 DTO
-│   │   │   ├── restaurant/       # 맛집 DTO
-│   │   │   ├── specialty/        # 특산품 DTO
-│   │   │   └── wishlist/         # 위시리스트 DTO
-│   │   ├── security/             # 보안 설정
-│   │   ├── config/               # 설정 클래스
-│   │   │   ├── CustomSecurityConfig.java # 보안 설정
-│   │   │   ├── CustomServletConfig.java # 서블릿 설정
-│   │   │   └── GoogleConfig.java # 구글 설정
-│   │   └── util/                 # 유틸리티 클래스
-│   ├── src/main/resources/       # 리소스 파일
-│   │   ├── application.properties # 애플리케이션 설정
-│   │   ├── application.yml       # YAML 설정
-│   │   ├── schema.sql            # 데이터베이스 스키마
-│   │   ├── static/               # 정적 리소스
-│   │   └── templates/            # 템플릿 파일
-│   ├── src/test/                 # 테스트 코드
-│   ├── uploads/                  # 파일 업로드 디렉토리
-│   │   ├── images/               # 이미지 파일
-│   │   ├── restaurants/          # 맛집 관련 이미지
-│   │   └── business-requests/    # 사업자 요청 이미지
-│   ├── build.gradle              # Gradle 빌드 설정
-│   ├── gradlew                   # Gradle Wrapper (Linux/Mac)
-│   ├── gradlew.bat               # Gradle Wrapper (Windows)
-│   └── settings.gradle           # Gradle 프로젝트 설정
-└── README.md                      # 프로젝트 설명서
+* AWS (서버 호스팅 및 스토리지)
+* Kakao Maps API
+* Google Cloud Vision API
+* OpenAI API
+* Portone API
+
+---
+
+## 🚀 실행 방법
+
+### 📋 사전 준비 (MariaDB)
+
+```sql
+CREATE DATABASE picktogetherdb;
+CREATE USER 'picktogetherdbuser'@'localhost' IDENTIFIED BY '1234';
+GRANT ALL PRIVILEGES ON picktogetherdb.* TO 'picktogetherdbuser'@'localhost';
+USE picktogetherdb;
 ```
 
-## 🚀 시작하기
+### 🔧 서버 실행
 
-### ✅ Prerequisites
-- **Java 21** - Spring Boot 3.x 지원  
-- **Node.js 18+** - React 19 지원  
-- **MariaDB** - 관계형 데이터베이스  
-- **Gradle** - 빌드 자동화 및 의존성 관리  
+#### 백엔드 (Spring Boot)
 
+* VSCode에서 실행:
+  `backend/src/main/java/com/backend/PickTogetherApplication.java` 실행
+* 터미널:
 
-## 📱 주요 페이지 상세
+  ```bash
+  ./gradlew bootRun
+  ```
 
-### 🏠 메인 페이지
-- 위치 기반 맛집 추천 - GPS 기반 주변 맛집 표시  
-- 트렌딩 펀딩 - 인기 있는 펀딩 프로젝트  
-- 지역 특산품 - 지역별 특산품 정보  
-- 1인용 메뉴 - 한그릇 메뉴 추천  
+#### 프론트엔드 (React)
 
-### 🍽️ 맛집 상세
-- 메뉴 정보 - 상세 메뉴 및 가격  
-- 위치 정보 - 지도 연동 및 주소  
-- 리뷰 시스템 - 사용자 리뷰 및 평점  
-- QR 코드 주문 - 펀딩 참여 후 QR 코드 생성  
-
-### 💬 커뮤니티
-- 게시글 작성/수정 - 마크다운 지원  
-- 댓글 시스템 - 실시간 댓글 작성  
-- 나눔게시판 - 중고 거래 및 정보 공유  
-- 사용자 프로필 - 작성자 정보 및 활동 내역  
-
-### 👤 마이페이지
-- 펀딩 내역 - 참여한 펀딩 및 QR 코드 관리  
-- 특산품 주문 - 구매한 특산품 및 배송 현황  
-- 알림 관리 - 사업자 요청 승인/거부 알림  
-- 위시리스트 - 찜한 맛집 및 메뉴 관리  
-- 📅 펀딩 달력 - 펀딩 마감일 및 QR 사용기한 달력 관리  
-  - 월별 펀딩 현황 표시  
-  - 식당 펀딩 vs 특산품 펀딩 구분  
-  - QR 코드 사용 가능 기간 시각화  
-  - 펀딩 마감일, QR 발급일, QR 만료일 표시  
-  - 달력에서 펀딩 클릭 시 상세 정보 모달  
-
-### ⚙️ 관리자
-- 가게 요청 관리 - 사업자 등록 요청 승인/거부  
-- 시스템 모니터링 - 사용자 및 가게 통계  
-- 관리자 설정 - 시스템 설정 및 권한 관리  
+```bash
+cd front
+npm install
+npm start
+```
 
 ---
 
-## 📅 펀딩 달력 기능 상세
+## 🌐 접속 주소
 
-### 📆 월별 네비게이션
-- 이전/다음 월 이동  
-- 오늘 날짜로 이동  
-
-### 🎨 펀딩 타입별 색상 구분
-- 🟦 파란색: 식당 펀딩  
-- 🟩 초록색: 특산품 펀딩  
-
-### ⏳ QR 사용 상태별 표시
-- 🟢 초록색: QR 사용 가능 (펀딩 마감일 ~ 마감일+14일)  
-- 🔵 파란색: 펀딩 마감일  
-- 🔴 빨간색: QR 사용 불가 (만료됨)  
+* **Frontend**: [http://localhost:3000](http://localhost:3000)
+* **Backend API**: [http://localhost:8080](http://localhost:8080)
 
 ---
 
-## 🔧 개발 환경
-- **IDE**: VS Code (권장), IntelliJ IDEA  
-- **Java**: 21 (Spring Boot 3.x 지원)  
-- **Node.js**: 최신 LTS (React 19 지원)  
-- **데이터베이스**: MariaDB 10.x  
-- **빌드 도구**: Gradle 8.x  
-- **버전 관리**: Git  
+## 🔐 환경 변수
+
+```bash
+# Database
+DB_URL=jdbc:mariadb://localhost:3306/picktogetherdb
+DB_USERNAME=picktogetherdbuser
+DB_PASSWORD=1234
+
+# JWT
+JWT_SECRET=your_jwt_secret_key
+
+# Portone
+PORTONE_API_KEY=your_portone_api_key
+PORTONE_API_SECRET=your_portone_api_secret
+
+# Google Cloud Vision
+GOOGLE_PROJECT_ID=your_google_project_id
+GOOGLE_CREDENTIALS_PATH=path/to/google-vision-key.json
+
+# Kakao
+KAKAO_REST_API_KEY=your_kakao_rest_api_key
+KAKAO_MAP_KEY=your_kakao_map_key
+
+# OpenAI
+OPENAI_API_KEY=your_openai_api_key
+```
 
 ---
 
-## 📡 주요 API 엔드포인트
-- `GET /api/restaurants/nearby` - 주변 맛집 조회  
-- `GET /api/restaurants/{id}` - 맛집 상세 정보  
-- `POST /api/business-requests` - 가게 등록 요청  
-- `PUT /api/business-requests/admin/review` - 요청 승인/거부  
-- `GET /api/notifications` - 알림 조회  
-- `POST /api/funding` - 펀딩 참여  
+## 🧰 VS Code 원클릭 실행 세팅 (F5/Tasks)
 
+> 아래 설정을 추가하면 **VS Code에서 바로 실행(한 번에 백엔드+프론트 기동)** 할 수 있습니다.
+
+### 1) `.vscode/tasks.json`
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "backend:bootRun",
+      "type": "shell",
+      "command": "./gradlew bootRun",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend:start",
+      "type": "shell",
+      "command": "npm start",
+      "options": { "cwd": "${workspaceFolder}/front" },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:all",
+      "dependsOn": ["backend:bootRun", "frontend:start"],
+      "dependsOrder": "parallel"
+    }
+  ]
+}
+```
+
+### 2) `.vscode/launch.json`
+
+```json
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Run Frontend + Backend",
+      "configurations": ["Frontend (npm start)", "Backend (Gradle bootRun)"]
+    }
+  ],
+  "configurations": [
+    {
+      "type": "pwa-node",
+      "request": "launch",
+      "name": "Frontend (npm start)",
+      "cwd": "${workspaceFolder}/front",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "java",
+      "name": "Backend (Gradle bootRun)",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "mainClass": "com.backend.PickTogetherApplication",
+      "projectName": "backend"
+    }
+  ]
+}
+```
+
+### 3) 추천 확장 프로그램
+
+* **Extension Pack for Java** (ms-vscode.vscode-java-pack)
+* **Gradle for Java** (vscjava.vscode-gradle)
+* **Debugger for Java** (vscjava.vscode-java-debug)
+* **ESLint** (dbaeumer.vscode-eslint)
+* **Prettier** (esbenp.prettier-vscode)
+* **Markdown All in One** (yzhang.markdown-all-in-one)
+
+> 위 설정을 추가하면 VSCode에서 **`Terminal > Run Task > dev:all`** 또는 **`F5`(컴파운드 선택)** 로 프론트/백엔드를 한 번에 실행할 수 있습니다.
+
+---
+
+## 📡 주요 API 엔드포인트 (예시)
+
+* `GET /api/restaurants/nearby` - 주변 맛집 조회
+* `GET /api/restaurants/{id}` - 맛집 상세 정보
+* `POST /api/business-requests` - 가게 등록 요청
+* `PUT /api/business-requests/admin/review` - 요청 승인/거부
+* `GET /api/notifications` - 알림 조회
+* `POST /api/funding` - 펀딩 참여
+
+---
 
 ## 📝 라이선스
 
-이 프로젝트는 비공개 프로젝트입니다.
+이 프로젝트는 **비공개 프로젝트**입니다.
 
 ---
 
-**PickTogether** - 지역 맛집을 함께 발견하고 공유하세요! 🍜✨
+### ✅ VSCode에서 바로 쓰는 방법
+
+1. 프로젝트 루트에 `README.md`로 저장합니다.
+2. (선택) `.vscode` 폴더를 만들고 위 `tasks.json`, `launch.json`을 각각 저장합니다.
+3. **Markdown 미리보기**: `Ctrl+Shift+V`
+4. **원클릭 실행**: `Terminal > Run Task > dev:all` 또는 `F5`(Run Frontend + Backend 선택)
+
+---
+
+> **UML/ERD 이미지** 링크만 채워주시면, 깃허브에서도 바로 렌더링되고 VSCode에서도 미리보기로 확인할 수 있어요! 필요하시면 예시 다이어그램 템플릿도 만들어 드릴게요.
