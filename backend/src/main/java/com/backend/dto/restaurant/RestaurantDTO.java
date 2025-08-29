@@ -20,6 +20,7 @@ public class RestaurantDTO {
   private String placeUrl;
 
   private Long fundingAmount;
+  private Long totalFundingAmount; // 펀딩 테이블 결제내역 합산 금액
   private Long fundingGoalAmount;
   private Integer fundingPercent; // 0~100
 

@@ -14,6 +14,10 @@ public interface MemberService {
 
     boolean existsByEmail(String email);
 
+    boolean updateProfile(String email, String nickname);
+    
+    boolean updatePassword(String email, String currentPassword, String newPassword);
+
     boolean deleteAccount(String email, String confirmEmail);
 
 } 

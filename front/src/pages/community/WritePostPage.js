@@ -11,6 +11,8 @@ const WritePostPage = () => {
     content: "",
     category: "일반",
     tags: "",
+    imageFile: null,
+    imagePreview: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 

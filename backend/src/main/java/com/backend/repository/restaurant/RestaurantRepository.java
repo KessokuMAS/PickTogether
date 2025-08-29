@@ -72,7 +72,8 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 	@Query(value = """
 		SELECT r.id, r.name, r.category_name, r.phone, r.road_address_name, r.x, r.y, r.place_url,
 		       r.funding_amount, r.funding_goal_amount,
-		       i.image_url AS imageUrl
+		       i.image_url AS imageUrl,
+		       COALESCE(SUM(f.total_amount), 0) AS totalFundingAmount
 		FROM restaurant r
 		LEFT JOIN (
 			SELECT * FROM (
@@ -84,7 +85,10 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 				FROM restaurant_image ri
 			) t WHERE t.rn = 1
 		) i ON i.restaurant_id = r.id
+		LEFT JOIN funding f ON f.restaurant_id = r.id AND f.status = 'COMPLETED'
 		WHERE r.id = :id
+		GROUP BY r.id, r.name, r.category_name, r.phone, r.road_address_name, r.x, r.y, r.place_url,
+		         r.funding_amount, r.funding_goal_amount, i.image_url
 	""",
 		nativeQuery = true)
 	Object findDetailRow(@Param("id") Long id);

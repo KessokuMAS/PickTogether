@@ -11,6 +11,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -64,7 +65,8 @@ public class FundingServiceImpl implements FundingService {
     @Transactional(readOnly = true)
     public List<FundingDTO> getMemberFundings(String memberId) {
         log.info("회원 펀딩 목록 조회: memberId={}", memberId);
-        List<Funding> fundings = fundingRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
+        // JOIN FETCH를 사용하여 레스토랑 정보를 함께 조회
+        List<Funding> fundings = fundingRepository.findMemberFundingsWithRestaurant(memberId);
         return fundings.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -74,7 +76,8 @@ public class FundingServiceImpl implements FundingService {
     @Transactional(readOnly = true)
     public List<FundingDTO> getRestaurantFundings(Long restaurantId) {
         log.info("레스토랑 펀딩 목록 조회: restaurantId={}", restaurantId);
-        List<Funding> fundings = fundingRepository.findByRestaurantIdOrderByCreatedAtDesc(restaurantId);
+        // JOIN FETCH를 사용하여 레스토랑 정보를 함께 조회
+        List<Funding> fundings = fundingRepository.findRestaurantFundingsWithRestaurant(restaurantId);
         return fundings.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -90,9 +93,24 @@ public class FundingServiceImpl implements FundingService {
     }
     
     private FundingDTO convertToDTO(Funding funding) {
+        // 레스토랑 정보를 직접 조회하여 마감일 가져오기
+        LocalDate fundingEndDate = null;
+        try {
+            // funding에서 restaurant_id를 가져와서 직접 조회
+            if (funding.getRestaurant() != null && funding.getRestaurant().getId() != null) {
+                var restaurant = restaurantRepository.findById(funding.getRestaurant().getId()).orElse(null);
+                if (restaurant != null) {
+                    fundingEndDate = restaurant.getFundingEndDate();
+                    log.info("레스토랑 마감일 조회 성공: fundingId={}, restaurantId={}, endDate={}", 
+                            funding.getId(), funding.getRestaurant().getId(), fundingEndDate);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("레스토랑 마감일 조회 실패: fundingId={}", funding.getId(), e);
+        }
+        
         return FundingDTO.builder()
                 .id(funding.getId())
-                .restaurantId(funding.getRestaurant().getId()) // 레스토랑 ID 추가
                 .restaurantName(funding.getRestaurantName())
                 .menuInfo(funding.getMenuInfo())
                 .totalAmount(funding.getTotalAmount())
@@ -103,6 +121,7 @@ public class FundingServiceImpl implements FundingService {
                 .agreeEmail(funding.getAgreeEmail())
                 .status(funding.getStatus().name())
                 .createdAt(funding.getCreatedAt())
+                .fundingEndDate(fundingEndDate)
                 .build();
     }
 } 

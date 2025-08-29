@@ -47,6 +47,7 @@ const CommunityPage = () => {
 
   // 상태 관리
   const [posts, setPosts] = useState([]);
+  const [allPosts, setAllPosts] = useState([]); // 전체 게시글 (오늘의 추천용)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showWriteForm, setShowWriteForm] = useState(false);
@@ -91,8 +92,39 @@ const CommunityPage = () => {
   // 초기 데이터 로드
   useEffect(() => {
     loadPosts(0); // 첫 페이지부터 로드
+    loadAllPosts(); // 전체 게시글 로드 (오늘의 추천용)
     loadTodayRecommendation();
   }, []);
+
+  // 전체 게시글 로드 (오늘의 추천용)
+  const loadAllPosts = async () => {
+    try {
+      console.log("loadAllPosts 호출됨");
+      const response = await communityApi.getPosts(
+        0,
+        1000, // 충분한 수의 게시글을 가져와서 오늘의 추천에 사용
+        "createdAt",
+        "desc",
+        userInfo?.email
+      );
+
+      console.log("loadAllPosts 응답:", response);
+
+      if (response && response.content) {
+        setAllPosts(response.content);
+        console.log("allPosts 설정됨:", response.content);
+      } else if (Array.isArray(response)) {
+        setAllPosts(response);
+        console.log("allPosts 설정됨 (배열):", response);
+      } else {
+        setAllPosts([]);
+        console.log("allPosts 빈 배열로 설정됨");
+      }
+    } catch (error) {
+      console.error("전체 게시글 로드 실패:", error);
+      setAllPosts([]);
+    }
+  };
 
   // 오늘의 추천 데이터 로드
   const loadTodayRecommendation = async () => {
@@ -212,11 +244,17 @@ const CommunityPage = () => {
         setPosts(
           posts.map((post) => (post.id === editingPost.id ? updatedPost : post))
         );
+        setAllPosts(
+          allPosts.map((post) =>
+            post.id === editingPost.id ? updatedPost : post
+          )
+        );
         setEditingPost(null);
       } else {
         // 새 글 작성
         const newPost = await communityApi.createPost(submitData);
         setPosts([newPost, ...posts]);
+        setAllPosts([newPost, ...allPosts]); // allPosts도 업데이트
       }
 
       // 폼 초기화
@@ -231,6 +269,7 @@ const CommunityPage = () => {
 
       // 목록 새로고침 (첫 페이지로)
       loadPosts(0);
+      loadAllPosts(); // 전체 게시글도 새로고침
       setCurrentPage(0);
     } catch (error) {
       if (error?.response?.status === 403) {
@@ -254,6 +293,9 @@ const CommunityPage = () => {
 
         // 현재 페이지에서 게시글이 하나만 남았고, 첫 페이지가 아닌 경우 이전 페이지로
         const remainingPosts = posts.filter((post) => post.id !== postId);
+        // allPosts에서도 삭제
+        setAllPosts(allPosts.filter((post) => post.id !== postId));
+
         if (remainingPosts.length === 0 && currentPage > 0) {
           handlePageChange(currentPage - 1);
         } else {
@@ -618,6 +660,8 @@ const CommunityPage = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log("이미지 파일 선택됨:", file);
+
       // 파일 크기 체크 (10MB 제한)
       if (file.size > 10 * 1024 * 1024) {
         alert("이미지 파일 크기는 10MB 이하여야 합니다.");
@@ -630,11 +674,18 @@ const CommunityPage = () => {
         return;
       }
 
-      setFormData((prev) => ({
-        ...prev,
-        imageFile: file,
-        imagePreview: URL.createObjectURL(file),
-      }));
+      const imagePreview = URL.createObjectURL(file);
+      console.log("이미지 미리보기 URL 생성:", imagePreview);
+
+      setFormData((prev) => {
+        const newFormData = {
+          ...prev,
+          imageFile: file,
+          imagePreview: imagePreview,
+        };
+        console.log("새로운 formData:", newFormData);
+        return newFormData;
+      });
     }
   };
 
@@ -733,157 +784,207 @@ const CommunityPage = () => {
             </button>
           </div>
 
-          {/* 오늘의 추천 섹션 */}
-          <div className="max-w-6xl mx-auto mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* 🔥 오늘의 펀딩 */}
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 h-[300px] flex flex-col">
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                  <h3 className="text-lg font-bold flex items-center text-gray-800">
-                    <FiTag className="mr-2 text-green-500" />
-                    🔥 오늘의 펀딩
-                  </h3>
-                  <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    HOT
+          {/* 오늘의 추천 섹션 - 전체 카테고리일 때만 표시 */}
+          {currentCategory === "전체" && (
+            <div className="max-w-6xl mx-auto mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 🔥 오늘의 펀딩 */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 h-[300px] flex flex-col">
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                    <h3 className="text-lg font-bold flex items-center text-gray-800">
+                      <FiTag className="mr-2 text-green-500" />
+                      🔥 오늘의 펀딩
+                    </h3>
+                    <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      HOT
+                    </div>
                   </div>
-                </div>
 
-                {/* 인기 펀딩 게시물 */}
-                <div className="flex-1 mb-4 overflow-hidden">
-                  {posts
-                    .filter((post) => post.category === "펀딩추천")
-                    .sort((a, b) => (b.views || 0) - (a.views || 0))
-                    .slice(0, 1)
-                    .map((post, index) => (
-                      <div
-                        key={post.id}
-                        className="bg-gray-50 border border-gray-100 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-all duration-200 h-full flex flex-col"
-                        onClick={() => navigate(`/community/post/${post.id}`)}
-                      >
-                        <div className="flex items-start space-x-4 flex-1">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                              👑
+                  {/* 인기 펀딩 게시물 */}
+                  <div className="flex-1 mb-4 overflow-hidden">
+                    {(() => {
+                      const fundingPosts = allPosts
+                        .filter((post) => post.category === "펀딩추천")
+                        .sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+                      console.log("펀딩추천 게시글:", fundingPosts);
+                      console.log("전체 allPosts:", allPosts);
+
+                      if (fundingPosts.length === 0) {
+                        return (
+                          <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 h-full flex items-center justify-center">
+                            <div className="text-center text-gray-500">
+                              <div className="text-2xl mb-2">📝</div>
+                              <p className="text-sm">
+                                아직 펀딩 추천 게시글이 없습니다.
+                              </p>
+                              <p className="text-xs mt-1">
+                                첫 번째 펀딩을 추천해보세요!
+                              </p>
                             </div>
                           </div>
-                          <div className="flex-1 min-w-0 flex flex-col">
-                            <h4 className="text-gray-800 font-semibold text-sm mb-2 leading-tight">
-                              {post.title.length > 30
-                                ? post.title.substring(0, 30) + "..."
-                                : post.title}
-                            </h4>
-                            <p className="text-gray-600 text-xs mb-3 leading-relaxed flex-1">
-                              {post.content.length > 70
-                                ? post.content.substring(0, 70) + "..."
-                                : post.content}
-                            </p>
-                            <div className="flex items-center justify-between text-xs mt-auto">
-                              <span className="text-green-600 font-medium">
-                                ❤️ {post.likes || 0}
-                              </span>
-                              <span className="text-gray-500">
-                                👁️ {post.views || 0}
-                              </span>
+                        );
+                      }
+
+                      return fundingPosts.slice(0, 1).map((post, index) => (
+                        <div
+                          key={post.id}
+                          className="bg-gray-50 border border-gray-100 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-all duration-200 h-full flex flex-col"
+                          onClick={() => navigate(`/community/post/${post.id}`)}
+                        >
+                          <div className="flex items-start space-x-4 flex-1">
+                            <div className="flex-shrink-0">
+                              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                👑
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col">
+                              <h4 className="text-gray-800 font-semibold text-sm mb-2 leading-tight">
+                                {post.title.length > 30
+                                  ? post.title.substring(0, 30) + "..."
+                                  : post.title}
+                              </h4>
+                              <p className="text-gray-600 text-xs mb-3 leading-relaxed flex-1">
+                                {post.content.length > 70
+                                  ? post.content.substring(0, 70) + "..."
+                                  : post.content}
+                              </p>
+                              <div className="flex items-center justify-between text-xs mt-auto">
+                                <span className="text-green-600 font-medium">
+                                  ❤️ {post.likes || 0}
+                                </span>
+                                <span className="text-gray-500">
+                                  👁️ {post.views || 0}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                </div>
-
-                {/* 더보기 버튼 */}
-                <button
-                  onClick={() => handleCategoryFilter("펀딩추천")}
-                  className="w-full bg-green-500 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm flex-shrink-0"
-                >
-                  더 많은 펀딩 보기 →
-                </button>
-              </div>
-
-              {/* 🍜 오늘의 숨은 맛집 */}
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 h-[300px] flex flex-col">
-                <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                  <h3 className="text-lg font-bold flex items-center text-gray-800">
-                    <FiTag className="mr-2 text-orange-500" />
-                    🍜 오늘의 숨은 맛집
-                  </h3>
-                  <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    BEST
+                      ));
+                    })()}
                   </div>
+
+                  {/* 더보기 버튼 */}
+                  <button
+                    onClick={() => handleCategoryFilter("펀딩추천")}
+                    className="w-full bg-green-500 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm flex-shrink-0"
+                  >
+                    더 많은 펀딩 보기 →
+                  </button>
                 </div>
 
-                {/* 인기 숨은 맛집 게시물 */}
-                <div className="flex-1 mb-4 overflow-hidden">
-                  {posts
-                    .filter((post) => post.category === "숨은 맛집추천")
-                    .sort((a, b) => (b.views || 0) - (a.views || 0))
-                    .slice(0, 1)
-                    .map((post, index) => (
-                      <div
-                        key={post.id}
-                        className="bg-orange-50 border border-orange-100 rounded-lg p-4 cursor-pointer hover:bg-orange-100 transition-all duration-200 h-full flex flex-col"
-                        onClick={() => navigate(`/community/post/${post.id}`)}
-                      >
-                        <div className="flex items-start space-x-4 flex-1">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                              👑
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0 flex flex-col">
-                            <h4 className="text-gray-800 font-semibold text-sm mb-2 leading-tight">
-                              {post.title.length > 30
-                                ? post.title.substring(0, 30) + "..."
-                                : post.title}
-                            </h4>
-                            <p className="text-gray-600 text-xs mb-2 leading-relaxed">
-                              {post.content.length > 50
-                                ? post.content.substring(0, 50) + "..."
-                                : post.content}
-                            </p>
-                            <div className="space-y-1 mb-3 flex-1">
-                              {post.restaurantName && (
-                                <div className="text-orange-600 text-xs font-medium">
-                                  🏪{" "}
-                                  {post.restaurantName.length > 20
-                                    ? post.restaurantName.substring(0, 20) +
-                                      "..."
-                                    : post.restaurantName}
-                                </div>
-                              )}
-                              {post.address && (
-                                <div className="text-gray-500 text-xs">
-                                  📍{" "}
-                                  {post.address.length > 25
-                                    ? post.address.substring(0, 25) + "..."
-                                    : post.address}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-auto">
-                              <span className="text-orange-600 font-medium">
-                                ❤️ {post.likes || 0}
-                              </span>
-                              <span className="text-gray-500">
-                                👁️ {post.views || 0}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                {/* 🍜 오늘의 숨은 맛집 */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4 h-[300px] flex flex-col">
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
+                    <h3 className="text-lg font-bold flex items-center text-gray-800">
+                      <FiTag className="mr-2 text-orange-500" />
+                      🍜 오늘의 숨은 맛집
+                    </h3>
+                    <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      BEST
+                    </div>
+                  </div>
 
-                {/* 더보기 버튼 */}
-                <button
-                  onClick={() => handleCategoryFilter("숨은 맛집추천")}
-                  className="w-full bg-orange-500 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-orange-600 transition-colors duration-200 text-sm flex-shrink-0"
-                >
-                  더 많은 숨은 맛집 보기 →
-                </button>
+                  {/* 인기 숨은 맛집 게시물 */}
+                  <div className="flex-1 mb-4 overflow-hidden">
+                    {(() => {
+                      const hiddenRestaurantPosts = allPosts
+                        .filter((post) => post.category === "숨은 맛집추천")
+                        .sort((a, b) => (b.likes || 0) - (a.likes || 0));
+
+                      console.log(
+                        "숨은 맛집추천 게시글:",
+                        hiddenRestaurantPosts
+                      );
+
+                      if (hiddenRestaurantPosts.length === 0) {
+                        return (
+                          <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 h-full flex items-center justify-center">
+                            <div className="text-center text-orange-500">
+                              <div className="text-2xl mb-2">🍜</div>
+                              <p className="text-sm">
+                                아직 숨은 맛집 추천 게시글이 없습니다.
+                              </p>
+                              <p className="text-xs mt-1">
+                                첫 번째 숨은 맛집을 추천해보세요!
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return hiddenRestaurantPosts
+                        .slice(0, 1)
+                        .map((post, index) => (
+                          <div
+                            key={post.id}
+                            className="bg-orange-50 border border-orange-100 rounded-lg p-4 cursor-pointer hover:bg-orange-100 transition-all duration-200 h-full flex flex-col"
+                            onClick={() =>
+                              navigate(`/community/post/${post.id}`)
+                            }
+                          >
+                            <div className="flex items-start space-x-4 flex-1">
+                              <div className="flex-shrink-0">
+                                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                  👑
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0 flex flex-col">
+                                <h4 className="text-gray-800 font-semibold text-sm mb-2 leading-tight">
+                                  {post.title.length > 30
+                                    ? post.title.substring(0, 30) + "..."
+                                    : post.title}
+                                </h4>
+                                <p className="text-gray-600 text-xs mb-2 leading-relaxed">
+                                  {post.content.length > 50
+                                    ? post.content.substring(0, 50) + "..."
+                                    : post.content}
+                                </p>
+                                <div className="space-y-1 mb-3 flex-1">
+                                  {post.restaurantName && (
+                                    <div className="text-orange-600 text-xs font-medium">
+                                      🏪{" "}
+                                      {post.restaurantName.length > 20
+                                        ? post.restaurantName.substring(0, 20) +
+                                          "..."
+                                        : post.restaurantName}
+                                    </div>
+                                  )}
+                                  {post.address && (
+                                    <div className="text-gray-500 text-xs">
+                                      📍{" "}
+                                      {post.address.length > 25
+                                        ? post.address.substring(0, 25) + "..."
+                                        : post.address}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between text-xs mt-auto">
+                                  <span className="text-orange-600 font-medium">
+                                    ❤️ {post.likes || 0}
+                                  </span>
+                                  <span className="text-gray-500">
+                                    👁️ {post.views || 0}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ));
+                    })()}
+                  </div>
+
+                  {/* 더보기 버튼 */}
+                  <button
+                    onClick={() => handleCategoryFilter("숨은 맛집추천")}
+                    className="w-full bg-orange-500 text-white font-medium py-2.5 px-4 rounded-lg hover:bg-orange-600 transition-colors duration-200 text-sm flex-shrink-0"
+                  >
+                    더 많은 숨은 맛집 보기 →
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* ▼ 게시글 리스트 - 페이지 전체 기준 중앙 */}
           {loading ? (
@@ -1390,22 +1491,42 @@ const CommunityPage = () => {
                     </label>
 
                     {/* 이미지 미리보기 */}
-                    {formData.imagePreview && (
-                      <div className="mb-3 relative">
-                        <img
-                          src={formData.imagePreview}
-                          alt="이미지 미리보기"
-                          className="w-full h-48 object-cover rounded-lg border border-gray-200"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage}
-                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                        >
-                          <FiX size={16} />
-                        </button>
-                      </div>
-                    )}
+                    {(() => {
+                      console.log(
+                        "이미지 미리보기 렌더링:",
+                        formData.imagePreview
+                      );
+                      return (
+                        formData.imagePreview && (
+                          <div className="mb-3 relative">
+                            <img
+                              src={
+                                formData.imagePreview.startsWith("blob:")
+                                  ? formData.imagePreview
+                                  : formData.imagePreview.startsWith("http")
+                                  ? formData.imagePreview
+                                  : `http://localhost:8080/uploads${formData.imagePreview}`
+                              }
+                              alt="이미지 미리보기"
+                              className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                              onLoad={() =>
+                                console.log("이미지 미리보기 로드 성공")
+                              }
+                              onError={(e) =>
+                                console.error("이미지 미리보기 로드 실패:", e)
+                              }
+                            />
+                            <button
+                              type="button"
+                              onClick={handleRemoveImage}
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                            >
+                              <FiX size={16} />
+                            </button>
+                          </div>
+                        )
+                      );
+                    })()}
 
                     {/* 파일 업로드 */}
                     <div className="flex items-center space-x-3">

@@ -55,7 +55,10 @@ const cartItemVariants = {
 
 // Bar Progress Component
 const BarProgress = ({ value = 0, maxValue = 100 }) => {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const pct =
+    maxValue > 0
+      ? Math.max(0, Math.min(100, Math.round((value * 100) / maxValue)))
+      : 0;
   const barColor = pct >= 80 ? "#ef4444" : pct >= 50 ? "#facc15" : "#3b82f6";
 
   return (
@@ -229,7 +232,6 @@ const RestaurantDetailPage = () => {
   // Fallback menu items
   const fallbackMenuItems = useMemo(() => {
     const base = Number(id) || 1;
-    const pick = (offset) => `/${((base + offset) % 45) + 1}.png`;
     return [
       {
         id: base * 10 + 1,
@@ -237,15 +239,15 @@ const RestaurantDetailPage = () => {
         description: "신선한 재료로 만든 인기 메뉴",
         originalPrice: 15000,
         price: 12000,
-        imageUrl: "/묵은지두루치기.jpg",
+        imageUrl: `/${base}m1.jpg`,
       },
       {
         id: base * 10 + 2,
         name: "생삼겹살",
         description: "그 무엇보다 두껍다",
         originalPrice: 14000,
-        price: 9800,
-        imageUrl: "/생삽겹살.jpg",
+        price: 10000,
+        imageUrl: `/${base}m2.jpg`,
       },
       {
         id: base * 10 + 3,
@@ -253,7 +255,7 @@ const RestaurantDetailPage = () => {
         description: "살아서 움직일 수도 있어요",
         originalPrice: 18000,
         price: 15000,
-        imageUrl: "/철판쭈꾸미볶음.jpg",
+        imageUrl: `/${base}m3.jpg`,
       },
     ];
   }, [id]);
@@ -469,11 +471,17 @@ const RestaurantDetailPage = () => {
 
                     <div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
-                        {Number(data.fundingAmount ?? 0).toLocaleString()}원
-                        펀딩
+                        {Number(
+                          (data.fundingAmount ?? 0) +
+                            (data.totalFundingAmount ?? 0)
+                        ).toLocaleString()}
+                        원 펀딩
                       </div>
                       <BarProgress
-                        value={data.fundingPercent ?? 0}
+                        value={
+                          (data.fundingAmount ?? 0) +
+                          (data.totalFundingAmount ?? 0)
+                        }
                         maxValue={data.fundingGoalAmount ?? 0}
                       />
                       <div className="mt-3 text-sm text-gray-600 flex items-center gap-3">
@@ -578,9 +586,10 @@ const RestaurantDetailPage = () => {
                                   alt={menu.name}
                                   className="w-12 h-12 rounded-full object-cover border border-orange-100"
                                   onError={(e) => {
-                                    e.currentTarget.src = `/${
-                                      ((fallbackIdx + index) % 45) + 1
-                                    }.png`;
+                                    // 각 메뉴별로 고유한 fallback 이미지 사용
+                                    const base = Number(id) || 1;
+                                    const menuNumber = (index % 3) + 1;
+                                    e.currentTarget.src = `/${base}m${menuNumber}.png`;
                                   }}
                                 />
                                 <div className="flex-1">
@@ -696,9 +705,10 @@ const RestaurantDetailPage = () => {
                             alt={menu.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             onError={(e) => {
-                              e.currentTarget.src = `/${
-                                ((fallbackIdx + index) % 45) + 1
-                              }.png`;
+                              // 각 메뉴별로 고유한 fallback 이미지 사용
+                              const base = Number(id) || 1;
+                              const menuNumber = (index % 3) + 1;
+                              e.currentTarget.src = `/gif.gif`;
                             }}
                           />
                           <div className="absolute inset-0 bg-orange-600 bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300" />
@@ -756,70 +766,77 @@ const RestaurantDetailPage = () => {
               )}
 
               {/* Additional Info */}
-              <motion.div
-                className="bg-white rounded-2xl p-8 shadow-md border border-orange-100 space-y-8"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                {data.description && (
-                  <motion.div variants={itemVariants}>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4 tracking-tight">
-                      소개
-                    </h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      {data.description}
-                    </p>
-                  </motion.div>
-                )}
-                {data.businessHours && (
-                  <motion.div variants={itemVariants}>
-                    <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
-                      <FiClock className="text-orange-600 text-lg" /> 영업시간
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {data.businessHours}
-                    </p>
-                  </motion.div>
-                )}
-                {(data.homepageUrl || data.instagramUrl) && (
-                  <motion.div
-                    className="flex flex-wrap gap-4"
-                    variants={itemVariants}
-                  >
-                    {data.homepageUrl && (
-                      <a
-                        href={data.homepageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                        aria-label="홈페이지 방문"
-                      >
-                        <FiGlobe className="text-lg" /> 홈페이지
-                      </a>
-                    )}
-                    {data.instagramUrl && (
-                      <a
-                        href={data.instagramUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                        aria-label="인스타그램 방문"
-                      >
-                        <FiInstagram className="text-lg" /> 인스타그램
-                      </a>
-                    )}
-                  </motion.div>
-                )}
-                {data.notice && (
-                  <motion.div variants={itemVariants}>
-                    <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
-                      <FiAlertCircle className="text-orange-600 text-lg" /> 공지
-                    </div>
-                    <p className="text-sm text-gray-600">{data.notice}</p>
-                  </motion.div>
-                )}
-              </motion.div>
+              {(data.description ||
+                data.businessHours ||
+                data.homepageUrl ||
+                data.instagramUrl ||
+                data.notice) && (
+                <motion.div
+                  className="bg-white rounded-2xl p-8 shadow-md border border-orange-100 space-y-8"
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {data.description && (
+                    <motion.div variants={itemVariants}>
+                      <h3 className="text-xl font-bold text-gray-900 mb-4 tracking-tight">
+                        소개
+                      </h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">
+                        {data.description}
+                      </p>
+                    </motion.div>
+                  )}
+                  {data.businessHours && (
+                    <motion.div variants={itemVariants}>
+                      <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
+                        <FiClock className="text-orange-600 text-lg" /> 영업시간
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {data.businessHours}
+                      </p>
+                    </motion.div>
+                  )}
+                  {(data.homepageUrl || data.instagramUrl) && (
+                    <motion.div
+                      className="flex flex-wrap gap-4"
+                      variants={itemVariants}
+                    >
+                      {data.homepageUrl && (
+                        <a
+                          href={data.homepageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          aria-label="홈페이지 방문"
+                        >
+                          <FiGlobe className="text-lg" /> 홈페이지
+                        </a>
+                      )}
+                      {data.instagramUrl && (
+                        <a
+                          href={data.instagramUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition-all duration-300 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          aria-label="인스타그램 방문"
+                        >
+                          <FiInstagram className="text-lg" /> 인스타그램
+                        </a>
+                      )}
+                    </motion.div>
+                  )}
+                  {data.notice && (
+                    <motion.div variants={itemVariants}>
+                      <div className="flex items-center gap-2 font-bold text-gray-900 text-xl mb-4 tracking-tight">
+                        <FiAlertCircle className="text-orange-600 text-lg" />{" "}
+                        공지
+                      </div>
+                      <p className="text-sm text-gray-600">{data.notice}</p>
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
             </motion.div>
           ) : null}
         </div>
@@ -843,6 +860,100 @@ const RestaurantDetailPage = () => {
           }
         `}</style>
       </div>
+      {/* Footer Section */}
+      <footer className="mt-4 bg-gray-350 text-gray-700 text-sm">
+        <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* 회사 소개 */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-base">회사</h4>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  회사소개
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  채용
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  블로그
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* 서비스 */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-base">서비스</h4>
+            <ul className="space-y-2">
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  이용약관
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  개인정보처리방침
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-gray-900 transition-colors">
+                  고객센터
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* 고객센터 */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-base">고객센터</h4>
+            <ul className="space-y-2">
+              <li>전화: 1234-5678</li>
+              <li>이메일: support@example.com</li>
+              <li>평일 09:00~18:00 (주말/공휴일 제외)</li>
+            </ul>
+          </div>
+
+          {/* SNS */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-base">팔로우</h4>
+            <div className="flex items-center gap-4">
+              <a
+                href="#"
+                className="hover:text-gray-900 transition-colors"
+                aria-label="인스타그램"
+              >
+                <FiInstagram size={20} />
+              </a>
+              <a
+                href="#"
+                className="hover:text-gray-900 transition-colors"
+                aria-label="페이스북"
+              >
+                <FiGlobe size={20} />
+              </a>
+              <a
+                href="#"
+                className="hover:text-gray-900 transition-colors"
+                aria-label="블로그"
+              >
+                <IoRestaurantOutline size={20} />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* 저작권 */}
+        <div className="mt-8 border-t border-gray-400 pt-6 text-center text-gray-500 text-xs">
+          © 2025 픽투게더. All rights reserved.
+          <span className="block mt-1">
+            서비스 이용 시 주의사항 및 법적 안내 문구
+          </span>
+        </div>
+      </footer>
     </MainLayout>
   );
 };

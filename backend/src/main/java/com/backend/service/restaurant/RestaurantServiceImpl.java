@@ -49,10 +49,15 @@ public class RestaurantServiceImpl implements RestaurantService {
 					Long fundingAmount = cols[8] == null ? null : ((Number) cols[8]).longValue();
 					Long fundingGoalAmount = cols[9] == null ? null : ((Number) cols[9]).longValue();
 					String imageUrl = (String) cols[10];
+					Long totalFundingAmount = cols[11] == null ? null : ((Number) cols[11]).longValue();
 
 					Integer percent = null;
-					if (fundingGoalAmount != null && fundingGoalAmount > 0 && fundingAmount != null) {
-						long p = Math.round((fundingAmount * 100.0) / fundingGoalAmount);
+					if (fundingGoalAmount != null && fundingGoalAmount > 0) {
+						// 실제 펀딩된 총 금액 (기본 fundingAmount + 결제 완료된 금액)
+						Long actualFundingAmount = (fundingAmount != null ? fundingAmount : 0L) +
+							(totalFundingAmount != null ? totalFundingAmount : 0L);
+						
+						long p = Math.round((actualFundingAmount * 100.0) / fundingGoalAmount);
 						if (p < 0) p = 0;
 						if (p > 100) p = 100;
 						percent = (int) p;
@@ -71,6 +76,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 							.y(y)
 							.placeUrl(placeUrl)
 							.fundingAmount(fundingAmount)
+							.totalFundingAmount(totalFundingAmount)
 							.fundingGoalAmount(fundingGoalAmount)
 							.fundingPercent(percent)
 							.imageUrl(imageUrl)

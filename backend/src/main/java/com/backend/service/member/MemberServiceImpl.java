@@ -141,6 +141,42 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    public boolean updateProfile(String email, String nickname) {
+        log.info("프로필 수정 시도: " + email + " -> " + nickname);
+        
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+        
+        // 닉네임 업데이트
+        member.changeNickname(nickname);
+        memberRepository.save(member);
+        
+        log.info("프로필 수정 완료: " + email + " -> " + nickname);
+        return true;
+    }
+    
+    @Override
+    public boolean updatePassword(String email, String currentPassword, String newPassword) {
+        log.info("비밀번호 수정 시도: " + email);
+        
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 회원입니다."));
+        
+        // 현재 비밀번호 검증
+        if (!passwordEncoder.matches(currentPassword, member.getPw())) {
+            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+        }
+        
+        // 새 비밀번호 암호화 및 업데이트
+        String encodedNewPassword = passwordEncoder.encode(newPassword);
+        member.changePw(encodedNewPassword);
+        memberRepository.save(member);
+        
+        log.info("비밀번호 수정 완료: " + email);
+        return true;
+    }
+
+    @Override
     public boolean deleteAccount(String email, String confirmEmail) {
         if (!email.equals(confirmEmail)) {
             throw new RuntimeException("이메일이 일치하지 않습니다.");

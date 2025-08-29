@@ -70,6 +70,8 @@ public class CustomSecurityConfig {
                 .requestMatchers("/uploads/**").permitAll() // 이미지 파일 접근 허용
                 .requestMatchers("/api/member/mypage").authenticated()
                 .requestMatchers("/api/member/locations").authenticated()
+                .requestMatchers("/api/member/profile").authenticated()
+                .requestMatchers("/api/member/password").authenticated()
                 .requestMatchers("/api/member/**").permitAll()
                 .requestMatchers("/api/for-one/**").permitAll()
 

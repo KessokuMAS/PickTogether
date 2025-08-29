@@ -9,9 +9,12 @@ import java.util.List;
 
 public interface FundingRepository extends JpaRepository<Funding, Long> {
     
-    @Query("SELECT f FROM Funding f WHERE f.member.email = :memberId ORDER BY f.createdAt DESC")
-    List<Funding> findByMemberIdOrderByCreatedAtDesc(@Param("memberId") String memberId);
+    // JOIN FETCH를 사용하는 새로운 메서드들
+    @Query("SELECT DISTINCT f FROM Funding f LEFT JOIN FETCH f.restaurant r WHERE f.member.email = :memberId ORDER BY f.createdAt DESC")
+    List<Funding> findMemberFundingsWithRestaurant(@Param("memberId") String memberId);
     
-    @Query("SELECT f FROM Funding f WHERE f.restaurant.id = :restaurantId ORDER BY f.createdAt DESC")
-    List<Funding> findByRestaurantIdOrderByCreatedAtDesc(@Param("restaurantId") Long restaurantId);
+    @Query("SELECT DISTINCT f FROM Funding f LEFT JOIN FETCH f.restaurant r WHERE f.restaurant.id = :restaurantId ORDER BY f.createdAt DESC")
+    List<Funding> findRestaurantFundingsWithRestaurant(@Param("restaurantId") Long restaurantId);
+    
+    // 기존 메서드들은 제거 (JOIN FETCH가 적용되지 않는 문제 해결)
 } 

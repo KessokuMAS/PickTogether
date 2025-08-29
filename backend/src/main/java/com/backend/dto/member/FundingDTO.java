@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,7 +15,6 @@ import java.time.LocalDateTime;
 public class FundingDTO {
     
     private Long id;
-    private Long restaurantId; // 레스토랑 ID 추가
     private String restaurantName;
     private String menuInfo;
     private Long totalAmount;
@@ -25,4 +25,5 @@ public class FundingDTO {
     private Boolean agreeEmail;
     private String status;
     private LocalDateTime createdAt;
+    private LocalDate fundingEndDate;
 } 

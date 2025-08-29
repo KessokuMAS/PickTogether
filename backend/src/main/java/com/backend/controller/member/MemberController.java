@@ -164,6 +164,87 @@ public class MemberController {
         }
     }
 
+    @PutMapping("/profile")
+    public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody Map<String, String> request, Authentication authentication) {
+        try {
+            log.info("프로필 수정 요청: " + request);
+            
+            if (authentication == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "인증이 필요합니다.");
+                return ResponseEntity.status(401).body(errorResponse);
+            }
+            
+            String email = authentication.getName();
+            String nickname = request.get("nickname");
+            
+            if (nickname == null || nickname.trim().isEmpty()) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "닉네임을 입력해주세요.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            boolean result = memberService.updateProfile(email, nickname);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "프로필이 성공적으로 수정되었습니다.");
+            response.put("success", result);
+            
+            log.info("프로필 수정 성공: " + email + " -> " + nickname);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("프로필 수정 실패: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            log.error("프로필 수정 예외 발생: " + e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "서버 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    @PutMapping("/password")
+    public ResponseEntity<Map<String, Object>> updatePassword(@RequestBody Map<String, String> request, Authentication authentication) {
+        try {
+            log.info("비밀번호 수정 요청");
+            
+            if (authentication == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "인증이 필요합니다.");
+                return ResponseEntity.status(401).body(errorResponse);
+            }
+            
+            String email = authentication.getName();
+            String currentPassword = request.get("currentPassword");
+            String newPassword = request.get("newPassword");
+            
+            if (currentPassword == null || newPassword == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "현재 비밀번호와 새 비밀번호를 입력해주세요.");
+                return ResponseEntity.badRequest().body(errorResponse);
+            }
+            
+            boolean result = memberService.updatePassword(email, currentPassword, newPassword);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "비밀번호가 성공적으로 수정되었습니다.");
+            response.put("success", result);
+            
+            log.info("비밀번호 수정 성공: " + email);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            log.error("비밀번호 수정 실패: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            log.error("비밀번호 수정 예외 발생: " + e.getMessage(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "서버 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
     @PostMapping("/delete-account")
     public ResponseEntity<Map<String, Object>> deleteAccount(@RequestBody Map<String, String> request) {
         try {
