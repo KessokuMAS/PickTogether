@@ -157,8 +157,7 @@ PickTogether/
 
 > 주요 엔티티와 관계를 표시한 **ERD** 이미지를 업로드해 링크를 넣어주세요.
 
-![Image](https://github.com/user-attachments/assets/9a7be8d4-08b5-4dd6-bf2f-3a10013ae550)
-
+<img width="2750" height="1262" alt="Image" src="https://github.com/user-attachments/assets/9ea42336-07bd-434f-9111-a8fc7f494867" />
 ---
 
 ## 🛠️ 기술 스택
