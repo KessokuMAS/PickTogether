@@ -62,6 +62,7 @@ PickTogether/
     </td>
   </tr>
 </table>
+<br clear="all"/> <!-- ✅ 줄바꿈 강제 -->
 
 ---
 
