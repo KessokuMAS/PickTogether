@@ -107,7 +107,8 @@ PickTogether/
 ## 📁 주요 기능
 
 ###로그인 & 위치설정
--![Image](https://github.com/user-attachments/assets/ad3e8f76-ce89-4cf8-a173-4d4bd41f4c42)
+
+
 ### 💳 결제 & 주문
 
 * QR 코드 기반 주문 처리
