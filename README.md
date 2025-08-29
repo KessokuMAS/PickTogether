@@ -157,9 +157,7 @@ PickTogether/
 
 > 주요 엔티티와 관계를 표시한 **ERD** 이미지를 업로드해 링크를 넣어주세요.
 
-```md
-![ERD - 데이터 모델](https://your-erd-image-link.png)
-```
+![Image](https://github.com/user-attachments/assets/9a7be8d4-08b5-4dd6-bf2f-3a10013ae550)
 
 ---
 
