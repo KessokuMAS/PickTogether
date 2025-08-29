@@ -147,13 +147,12 @@ PickTogether/
 
 ---
 
-## 🧭 아키텍처 다이어그램 (UML)
+## 🧭IA
 
 > 실 서비스 구조를 나타내는 **컴포넌트/시퀀스/배포** 다이어그램 이미지를 업로드해 링크를 넣어주세요.
 
 ```md
-![UML - 시스템 아키텍처](https://your-uml-image-link.png)
-```
+<img width="1182" height="804" alt="Image" src="https://github.com/user-attachments/assets/cc54294e-68aa-4c57-aeee-59598d2a18bf" />```
 
 ---
 
