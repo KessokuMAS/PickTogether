@@ -85,9 +85,9 @@ PickTogether/
 * 알림 & 비즈니스 요청 (사업자 등록, 승인/거부 알림)
 * 보안 & 설정 (Spring Security, Config, Exception Handling, JWT)
 
-### 🛠 공통 & 인프라
+### 🛠 AI
 
-* API 모듈 & HTTP 통신 (Axios, JWT 인증)
+* LangChain_openAi
 * 소셜 로그인 연동 (카카오, 구글, 네이버)
 * 내 위치 설정(카카오 map)
 * 파일 업로드 & 이미지 관리
@@ -345,7 +345,7 @@ OPENAI_API_KEY=your_openai_api_key
 
 ## 📝 라이선스
 
-이 프로젝트는 **비공개 프로젝트**입니다.
+이 프로젝트는 **훌륭한 프로젝트**입니다.
 
 ---
 
