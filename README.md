@@ -50,6 +50,11 @@ PickTogether/
       <sub><b>KessokuMAS (고윤호)</b></sub><br>
       팀원
     </td>
+   <td align="center" style="padding: 20px;">
+      <img src="https://avatars.githubusercontent.com/minseo52" width="100px;" alt="bannana-key" /><br>
+      <sub><b>bannana-key (서민서)</b></sub><br>
+      팀원
+    </td>
     <td align="center" style="padding: 20px;">
       <img src="https://avatars.githubusercontent.com/bannana-key" width="100px;" alt="bannana-key" /><br>
       <sub><b>bannana-key (송승찬)</b></sub><br>
@@ -59,7 +64,7 @@ PickTogether/
 </table>
 
 
----
+---------------------------------------------
 <br>
 
 ### 🎨 Frontend
