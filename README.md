@@ -6,7 +6,7 @@
 ---
 
 ## 🏗️ 프로젝트 구조
-
+ 
 ```
 PickTogether/
 ├── front/        # React 프론트엔드
