@@ -32,11 +32,31 @@ PickTogether/
 ## 👥 팀원
 
 
-<img src="https://avatars.githubusercontent.com/inhan99" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/KessokuMAS" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/chanO4135" width="100px;" alt=""><img src="https://avatars.githubusercontent.com/bannana-key" width="100px;" alt="">
-inhan99 (고인한)
-KessokuMAS (고윤호)
-chanO4135 (김찬영)
-bannana-key (송승찬)
+<table align="left">
+  <tr>
+    <td align="center" style="padding: 20px;">
+      <img src="https://avatars.githubusercontent.com/inhan99" width="100px;" alt="inhan99" /><br>
+      <sub><b>inhan99 (고인한)</b></sub><br>
+      팀원
+    </td>
+    <td align="center" style="padding: 20px;">
+      <img src="https://avatars.githubusercontent.com/KessokuMAS" width="100px;" alt="KessokuMAS" /><br>
+      <sub><b>KessokuMAS (고윤호)</b></sub><br>
+      팀원
+    </td>
+    <td align="center" style="padding: 20px;">
+      <img src="https://avatars.githubusercontent.com/chanO4135" width="100px;" alt="chanO4135" /><br>
+      <sub><b>chanO4135 (김찬영)</b></sub><br>
+      팀장
+    </td>
+    <td align="center" style="padding: 20px;">
+      <img src="https://avatars.githubusercontent.com/bannana-key" width="100px;" alt="bannana-key" /><br>
+      <sub><b>bannana-key (송승찬)</b></sub><br>
+      팀원
+    </td>
+  </tr>
+</table>
+
 팀장: 고인한
 팀원: 고윤호, 김찬영, 송승찬
 
