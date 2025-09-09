@@ -21,10 +21,9 @@ PickTogether/
 ## 📄 관련 자료
 
 * [📹 시연 영상 ](https://youtu.be/3W5O2paquoo)
-* [📑 프로젝트 PDF (추가 필요)]()
+* [📑 프로젝트 PDF](https://github.com/KessokuMAS/PickTogether/blob/main/1%EC%A1%B0_%ED%94%BD%ED%88%AC%EA%B2%8C%EB%8D%94.pdf)
 
----
-
+  
 ## 📅 개발 기간
 
 * **2025년 7월 30일 \~ 2025년 8월 29일**
